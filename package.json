@@ -1,0 +1,124 @@
+{
+  "name": "django-orm-lens",
+  "displayName": "Django ORM Lens",
+  "description": "Live sidebar + ER diagram for your Django models. Navigate apps, models, fields and relationships without leaving the editor.",
+  "version": "0.1.0",
+  "publisher": "frowningdev",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FROWNINGdev/django-orm-lens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FROWNINGdev/django-orm-lens/issues"
+  },
+  "homepage": "https://github.com/FROWNINGdev/django-orm-lens#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "django",
+    "python",
+    "orm",
+    "models",
+    "er diagram",
+    "database",
+    "schema"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/manage.py",
+    "workspaceContains:**/models.py"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "djangoOrmLens",
+          "title": "Django ORM Lens",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "djangoOrmLens": [
+        {
+          "id": "djangoOrmLens.models",
+          "name": "Models",
+          "icon": "media/activitybar.svg",
+          "contextualTitle": "Django Models"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "djangoOrmLens.refresh",
+        "title": "Django ORM Lens: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "djangoOrmLens.showGraph",
+        "title": "Django ORM Lens: Show ER Diagram",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "djangoOrmLens.jumpToModel",
+        "title": "Django ORM Lens: Jump to Model"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "djangoOrmLens.refresh",
+          "when": "view == djangoOrmLens.models",
+          "group": "navigation"
+        },
+        {
+          "command": "djangoOrmLens.showGraph",
+          "when": "view == djangoOrmLens.models",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Django ORM Lens",
+      "properties": {
+        "djangoOrmLens.excludeGlobs": {
+          "type": "array",
+          "default": [
+            "**/migrations/**",
+            "**/node_modules/**",
+            "**/venv/**",
+            "**/.venv/**",
+            "**/env/**"
+          ],
+          "description": "Glob patterns to exclude when scanning for models.py"
+        },
+        "djangoOrmLens.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh when models.py files change"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "sharp": "^0.35.3",
+    "typescript": "^5.4.0"
+  }
+}

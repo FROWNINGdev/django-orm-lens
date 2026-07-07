@@ -1,0 +1,30 @@
+name: Bug report
+description: Something is broken or shows the wrong data
+labels: ["bug"]
+body:
+  - type: input
+    id: vscode
+    attributes:
+      label: VS Code version
+      placeholder: "1.90.0"
+    validations: { required: true }
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "Windows 11 / macOS 14 / Ubuntu 22.04"
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open project with these models.py …
+        2. Run command …
+        3. Expected X, got Y
+    validations: { required: true }
+  - type: textarea
+    id: models
+    attributes:
+      label: Sample models.py (minimized)
+      render: python

@@ -1,0 +1,100 @@
+import * as vscode from 'vscode';
+import { scanWorkspace } from './parser';
+import { DjangoTreeProvider } from './treeProvider';
+import { showGraph } from './graphWebview';
+import { WorkspaceIndex } from './types';
+
+let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
+let treeProvider: DjangoTreeProvider;
+let statusItem: vscode.StatusBarItem;
+let watcher: vscode.FileSystemWatcher | undefined;
+
+function getExcludeGlobs(): string[] {
+  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  return cfg.get<string[]>('excludeGlobs', [
+    '**/migrations/**',
+    '**/node_modules/**',
+    '**/venv/**',
+    '**/.venv/**',
+    '**/env/**',
+  ]);
+}
+
+async function refresh() {
+  const globs = getExcludeGlobs();
+  const before = Date.now();
+  currentIndex = await scanWorkspace(globs);
+  treeProvider.setIndex(currentIndex);
+  const total = currentIndex.apps.reduce((n, a) => n + a.models.length, 0);
+  const took = Date.now() - before;
+  statusItem.text = `$(database) ${total} model${total === 1 ? '' : 's'}`;
+  statusItem.tooltip = `Django ORM Lens — scanned in ${took}ms`;
+  statusItem.show();
+}
+
+function setupWatcher(context: vscode.ExtensionContext) {
+  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  const autoRefresh = cfg.get<boolean>('autoRefresh', true);
+  watcher?.dispose();
+  if (!autoRefresh) return;
+  watcher = vscode.workspace.createFileSystemWatcher('**/models.py');
+  const trigger = () => refresh();
+  watcher.onDidChange(trigger, null, context.subscriptions);
+  watcher.onDidCreate(trigger, null, context.subscriptions);
+  watcher.onDidDelete(trigger, null, context.subscriptions);
+  context.subscriptions.push(watcher);
+}
+
+export async function activate(context: vscode.ExtensionContext) {
+  treeProvider = new DjangoTreeProvider();
+  statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusItem.command = 'djangoOrmLens.showGraph';
+  context.subscriptions.push(statusItem);
+
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('djangoOrmLens.models', treeProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('djangoOrmLens.refresh', async () => {
+      await refresh();
+      vscode.window.setStatusBarMessage('$(check) Django ORM Lens refreshed', 2000);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('djangoOrmLens.showGraph', async () => {
+      if (currentIndex.apps.length === 0) await refresh();
+      showGraph(context, currentIndex);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'djangoOrmLens.jumpToModel',
+      async (filePath: string, lineNumber: number) => {
+        const uri = vscode.Uri.file(filePath);
+        const doc = await vscode.workspace.openTextDocument(uri);
+        const editor = await vscode.window.showTextDocument(doc);
+        const pos = new vscode.Position(lineNumber, 0);
+        editor.selection = new vscode.Selection(pos, pos);
+        editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('djangoOrmLens.autoRefresh')) setupWatcher(context);
+      if (e.affectsConfiguration('djangoOrmLens.excludeGlobs')) refresh();
+    })
+  );
+
+  setupWatcher(context);
+  await refresh();
+}
+
+export function deactivate() {
+  watcher?.dispose();
+  statusItem?.dispose();
+}
