@@ -15,10 +15,29 @@ const RELATION_TYPES: RelationKind[] = [
 ];
 
 const CLASS_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:/;
-const FIELD_RE =
-  /^\s{4}([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\(/;
-const META_START_RE = /^\s{4}class\s+Meta\s*(?:\([^)]*\))?\s*:/;
-const META_ITEM_RE = /^\s{8}([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+?)\s*(#.*)?$/;
+
+function detectClassIndent(lines: string[], classLineIdx: number): number {
+  for (let i = classLineIdx + 1; i < Math.min(classLineIdx + 30, lines.length); i++) {
+    const m = lines[i].match(/^([\t ]+)\S/);
+    if (m) return m[1].length;
+  }
+  return 4;
+}
+
+function buildBodyRegexes(indent: number) {
+  const w = `\\s{${indent}}`;
+  const w2 = `\\s{${indent * 2}}`;
+  return {
+    FIELD_RE: new RegExp(
+      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*models\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(`
+    ),
+    META_START_RE: new RegExp(`^${w}class\\s+Meta\\s*(?:\\([^)]*\\))?\\s*:`),
+    META_ITEM_RE: new RegExp(
+      `^${w2}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*(.+?)\\s*(#.*)?$`
+    ),
+    META_BODY_RE: new RegExp(`^\\s{${indent * 2},}`),
+  };
+}
 
 function extractRelated(argsBlock: string): string | undefined {
   const stripped = argsBlock.trim();
@@ -94,6 +113,10 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
       baseClasses,
     };
 
+    const indent = detectClassIndent(lines, i);
+    const { FIELD_RE, META_START_RE, META_ITEM_RE, META_BODY_RE } =
+      buildBodyRegexes(indent);
+
     let j = i + 1;
     while (j < lines.length) {
       const innerLine = lines[j];
@@ -110,7 +133,7 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
         let k = j + 1;
         while (k < lines.length) {
           const metaLine = lines[k];
-          if (metaLine.length && !/^\s{8,}/.test(metaLine) && metaLine.trim().length > 0) break;
+          if (metaLine.length && !META_BODY_RE.test(metaLine) && metaLine.trim().length > 0) break;
           const m = metaLine.match(META_ITEM_RE);
           if (m) {
             model.meta[m[1]] = m[2].trim();
