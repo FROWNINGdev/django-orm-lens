@@ -24,12 +24,29 @@ function detectClassIndent(lines: string[], classLineIdx: number): number {
   return 4;
 }
 
+const BARE_FIELD_TYPES = [
+  'CharField', 'TextField', 'SlugField', 'EmailField', 'URLField', 'UUIDField',
+  'IntegerField', 'BigIntegerField', 'SmallIntegerField',
+  'PositiveIntegerField', 'PositiveSmallIntegerField', 'PositiveBigIntegerField',
+  'FloatField', 'DecimalField',
+  'BooleanField', 'NullBooleanField',
+  'DateTimeField', 'DateField', 'TimeField', 'DurationField',
+  'JSONField', 'BinaryField',
+  'FileField', 'ImageField', 'FilePathField',
+  'GenericIPAddressField',
+  'AutoField', 'BigAutoField', 'SmallAutoField',
+  'ForeignKey', 'OneToOneField', 'ManyToManyField',
+].join('|');
+
 function buildBodyRegexes(indent: number) {
   const w = `\\s{${indent}}`;
   const w2 = `\\s{${indent * 2}}`;
   return {
     FIELD_RE: new RegExp(
       `^${w}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*models\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(`
+    ),
+    BARE_FIELD_RE: new RegExp(
+      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*(${BARE_FIELD_TYPES})\\s*\\(`
     ),
     META_START_RE: new RegExp(`^${w}class\\s+Meta\\s*(?:\\([^)]*\\))?\\s*:`),
     META_ITEM_RE: new RegExp(
@@ -114,7 +131,7 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
     };
 
     const indent = detectClassIndent(lines, i);
-    const { FIELD_RE, META_START_RE, META_ITEM_RE, META_BODY_RE } =
+    const { FIELD_RE, BARE_FIELD_RE, META_START_RE, META_ITEM_RE, META_BODY_RE } =
       buildBodyRegexes(indent);
 
     let j = i + 1;
@@ -144,7 +161,7 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
         continue;
       }
 
-      const fieldMatch = innerLine.match(FIELD_RE);
+      const fieldMatch = innerLine.match(FIELD_RE) ?? innerLine.match(BARE_FIELD_RE);
       if (fieldMatch) {
         const fieldName = fieldMatch[1];
         const fieldType = fieldMatch[2];
