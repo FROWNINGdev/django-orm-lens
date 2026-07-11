@@ -114,10 +114,19 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const looksLikeModel = baseClasses.some(
-      (b) => /models\.Model$/.test(b) || /Model$/.test(b) || /Abstract/.test(b)
-    );
-    if (!looksLikeModel && !baseClasses.some((b) => b.includes('Model'))) {
+    const NON_MODEL_TAIL =
+      /^(ModelAdmin|ModelForm|ModelSerializer|ModelChoiceField|ModelMultipleChoiceField|Serializer|Form|Admin|View|ViewSet|Manager|QuerySet|Config|AppConfig|Response|Handler|Middleware|Backend|Command)$/;
+    const looksLikeModel = baseClasses.some((b) => {
+      const tail = b.split('.').pop() ?? '';
+      if (NON_MODEL_TAIL.test(tail)) return false;
+      return (
+        /models\.Model$/.test(b) ||
+        /^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel)$/.test(tail) ||
+        /^Abstract[A-Z]/.test(tail) ||
+        /Mixin$/.test(tail)
+      );
+    });
+    if (!looksLikeModel) {
       i++;
       continue;
     }
