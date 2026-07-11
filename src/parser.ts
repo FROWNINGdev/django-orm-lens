@@ -96,7 +96,9 @@ function readBalancedArgs(lines: string[], startIdx: number): {
 export function parseModelsFile(filePath: string, content: string): ParsedModel[] {
   const lines = content.split(/\r?\n/);
   const models: ParsedModel[] = [];
-  const appName = path.basename(path.dirname(filePath)) || 'app';
+  const parent = path.basename(path.dirname(filePath));
+  const appName =
+    parent === 'models' ? path.basename(path.dirname(path.dirname(filePath))) : parent || 'app';
 
   let i = 0;
   while (i < lines.length) {
@@ -193,11 +195,25 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
   return models;
 }
 
+function appDirFor(fsPath: string): { dir: string; name: string } {
+  const parent = path.dirname(fsPath);
+  const parentName = path.basename(parent);
+  if (parentName === 'models') {
+    const grand = path.dirname(parent);
+    return { dir: grand, name: path.basename(grand) };
+  }
+  return { dir: parent, name: parentName };
+}
+
 export async function scanWorkspace(
   excludeGlobs: string[]
 ): Promise<WorkspaceIndex> {
   const excludePattern = `{${excludeGlobs.join(',')}}`;
-  const uris = await vscode.workspace.findFiles('**/models.py', excludePattern);
+  const [flat, split] = await Promise.all([
+    vscode.workspace.findFiles('**/models.py', excludePattern),
+    vscode.workspace.findFiles('**/models/*.py', excludePattern),
+  ]);
+  const uris = [...flat, ...split.filter((u) => !u.fsPath.endsWith('__init__.py'))];
   const appMap = new Map<string, ParsedApp>();
 
   for (const uri of uris) {
@@ -206,8 +222,7 @@ export async function scanWorkspace(
       const content = Buffer.from(bytes).toString('utf-8');
       const models = parseModelsFile(uri.fsPath, content);
       if (models.length === 0) continue;
-      const appDir = path.dirname(uri.fsPath);
-      const appName = path.basename(appDir);
+      const { dir: appDir, name: appName } = appDirFor(uri.fsPath);
       let app = appMap.get(appDir);
       if (!app) {
         app = { name: appName, path: appDir, models: [] };
