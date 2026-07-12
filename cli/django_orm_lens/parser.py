@@ -123,6 +123,18 @@ def _extract_related(args_block: str):
     return raw.strip("'\"")
 
 
+def _extract_on_delete(args_block: str):
+    m = re.search(r"on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)", args_block)
+    return m.group(1) if m else None
+
+
+def _extract_related_name(args_block: str):
+    m = re.search(r"related_name\s*=\s*(?:'([^']+)'|\"([^\"]+)\")", args_block)
+    if not m:
+        return None
+    return m.group(1) or m.group(2)
+
+
 def _read_balanced_args(lines: Sequence[str], start: int):
     open_idx = lines[start].index("(")
     depth = 0
@@ -242,7 +254,10 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
                 )
                 if is_rel:
                     field.relation_kind = ftype  # type: ignore[assignment]
-                    field.related_model = _extract_related(args_block.rstrip(")"))
+                    inner = args_block.rstrip(")")
+                    field.related_model = _extract_related(inner)
+                    field.on_delete = _extract_on_delete(inner)
+                    field.related_name = _extract_related_name(inner)
                 model.fields.append(field)
                 j = end_idx + 1
                 continue

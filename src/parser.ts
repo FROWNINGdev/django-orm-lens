@@ -95,6 +95,20 @@ function extractRelated(argsBlock: string): string | undefined {
   return clean;
 }
 
+function extractOnDelete(argsBlock: string): string | undefined {
+  const m = argsBlock.match(
+    /on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)/
+  );
+  return m?.[1];
+}
+
+function extractRelatedName(argsBlock: string): string | undefined {
+  const m = argsBlock.match(
+    /related_name\s*=\s*(?:'([^']+)'|"([^"]+)")/
+  );
+  return m ? m[1] || m[2] : undefined;
+}
+
 function readBalancedArgs(lines: string[], startIdx: number): {
   argsBlock: string;
   endIdx: number;
@@ -221,7 +235,12 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
         };
         if (isRel) {
           field.relationKind = fieldType as RelationKind;
-          field.relatedModel = extractRelated(argsBlock.slice(0, -1));
+          const argsInner = argsBlock.slice(0, -1);
+          field.relatedModel = extractRelated(argsInner);
+          const onDelete = extractOnDelete(argsInner);
+          if (onDelete) field.onDelete = onDelete;
+          const relatedName = extractRelatedName(argsInner);
+          if (relatedName) field.relatedName = relatedName;
         }
         model.fields.push(field);
         j = endIdx + 1;

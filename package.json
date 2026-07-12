@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "Live sidebar + ER diagram for your Django models. Navigate apps, models, fields and relationships without leaving the editor.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "frowningdev",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -129,6 +129,24 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically refresh when models.py files change"
+        },
+        "djangoOrmLens.diagramTheme": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "default", "dark", "forest", "neutral"],
+          "enumDescriptions": [
+            "Match the current VS Code color theme (dark or light)",
+            "Mermaid's default light palette",
+            "High-contrast dark palette",
+            "Muted green palette",
+            "Grayscale palette"
+          ],
+          "description": "Color theme for the ER diagram webview"
+        },
+        "djangoOrmLens.showCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a CodeLens above each Django model class with field/relation counts and an 'Open ER diagram' action"
         }
       }
     }

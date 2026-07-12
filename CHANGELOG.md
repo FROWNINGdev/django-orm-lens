@@ -5,6 +5,23 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-13
+
+Ships the terminal + AI-agent story and a batch of ER-diagram / editor polish.
+
+### Added
+- **Python CLI + MCP server** — companion package `django-orm-lens` on PyPI. Zero-dep CLI (`scan`, `describe`, `hover`, `list`, `er`) and an optional MCP stdio server exposing five read-only tools to Cursor, Aider, Continue.dev, Zed, and any MCP client. Install: `pip install "django-orm-lens[mcp]"`.
+- **CodeLens above every model class** — shows field count, relation count, and an "Open ER diagram" action. Toggle with `djangoOrmLens.showCodeLens`.
+- **Edge labels on the ER diagram** — relation arrows now include `on_delete` (CASCADE / SET_NULL / PROTECT) and `related_name` when present, e.g. `author [CASCADE, as posts]`.
+- **Diagram theme picker** — `djangoOrmLens.diagramTheme` accepts `auto` (default, follows VS Code theme), `default`, `dark`, `forest`, and `neutral`.
+- **Open VSX Registry** — the extension is now published on both VS Code Marketplace and Open VSX for VSCodium / Gitpod / code-server users.
+
+### Fixed
+- CI publish workflow was silently failing because of a YAML quoting bug — restored to green; adds parallel PyPI and Open VSX publish jobs.
+
+### Docs
+- README rewritten around three surfaces: VS Code extension, Python CLI, and MCP server. New Integrations table, updated roadmap, and Support section.
+
 ## [0.2.0] - 2026-07-15
 
 The polish release. Consolidates hover, filter, welcome, security hardening, and diagram export into a single minor bump.

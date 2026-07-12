@@ -44,8 +44,14 @@ function buildMermaid(index: WorkspaceIndex): string {
             : f.relationKind === 'OneToOneField'
             ? '||--||'
             : '}o--||';
+        const parts: string[] = [f.name];
+        if (f.onDelete) parts.push(f.onDelete);
+        if (f.relatedName) parts.push(`as ${f.relatedName}`);
+        const label = parts.length > 1
+          ? `${parts[0]} [${parts.slice(1).join(', ')}]`
+          : parts[0];
         lines.push(
-          `  ${escapeLabel(model.name)} ${arrow} ${escapeLabel(target)} : "${f.name}"`
+          `  ${escapeLabel(model.name)} ${arrow} ${escapeLabel(target)} : "${label}"`
         );
       }
     }
@@ -54,7 +60,19 @@ function buildMermaid(index: WorkspaceIndex): string {
   return lines.join('\n');
 }
 
+function resolveTheme(): string {
+  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  const raw = cfg.get<string>('diagramTheme', 'auto');
+  if (raw !== 'auto') return raw;
+  const kind = vscode.window.activeColorTheme.kind;
+  return kind === vscode.ColorThemeKind.Light ||
+    kind === vscode.ColorThemeKind.HighContrastLight
+    ? 'default'
+    : 'dark';
+}
+
 function html(mermaidSource: string, cspSource: string, nonce: string): string {
+  const theme = resolveTheme();
   return `<!doctype html>
 <html>
 <head>
@@ -90,7 +108,7 @@ function html(mermaidSource: string, cspSource: string, nonce: string): string {
     (function(){
       const vscode = acquireVsCodeApi();
       try {
-        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'strict' });
+        mermaid.initialize({ startOnLoad: true, theme: ${JSON.stringify(theme)}, securityLevel: 'strict' });
       } catch (e) {
         document.getElementById('d').textContent = 'Mermaid failed to load: ' + e.message;
         return;

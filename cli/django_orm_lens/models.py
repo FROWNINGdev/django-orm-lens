@@ -21,6 +21,8 @@ class ParsedField:
     line_number: int
     related_model: Optional[str] = None
     relation_kind: Optional[RelationKind] = None
+    on_delete: Optional[str] = None
+    related_name: Optional[str] = None
 
     def to_dict(self) -> dict:
         out = {
@@ -34,6 +36,10 @@ class ParsedField:
             out["relatedModel"] = self.related_model
         if self.relation_kind is not None:
             out["relationKind"] = self.relation_kind
+        if self.on_delete is not None:
+            out["onDelete"] = self.on_delete
+        if self.related_name is not None:
+            out["relatedName"] = self.related_name
         return out
 
 

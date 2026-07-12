@@ -7,6 +7,8 @@ export interface ParsedField {
   isRelation: boolean;
   relatedModel?: string;
   relationKind?: RelationKind;
+  onDelete?: string;
+  relatedName?: string;
   lineNumber: number;
 }
 

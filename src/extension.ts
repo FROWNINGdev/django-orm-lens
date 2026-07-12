@@ -3,10 +3,12 @@ import { scanWorkspace } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
 import { showGraph } from './graphWebview';
 import { DjangoHoverProvider } from './hoverProvider';
+import { DjangoCodeLensProvider } from './codeLensProvider';
 import { WorkspaceIndex } from './types';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
 let treeProvider: DjangoTreeProvider;
+let codeLensProvider: DjangoCodeLensProvider;
 let statusItem: vscode.StatusBarItem;
 let watcher: vscode.FileSystemWatcher | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -35,6 +37,7 @@ async function doScan(): Promise<void> {
     if (myGen !== scanGeneration) return;
     currentIndex = next;
     treeProvider.setIndex(currentIndex);
+    codeLensProvider?.refresh();
     const total = currentIndex.apps.reduce((n, a) => n + a.models.length, 0);
     const took = Date.now() - before;
     statusItem.text = `$(database) ${total} model${total === 1 ? '' : 's'}`;
@@ -101,6 +104,11 @@ export async function activate(context: vscode.ExtensionContext) {
       { language: 'python' },
       new DjangoHoverProvider(() => currentIndex)
     )
+  );
+
+  codeLensProvider = new DjangoCodeLensProvider(() => currentIndex);
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
   );
 
   context.subscriptions.push(
@@ -184,6 +192,9 @@ export async function activate(context: vscode.ExtensionContext) {
             `[config-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
           )
         );
+      }
+      if (e.affectsConfiguration('djangoOrmLens.showCodeLens')) {
+        codeLensProvider?.refresh();
       }
     })
   );
