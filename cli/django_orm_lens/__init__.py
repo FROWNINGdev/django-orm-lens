@@ -4,7 +4,7 @@ Terminal / editor-agnostic parser for Django models.py files.
 Ships a CLI and an optional MCP server for AI coding agents.
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 from .models import ParsedApp, ParsedField, ParsedModel, WorkspaceIndex
 from .parser import parse_models_file, scan_workspace

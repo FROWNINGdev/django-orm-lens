@@ -15,6 +15,7 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 
 [![Install from Marketplace](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![PyPI](https://img.shields.io/badge/PyPI-pip_install-3775a9?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6f42c1?style=for-the-badge)](https://registry.modelcontextprotocol.io/servers/io.github.FROWNINGdev%2Fdjango-orm-lens)
 [![Star on GitHub](https://img.shields.io/badge/★-Star_on_GitHub-24292f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/FROWNINGdev/django-orm-lens)
 [![Sponsor](https://img.shields.io/badge/♥-Sponsor-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/FROWNINGdev)
 
@@ -178,11 +179,12 @@ Set `DJANGO_ORM_LENS_ROOT=/abs/path/to/project` to point it anywhere.
 |---|---|:-:|
 | **VS Code** | `code --install-extension frowningdev.django-orm-lens` | ✅ |
 | **Cursor** | same VSIX + optional MCP entry in `~/.cursor/mcp.json` | ✅ |
-| **Windsurf / VSCodium / any Code fork** | install the VSIX from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) or the [GitHub Releases](https://github.com/FROWNINGdev/django-orm-lens/releases) | ✅ |
+| **Windsurf / VSCodium / any Code fork** | install the VSIX from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) or [GitHub Releases](https://github.com/FROWNINGdev/django-orm-lens/releases) | ✅ |
 | **Aider** | add `django-orm-lens-mcp` to your `mcp.json` | ✅ (via MCP) |
 | **Continue.dev** | register the MCP server in `~/.continue/config.json` | ✅ (via MCP) |
 | **Zed** | register the MCP server in Zed settings | ✅ (via MCP) |
 | **Any MCP-compatible client** | point `command` at `django-orm-lens-mcp`, set `DJANGO_ORM_LENS_ROOT` | ✅ |
+| **Discoverable via [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.FROWNINGdev%2Fdjango-orm-lens)** | official Model Context Protocol server directory | ✅ |
 | **Plain terminal / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
 ### Example: Cursor / any MCP client

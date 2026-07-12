@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.frowningdev/django-orm-lens",
+  "name": "io.github.FROWNINGdev/django-orm-lens",
   "title": "Django ORM Lens",
   "description": "Static-analysis MCP server for Django models. 5 read-only tools. No DB, no boot, no creds.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "repository": {
     "url": "https://github.com/FROWNINGdev/django-orm-lens",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "django-orm-lens",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "transport": {
         "type": "stdio"
       },

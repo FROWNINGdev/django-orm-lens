@@ -5,6 +5,18 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [py-1.0.3] - 2026-07-13
+
+Python package only. VS Code extension unchanged at 0.3.0.
+
+### Added
+- **Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.FROWNINGdev%2Fdjango-orm-lens)** — the server is now discoverable through the canonical Model Context Protocol directory. MCP-compatible clients can find it by name (`io.github.FROWNINGdev/django-orm-lens`).
+- `cli/server.json` — MCP Registry metadata (PyPI package, stdio transport, uvx runtime hint).
+- Ownership-verification marker in `cli/README.md` (hidden HTML comment) so the registry can prove the PyPI package is ours.
+
+### Fixed
+- 1.0.1: added `on_delete` and `related_name` extraction — kept for parity with the VS Code extension.
+
 ## [0.3.0] - 2026-07-13
 
 Ships the terminal + AI-agent story and a batch of ER-diagram / editor polish.
