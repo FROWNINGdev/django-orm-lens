@@ -1,5 +1,7 @@
 # django-orm-lens
 
+<!-- mcp-name: io.github.frowningdev/django-orm-lens -->
+
 **Static analysis + MCP server for Django models.** Terminal- and AI-agent-friendly.
 
 Ships with a zero-dependency parser, a JSON/Markdown/table CLI, and an optional
