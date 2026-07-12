@@ -14,10 +14,9 @@ Ships the terminal + AI-agent story and a batch of ER-diagram / editor polish.
 - **CodeLens above every model class** — shows field count, relation count, and an "Open ER diagram" action. Toggle with `djangoOrmLens.showCodeLens`.
 - **Edge labels on the ER diagram** — relation arrows now include `on_delete` (CASCADE / SET_NULL / PROTECT) and `related_name` when present, e.g. `author [CASCADE, as posts]`.
 - **Diagram theme picker** — `djangoOrmLens.diagramTheme` accepts `auto` (default, follows VS Code theme), `default`, `dark`, `forest`, and `neutral`.
-- **Open VSX Registry** — the extension is now published on both VS Code Marketplace and Open VSX for VSCodium / Gitpod / code-server users.
 
 ### Fixed
-- CI publish workflow was silently failing because of a YAML quoting bug — restored to green; adds parallel PyPI and Open VSX publish jobs.
+- CI publish workflow was silently failing because of a YAML quoting bug — restored to green; adds a parallel PyPI publish job.
 
 ### Docs
 - README rewritten around three surfaces: VS Code extension, Python CLI, and MCP server. New Integrations table, updated roadmap, and Support section.

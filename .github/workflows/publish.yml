@@ -52,17 +52,6 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce publish --no-dependencies --packagePath "${{ env.VSIX_PATH }}"
 
-      - name: Publish to Open VSX Registry
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: |
-          if [ -z "$OVSX_PAT" ]; then
-            echo "OVSX_PAT secret not set — skipping Open VSX publish."
-            exit 0
-          fi
-          npx --yes ovsx publish "${{ env.VSIX_PATH }}" --pat "$OVSX_PAT"
-        continue-on-error: true
-
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
