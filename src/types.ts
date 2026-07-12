@@ -9,6 +9,7 @@ export interface ParsedField {
   relationKind?: RelationKind;
   onDelete?: string;
   relatedName?: string;
+  throughModel?: string;
   lineNumber: number;
 }
 

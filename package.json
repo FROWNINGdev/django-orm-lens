@@ -154,6 +154,7 @@
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "tsc -p ./",
+    "test": "npm run build && node --test",
     "watch": "tsc -watch -p ./",
     "package": "vsce package",
     "publish": "vsce publish"
