@@ -1,27 +1,30 @@
 <div align="center">
 
-<img src="media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models in VS Code" width="100%"/>
+<img src="media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
 
 <br/>
 <br/>
 
 # Django ORM Lens
 
-### 🔍 See your entire Django schema. Without leaving the editor.
+### See your entire Django schema — in your editor, in your terminal, and from your AI agent.
 
 Every app. Every model. Every field. Every relationship. Grouped, navigable, and one keystroke away from a live ER diagram.
 
 <br/>
 
-[![Install from Marketplace](https://img.shields.io/badge/Install-Marketplace-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Install from Marketplace](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![PyPI](https://img.shields.io/badge/PyPI-pip_install-3775a9?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
 [![Star on GitHub](https://img.shields.io/badge/★-Star_on_GitHub-24292f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/FROWNINGdev/django-orm-lens)
 [![Sponsor](https://img.shields.io/badge/♥-Sponsor-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/FROWNINGdev)
 
 <br/>
 
-[![Version](https://img.shields.io/visual-studio-marketplace/v/frowningdev.django-orm-lens?color=0c4b33&label=version&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Version](https://img.shields.io/visual-studio-marketplace/v/frowningdev.django-orm-lens?color=0c4b33&label=extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/frowningdev.django-orm-lens?color=0c4b33&label=installs)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/frowningdev.django-orm-lens?color=0c4b33&label=rating)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
+[![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=pypi)](https://pypi.org/project/django-orm-lens/)
+[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![License MIT](https://img.shields.io/badge/license-MIT-0c4b33?style=flat)](LICENSE)
 [![CI](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml)
 
@@ -29,13 +32,24 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 
 ---
 
-## ⚡ Install in one line
+## ⚡ Install
+
+**VS Code / Cursor / Windsurf / any Code fork:**
 
 ```bash
 code --install-extension frowningdev.django-orm-lens
 ```
 
-Or search **`Django ORM Lens`** in the VS Code Extensions view.
+Or search **`Django ORM Lens`** in the Extensions view.
+
+**Terminal & AI coding agents:**
+
+```bash
+pip install django-orm-lens              # CLI only
+pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
+```
+
+Requires Python 3.9+. Zero runtime dependencies for the CLI.
 
 <br/>
 
@@ -45,13 +59,7 @@ You open a Django project. It has 20 apps. You need to answer a simple question:
 
 > _"Which app owns the `Order` model, and how is it connected to `User`?"_
 
-Today, you do this:
-
-1. `Ctrl+P`, type "models" — scroll through 30 hits
-2. Open five files
-3. `Ctrl+F` for `class Order`
-4. Read through 400 lines of `ForeignKey('otherapp.Something')` strings
-5. Try to remember what you learned in step 2
+Today, that means: `Ctrl+P`, "models", scroll through 30 hits, open five files, `Ctrl+F` for `class Order`, read through 400 lines of `ForeignKey('otherapp.Something')` strings, try to remember what you learned two files ago.
 
 **Half a day gone. Every time. On every project.**
 
@@ -74,7 +82,7 @@ Icons distinguish `CharField` from `ForeignKey` from `ManyToManyField` at a glan
 
 ### 🕸️ A live ER diagram
 
-One command opens a Mermaid entity-relationship diagram of your entire schema. Watch it redraw as you edit.
+One command opens a Mermaid entity-relationship diagram of your entire schema. Watch it redraw as you edit. Export to SVG.
 
 `ForeignKey`, `OneToOneField`, and `ManyToManyField` become proper cardinality arrows.
 
@@ -83,11 +91,20 @@ One command opens a Mermaid entity-relationship diagram of your entire schema. W
 <tr>
 <td width="50%" valign="top">
 
-### 🧭 Jump-to-definition
+### 🔎 Hover for relations
 
-Click any field in the tree → cursor lands on the exact line. No file dialog, no fuzzy search.
+Hover over `ForeignKey('app.Model')` in any Python file → a card pops up with the target model's fields, relations, and a "Jump to" link. No `Ctrl+F`, no file dialog.
 
 </td>
+<td width="50%" valign="top">
+
+### 🧭 Jump-to-definition
+
+Click any field in the tree → cursor lands on the exact line. Filter the tree by app or model name. Split `models/` packages are fully supported.
+
+</td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 
 ### ⚡ Zero configuration
@@ -95,20 +112,11 @@ Click any field in the tree → cursor lands on the exact line. No file dialog, 
 No `DJANGO_SETTINGS_MODULE`. No `runserver`. Parses `models.py` statically. Works with a broken venv, a missing dependency, or on someone else's laptop.
 
 </td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### 🔄 Auto-refresh
-
-File watcher rescans on save. Add a field → the tree updates instantly. Change a `ForeignKey` target → the diagram redraws.
-
-</td>
 <td width="50%" valign="top">
 
 ### 🎨 Native VS Code UI
 
-Dark theme. Light theme. Your theme. Follows your icon theme, your font, your key bindings. Nothing garish, nothing branded, nothing that looks like it came from a marketing deck.
+Dark theme. Light theme. Your theme. Follows your icon theme, your font, your key bindings. Nothing garish, nothing branded.
 
 </td>
 </tr>
@@ -119,37 +127,121 @@ Dark theme. Light theme. Your theme. Follows your icon theme, your font, your ke
 ## 📸 What it looks like
 
 <div align="center">
-<img src="media/hero.png" alt="Django ORM Lens sidebar showing the blog_app models with fields, relations, and Meta options" width="90%"/>
+<img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
 </div>
+
+<br/>
+
+## 🤖 For terminals and AI coding agents
+
+The same parser that powers the VS Code extension ships as a standalone Python package — with an optional **MCP (Model Context Protocol) server** so any MCP-compatible AI agent can navigate your Django schema without importing Django or booting your app.
+
+### CLI
+
+```bash
+django-orm-lens scan -f json          # every app, every model, every field
+django-orm-lens describe blog.Post    # one model in Markdown
+django-orm-lens hover blog.Post       # compact hover card
+django-orm-lens list | fzf            # flat app.Model — pipes anywhere
+django-orm-lens er > schema.mmd       # Mermaid ER diagram
+```
+
+Every command accepts `--path <dir>` and `--exclude <glob>`.
+
+### MCP server
+
+Register it once with your agent and it exposes five read-only tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `list_apps` | Every Django app in the workspace with model counts |
+| `list_models` | Flat `app.Model` list, optional app filter |
+| `describe_model` | Full field / relation / Meta detail for one model |
+| `find_relations` | Inbound + outbound relations for one model |
+| `er_diagram` | Mermaid `erDiagram` for the whole workspace |
+
+```bash
+# Start it directly
+django-orm-lens-mcp
+
+# Or via the CLI subcommand
+django-orm-lens mcp
+```
+
+Set `DJANGO_ORM_LENS_ROOT=/abs/path/to/project` to point it anywhere.
+
+<br/>
+
+## 🔌 Integrations
+
+| Client | How to enable | Status |
+|---|---|:-:|
+| **VS Code** | `code --install-extension frowningdev.django-orm-lens` | ✅ |
+| **Cursor** | same VSIX + optional MCP entry in `~/.cursor/mcp.json` | ✅ |
+| **Windsurf / VSCodium / any Code fork** | install the VSIX from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) or the [GitHub Releases](https://github.com/FROWNINGdev/django-orm-lens/releases) | ✅ |
+| **Aider** | add `django-orm-lens-mcp` to your `mcp.json` | ✅ (via MCP) |
+| **Continue.dev** | register the MCP server in `~/.continue/config.json` | ✅ (via MCP) |
+| **Zed** | register the MCP server in Zed settings | ✅ (via MCP) |
+| **Any MCP-compatible client** | point `command` at `django-orm-lens-mcp`, set `DJANGO_ORM_LENS_ROOT` | ✅ |
+| **Plain terminal / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
+
+### Example: Cursor / any MCP client
+
+```jsonc
+{
+  "mcpServers": {
+    "django-orm-lens": {
+      "command": "django-orm-lens-mcp",
+      "env": { "DJANGO_ORM_LENS_ROOT": "/abs/path/to/your/project" }
+    }
+  }
+}
+```
 
 <br/>
 
 ## 🚀 Get started (30 seconds)
 
-1. Install:
-   ```bash
-   code --install-extension frowningdev.django-orm-lens
-   ```
-2. Open any folder that contains a `manage.py` or `models.py`
-3. Click the **🔍 Django ORM Lens** icon in the activity bar (left edge)
+**In VS Code:**
+
+1. `code --install-extension frowningdev.django-orm-lens`
+2. Open a folder with a `manage.py` or `models.py`
+3. Click the **Django ORM Lens** icon in the activity bar
 4. Expand apps → models → fields
 5. Click the **type-hierarchy** icon at the top of the panel → ER diagram opens beside your code
 
-That is the entire onboarding. No settings screen. No sign-in. No telemetry.
+**In a terminal:**
+
+```bash
+pip install django-orm-lens
+cd my-django-project
+django-orm-lens scan -f table
+```
+
+**As an AI agent tool:**
+
+```bash
+pip install "django-orm-lens[mcp]"
+```
+
+…then register `django-orm-lens-mcp` in your agent's MCP config (see the [Integrations](#-integrations) table above).
+
+No settings screen. No sign-in. No telemetry.
 
 <br/>
 
 ## 🤔 How is this different?
 
-| | **Django ORM Lens** | `django-extensions graph_models` | Django Admin | Manual `Ctrl+F` |
+| | **Django ORM Lens** | `django-extensions graph_models` | `django-schema-graph` | Django Admin |
 |---|:-:|:-:|:-:|:-:|
-| Works without a bootable Django project | ✅ | ❌ | ❌ | ✅ |
-| Zero-install | ✅ | ❌ (needs graphviz) | ❌ | ✅ |
-| Live-updates on save | ✅ | ❌ | ❌ | ✅ |
-| Groups by app | ✅ | ⚠️ | ✅ | ❌ |
-| ER diagram | ✅ | ✅ | ❌ | ❌ |
-| Jump-to-definition | ✅ | ❌ | ❌ | ⚠️ |
-| Runs in VS Code | ✅ | ❌ | ❌ | ✅ |
+| Works without a bootable Django project | ✅ | ❌ | ❌ | ❌ |
+| Zero-install (no graphviz, no server) | ✅ | ❌ | ❌ | ❌ |
+| Sidebar tree inside the editor | ✅ | ❌ | ❌ | ❌ |
+| Live ER diagram | ✅ | ✅ | ✅ | ❌ |
+| Hover cards on `ForeignKey` | ✅ | ❌ | ❌ | ❌ |
+| Split `models/` package support | ✅ | ⚠️ | ⚠️ | ✅ |
+| CLI for terminal / CI | ✅ | ⚠️ | ❌ | ❌ |
+| MCP server for AI agents | ✅ | ❌ | ❌ | ❌ |
 | Free & open-source | ✅ | ✅ | ✅ | ✅ |
 
 <br/>
@@ -187,21 +279,42 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 |---|---|
 | `Django ORM Lens: Refresh` | Force-rescan the workspace |
 | `Django ORM Lens: Show ER Diagram` | Open the Mermaid ER diagram side-by-side |
-| `Django ORM Lens: Jump to Model` | Programmatic — triggered by tree clicks |
+| `Django ORM Lens: Filter Models` | Filter the tree by app / model / field name |
+| `Django ORM Lens: Clear Filter` | Restore the full tree |
+| `Django ORM Lens: Jump to Model` | Programmatic — triggered by tree clicks and hover cards |
 
 <br/>
 
 ## 🗺️ Roadmap
 
-Public and prioritized. Vote by 👍-ing the [corresponding issue](https://github.com/FROWNINGdev/django-orm-lens/issues).
+**Shipped**
 
-- [ ] Hover cards over `ForeignKey('app.Model')` in the editor
+- [x] Sidebar tree grouped by app
+- [x] Live Mermaid ER diagram
+- [x] Hover cards over `ForeignKey('app.Model')`
+- [x] Filter tree by name
+- [x] Split `models/` package support
+- [x] Export ER diagram as SVG
+- [x] Python CLI + MCP server for terminals and AI agents
+- [x] Welcome view for empty workspaces
+- [x] Path-safe jump-to-definition and sanitized hover markdown
+
+**Next (v0.3.0)**
+
+- [ ] CodeLens above each `class Model`: `N relations · N fields · Open ERD`
+- [ ] Edge labels on the diagram: `CASCADE`, `SET_NULL`, `PROTECT`, `related_name`
+- [ ] Zoom + minimap + auto-layout inside the webview
+- [ ] Named color themes (default / ocean / sunset / forest / dark)
+- [ ] App / model toggle checkboxes to declutter huge schemas
+
+**Later**
+
 - [ ] Migration dependency graph
-- [ ] Export ER diagram as SVG / PNG
-- [ ] Support `models/` package (split-file apps)
-- [ ] Support third-party fields (`django-mptt`, `django-model-utils`, `django-taggit`)
-- [ ] Filter tree by app / model name
-- [ ] **Pro:** cloud-sync schema snapshots for teams, diff between branches, custom ER themes
+- [ ] ORM query autocomplete inside `.filter()/.exclude()/.annotate()`
+- [ ] Third-party field support (`django-mptt`, `django-taggit`, `django-model-utils`)
+- [ ] JetBrains / PyCharm plugin (if there is demand)
+
+Vote by 👍-ing the corresponding [issue](https://github.com/FROWNINGdev/django-orm-lens/issues).
 
 <br/>
 
@@ -210,56 +323,48 @@ Public and prioritized. Vote by 👍-ing the [corresponding issue](https://githu
 <details>
 <summary><b>Do you send any of my code to a server?</b></summary>
 <br/>
-No. Every byte stays on your machine. The parser is pure TypeScript, no LLM calls, no telemetry, no analytics, no error reporting. The Mermaid renderer runs inside VS Code's webview sandbox.
+No. Every byte stays on your machine. The parser is pure TypeScript (extension) or pure Python (CLI). No LLM calls, no telemetry, no analytics, no error reporting. The Mermaid renderer runs inside VS Code's webview sandbox.
 </details>
 
 <details>
-<summary><b>Does it work with a Poetry / uv / conda project?</b></summary>
+<summary><b>Does it work with Poetry / uv / conda / no venv at all?</b></summary>
 <br/>
-Yes. The parser reads Python source directly and does not care what package manager you use. It does not even need Python installed.
+Yes. The extension reads Python source directly — it does not import Django and does not care what package manager you use. The CLI requires Python 3.9+, but that is it.
 </details>
 
 <details>
-<summary><b>What if my models are split across multiple files inside a <code>models/</code> package?</b></summary>
+<summary><b>My models are split across multiple files inside a <code>models/</code> package. Does that work?</b></summary>
 <br/>
-Currently v0.1.0 only scans <code>models.py</code>. Split packages land in v0.2.0 — track <a href="https://github.com/FROWNINGdev/django-orm-lens/issues">the roadmap issue</a>.
+Yes, since v0.2.0. Both the extension and the CLI walk <code>models/*.py</code> alongside classic <code>models.py</code>.
 </details>
 
 <details>
-<summary><b>Can I use it with DRF serializers / Wagtail / Oscar?</b></summary>
+<summary><b>Can I use it with DRF serializers, Wagtail, Oscar, or third-party base models?</b></summary>
 <br/>
-The tree shows any class that inherits from something ending in <code>Model</code>. DRF <code>ModelSerializer</code>-based classes will appear. Wagtail <code>Page</code> and <code>Snippet</code> subclasses will appear. If you find a case that does not, please open an issue.
+Any class that looks like a Django model is picked up: subclasses of <code>models.Model</code>, abstract bases starting with <code>Abstract</code>, common mixins ending in <code>Mixin</code>, and known base names like <code>TimeStampedModel</code> or <code>PolymorphicModel</code>. Non-model classes (<code>ModelAdmin</code>, <code>ModelSerializer</code>, <code>Form</code>, <code>View</code>, <code>Manager</code>, …) are filtered out.
 </details>
 
 <details>
-<summary><b>Is there a version for JetBrains / PyCharm?</b></summary>
+<summary><b>Which AI agents can use the MCP server?</b></summary>
 <br/>
-Not yet. PyCharm already has excellent Django support out of the box, so the value proposition is smaller. If enough people ask, a port becomes worth it.
+Any MCP-compatible client — Cursor, Aider, Continue.dev, Zed, and any other tool that speaks the protocol. Just point <code>command</code> at the installed <code>django-orm-lens-mcp</code> binary. See the <a href="#-integrations">Integrations</a> section.
 </details>
 
 <details>
-<summary><b>How do I contribute?</b></summary>
+<summary><b>Is there a JetBrains / PyCharm version?</b></summary>
 <br/>
-See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a>. Clone, <code>npm install</code>, <code>npm run build</code>, press F5. Most useful contributions right now: parser edge cases (models/ packages, 2-space indent, custom field types).
+Not yet. PyCharm's Django Structure tool window is already good, so the value delta is smaller. If enough people ask, it becomes worth doing.
 </details>
 
 <br/>
 
-## 💚 Support the project
+## 🆘 Support
 
-If Django ORM Lens saved you time, here is how you can pay it forward:
-
-<div align="center">
-
-[![Star on GitHub](https://img.shields.io/badge/⭐_Star_the_repo-24292f?style=for-the-badge)](https://github.com/FROWNINGdev/django-orm-lens)
-&nbsp;
-[![Rate on Marketplace](https://img.shields.io/badge/📝_Rate_on_Marketplace-0c4b33?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
-&nbsp;
-[![Sponsor](https://img.shields.io/badge/♥_Sponsor-db61a2?style=for-the-badge)](https://github.com/sponsors/FROWNINGdev)
-
-</div>
-
-Every star, every rating, every dollar helps me spend more time building the next feature and less time thinking about whether it is worth it.
+- 🐛 **Bug reports** — [GitHub Issues](https://github.com/FROWNINGdev/django-orm-lens/issues) (please include a minimal `models.py` snippet)
+- 💡 **Feature requests / ideas** — [GitHub Discussions](https://github.com/FROWNINGdev/django-orm-lens/discussions)
+- 📝 **Marketplace reviews** — [rate the extension](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details) (the fastest signal that keeps this project moving)
+- 🐍 **PyPI page** — [pypi.org/project/django-orm-lens](https://pypi.org/project/django-orm-lens/)
+- 💚 **Sponsor** — [github.com/sponsors/FROWNINGdev](https://github.com/sponsors/FROWNINGdev)
 
 <br/>
 
@@ -273,6 +378,6 @@ MIT © [FROWNINGdev](https://github.com/FROWNINGdev)
 
 **Made for developers who care about their codebase.**
 
-[Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) · [GitHub](https://github.com/FROWNINGdev/django-orm-lens) · [Issues](https://github.com/FROWNINGdev/django-orm-lens/issues) · [Roadmap](https://github.com/FROWNINGdev/django-orm-lens#%EF%B8%8F-roadmap) · [Sponsor](https://github.com/sponsors/FROWNINGdev)
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) · [PyPI](https://pypi.org/project/django-orm-lens/) · [GitHub](https://github.com/FROWNINGdev/django-orm-lens) · [Issues](https://github.com/FROWNINGdev/django-orm-lens/issues) · [Discussions](https://github.com/FROWNINGdev/django-orm-lens/discussions) · [Sponsor](https://github.com/sponsors/FROWNINGdev)
 
 </div>

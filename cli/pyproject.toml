@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-orm-lens"
+version = "1.0.0"
+description = "Static analysis + MCP server for Django models. Sidebar tree, ER diagrams, and JSON output for terminals and AI coding agents."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "frowningdev" }]
+keywords = [
+    "django",
+    "orm",
+    "models",
+    "er-diagram",
+    "mermaid",
+    "mcp",
+    "ai-agents",
+    "cursor",
+    "aider",
+    "code-analysis",
+    "static-analysis",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Framework :: Django",
+    "Framework :: Django :: 4.0",
+    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "build>=1.2", "twine>=5.1"]
+
+[project.scripts]
+django-orm-lens = "django_orm_lens.cli:main"
+django-orm-lens-mcp = "django_orm_lens.mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/FROWNINGdev/django-orm-lens"
+Repository = "https://github.com/FROWNINGdev/django-orm-lens"
+"Bug Tracker" = "https://github.com/FROWNINGdev/django-orm-lens/issues"
+Changelog = "https://github.com/FROWNINGdev/django-orm-lens/blob/main/CHANGELOG.md"
+"VS Code Marketplace" = "https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["django_orm_lens*"]
+
+[tool.setuptools.package-data]
+django_orm_lens = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

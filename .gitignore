@@ -7,3 +7,13 @@ Thumbs.db
 *.log
 .env
 tmp_tests/
+
+# Python (cli/)
+cli/dist/
+cli/build/
+cli/*.egg-info/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
