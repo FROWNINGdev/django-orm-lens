@@ -72,7 +72,7 @@ def _tool_describe_model(args: Dict[str, Any]) -> str:
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
-        return f"error: model {ref!r} not found"
+        raise ValueError(f"model {ref!r} not found")
     return json.dumps(m.to_dict(), indent=2)
 
 
@@ -81,7 +81,7 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
-        return f"error: model {ref!r} not found"
+        raise ValueError(f"model {ref!r} not found")
     out: Dict[str, Any] = {"outbound": [], "inbound": []}
     for f in m.fields:
         if f.is_relation:

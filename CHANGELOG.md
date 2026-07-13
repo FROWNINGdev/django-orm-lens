@@ -5,6 +5,16 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [py-1.0.6] - 2026-07-13
+
+Python package only. VS Code extension unchanged at 0.3.1.
+
+### Changed
+- **MCP tool error semantics** — `describe_model` and `find_relations` now raise `ValueError` on missing-model instead of returning a `"error: ..."` string. FastMCP maps this to a protocol-level `isError: true` response, so MCP-compatible agents recognize it as a tool error rather than a successful call with error text.
+
+### Fixed
+- **Parser perf** — `_read_balanced_args` was building the args buffer with per-char `str += ch` inside a nested loop (quadratic on multi-line field bodies). Now uses a list + single `"".join`.
+
 ## [py-1.0.5] - 2026-07-13
 
 Hotfix release. Python package only. VS Code extension unchanged at 0.3.1.

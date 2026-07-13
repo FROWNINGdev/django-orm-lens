@@ -148,7 +148,7 @@ def _extract_through_model(args_block: str):
 def _read_balanced_args(lines: Sequence[str], start: int):
     open_idx = lines[start].index("(")
     depth = 0
-    buf = ""
+    parts: List[str] = []
     for i in range(start, len(lines)):
         src = lines[i][open_idx:] if i == start else lines[i]
         for ch in src:
@@ -157,10 +157,11 @@ def _read_balanced_args(lines: Sequence[str], start: int):
             elif ch == ")":
                 depth -= 1
                 if depth == 0:
-                    return (buf + ")").lstrip("("), i
-            buf += ch
-        buf += "\n"
-    return buf.lstrip("("), len(lines) - 1
+                    parts.append(")")
+                    return "".join(parts).lstrip("("), i
+            parts.append(ch)
+        parts.append("\n")
+    return "".join(parts).lstrip("("), len(lines) - 1
 
 
 def _looks_like_model(base_classes: List[str]) -> bool:

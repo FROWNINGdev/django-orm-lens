@@ -3,7 +3,7 @@
   "name": "io.github.FROWNINGdev/django-orm-lens",
   "title": "Django ORM Lens",
   "description": "Static-analysis MCP server for Django models. 5 read-only tools. No DB, no boot, no creds.",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "repository": {
     "url": "https://github.com/FROWNINGdev/django-orm-lens",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "django-orm-lens",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "transport": {
         "type": "stdio"
       },
