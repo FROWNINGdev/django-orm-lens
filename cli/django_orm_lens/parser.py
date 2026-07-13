@@ -258,6 +258,8 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
                     field.related_model = _extract_related(inner)
                     field.on_delete = _extract_on_delete(inner)
                     field.related_name = _extract_related_name(inner)
+                    if ftype == "ManyToManyField":
+                        field.through_model = _extract_through_model(inner)
                 model.fields.append(field)
                 j = end_idx + 1
                 continue

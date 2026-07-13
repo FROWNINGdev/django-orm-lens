@@ -40,6 +40,8 @@ class ParsedField:
             out["onDelete"] = self.on_delete
         if self.related_name is not None:
             out["relatedName"] = self.related_name
+        if self.through_model is not None:
+            out["throughModel"] = self.through_model
         return out
 
 
