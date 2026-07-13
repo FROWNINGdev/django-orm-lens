@@ -5,6 +5,19 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-13
+
+### Added
+- **`throughModel` on the M2M edge** — Mermaid ER diagrams now render `through=` on `ManyToManyField` relations, e.g. `authors [through Authorship]`. First-time external contribution by [@kingrubic](https://github.com/kingrubic) in [#5](https://github.com/FROWNINGdev/django-orm-lens/pull/5).
+- **Listed on [Glama.ai MCP directory](https://glama.ai/mcp/servers/vjrz91hg8o)** — third discovery channel alongside VS Code Marketplace and the official MCP Registry.
+
+## [py-1.0.4] - 2026-07-13
+
+Python package parity release. Extension bumped in parallel to 0.3.1.
+
+### Added
+- **`through_model` on `ParsedField`** — Python parser now extracts `through=` from `ManyToManyField(...)` and emits `"throughModel": "..."` in JSON. Matches the TypeScript port field-for-field.
+
 ## [py-1.0.3] - 2026-07-13
 
 Python package only. VS Code extension unchanged at 0.3.0.
