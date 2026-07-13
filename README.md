@@ -35,6 +35,34 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 
 ---
 
+## 🎯 Pick your path
+
+Django ORM Lens ships as **three distributions on one core** — pick the one that matches your workflow. Each takes under 60 seconds.
+
+**Editor user (VS Code / Cursor / Windsurf):** install the extension → open any Django project → sidebar tree + ER diagram appear.
+
+```bash
+code --install-extension frowningdev.django-orm-lens
+```
+
+**Terminal / CI user:** install from PyPI → run `django-orm-lens` in any directory that contains Django apps.
+
+```bash
+pip install django-orm-lens
+django-orm-lens               # welcome + commands
+django-orm-lens scan          # scan cwd for apps and models
+```
+
+**AI coding agent user (Cursor / Aider / Continue / Zed):** install with MCP extras → add one JSON block to your client config.
+
+```bash
+pip install "django-orm-lens[mcp]"
+```
+
+Then the MCP config snippet in the [Integrations](#-integrations) section below. Point `DJANGO_ORM_LENS_ROOT` at your Django project's absolute path.
+
+---
+
 ## ⚡ Install
 
 **VS Code / Cursor / Windsurf / any Code fork:**

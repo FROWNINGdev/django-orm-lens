@@ -168,7 +168,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--version", action="version", version=f"django-orm-lens {__version__}"
     )
-    sub = p.add_subparsers(dest="command", required=True)
+    sub = p.add_subparsers(dest="command")
+    p.set_defaults(func=_cmd_hello)
 
     scan = sub.add_parser("scan", help="Scan a workspace for Django models")
     _add_scan_flags(scan)
@@ -210,6 +211,22 @@ def build_parser() -> argparse.ArgumentParser:
     mcp.set_defaults(func=_cmd_mcp)
 
     return p
+
+
+def _cmd_hello(_args: argparse.Namespace) -> int:
+    print("django-orm-lens — static analysis for Django models.")
+    print()
+    print("commands:")
+    print("  scan               Scan the current directory for Django apps + models")
+    print("  list               Flat app.Model list, pipes into shell")
+    print("  describe <model>   Full field/relation/Meta detail for one model")
+    print("  hover <model>      Compact hover-card markdown for a model")
+    print("  er                 Emit Mermaid ER diagram (stdout or file)")
+    print("  mcp                Run the MCP stdio server for AI coding agents")
+    print()
+    print("run `django-orm-lens <command> --help` for options.")
+    print("docs: https://github.com/FROWNINGdev/django-orm-lens")
+    return 0
 
 
 def _cmd_mcp(_args: argparse.Namespace) -> int:
