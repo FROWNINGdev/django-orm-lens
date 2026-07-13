@@ -19,9 +19,11 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Any, Dict, List
+import time
+from typing import Any, Dict, List, Tuple
 
 from .cli import _build_mermaid
+from .models import WorkspaceIndex
 from .parser import DEFAULT_EXCLUDES, scan_workspace
 
 
@@ -29,8 +31,30 @@ def _workspace_root() -> str:
     return os.environ.get("DJANGO_ORM_LENS_ROOT") or os.getcwd()
 
 
+_INDEX_CACHE: Dict[str, Tuple[WorkspaceIndex, int]] = {}
+_CACHE_TTL_MS = 30_000
+
+
+def _get_index() -> WorkspaceIndex:
+    """Cache-backed workspace index — 30s TTL, keyed by workspace root.
+
+    Agents typically fire multiple MCP tool calls back-to-back (list_apps →
+    describe_model → find_relations). Without a cache each call re-walked the
+    filesystem and re-parsed every models.py. TTL is short enough that manual
+    edits between calls still pick up on the next scan.
+    """
+    root = _workspace_root()
+    now_ms = int(time.time() * 1000)
+    entry = _INDEX_CACHE.get(root)
+    if entry is not None and entry[1] > now_ms:
+        return entry[0]
+    idx = scan_workspace(root, DEFAULT_EXCLUDES)
+    _INDEX_CACHE[root] = (idx, now_ms + _CACHE_TTL_MS)
+    return idx
+
+
 def _tool_list_apps(_args: Dict[str, Any]) -> str:
-    idx = scan_workspace(_workspace_root(), DEFAULT_EXCLUDES)
+    idx = _get_index()
     return json.dumps(
         [
             {"name": a.name, "path": a.path, "models": len(a.models)}
@@ -41,7 +65,7 @@ def _tool_list_apps(_args: Dict[str, Any]) -> str:
 
 
 def _tool_list_models(args: Dict[str, Any]) -> str:
-    idx = scan_workspace(_workspace_root(), DEFAULT_EXCLUDES)
+    idx = _get_index()
     only_app = (args or {}).get("app")
     rows: List[str] = []
     for app in idx.apps:
@@ -68,7 +92,7 @@ def _find(idx, ref: str):
 
 
 def _tool_describe_model(args: Dict[str, Any]) -> str:
-    idx = scan_workspace(_workspace_root(), DEFAULT_EXCLUDES)
+    idx = _get_index()
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
@@ -77,7 +101,7 @@ def _tool_describe_model(args: Dict[str, Any]) -> str:
 
 
 def _tool_find_relations(args: Dict[str, Any]) -> str:
-    idx = scan_workspace(_workspace_root(), DEFAULT_EXCLUDES)
+    idx = _get_index()
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
@@ -113,7 +137,7 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
 
 
 def _tool_er_diagram(_args: Dict[str, Any]) -> str:
-    idx = scan_workspace(_workspace_root(), DEFAULT_EXCLUDES)
+    idx = _get_index()
     return _build_mermaid(idx)
 
 

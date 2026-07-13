@@ -5,6 +5,14 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [py-1.0.7] - 2026-07-13
+
+Python package only. VS Code extension unchanged at 0.3.1.
+
+### Added
+- **Mermaid ER edge labels — Python ↔ TypeScript parity** — `django-orm-lens er` and the MCP `er_diagram` tool now emit the same `on_delete`, `through`, and `related_name` metadata as the VS Code diagram. Example: `Book }o--|| Author : "author [CASCADE, as books]"` and `Book }o--o{ Tag : "tags [through BookTag]"`. Previously the Python side stripped all metadata to just the field name.
+- **MCP index cache (30s TTL)** — agents chaining multiple tool calls (`list_apps` → `describe_model` → `find_relations`) no longer re-walk the filesystem and re-parse every `models.py` per call. Cache keyed by workspace root; short TTL keeps manual edits visible.
+
 ## [py-1.0.6] - 2026-07-13
 
 Python package only. VS Code extension unchanged at 0.3.1.

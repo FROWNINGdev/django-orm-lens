@@ -121,6 +121,9 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
                 lines.append(f"    {type_safe} {name_safe}")
             lines.append("  }")
 
+    def sanitize_label(s: str) -> str:
+        return "".join(ch if (ch.isalnum() or ch in "_.- ") else "_" for ch in s)
+
     for app in index.apps:
         for model in app.models:
             for f in model.fields:
@@ -139,8 +142,20 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
                     arrow = "||--||"
                 else:
                     arrow = "}o--||"
+                parts = [sanitize_label(f.name)]
+                if f.on_delete:
+                    parts.append(sanitize_label(f.on_delete))
+                if f.through_model:
+                    parts.append(f"through {sanitize_label(f.through_model)}")
+                if f.related_name:
+                    parts.append(f"as {sanitize_label(f.related_name)}")
+                label = (
+                    f"{parts[0]} [{', '.join(parts[1:])}]"
+                    if len(parts) > 1
+                    else parts[0]
+                )
                 lines.append(
-                    f'  {safe(model.name)} {arrow} {safe(target)} : "{f.name}"'
+                    f'  {safe(model.name)} {arrow} {safe(target)} : "{label}"'
                 )
     return "\n".join(lines)
 
