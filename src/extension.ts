@@ -154,20 +154,10 @@ export async function activate(context: vscode.ExtensionContext) {
           if (typeof filePath !== 'string' || typeof lineNumber !== 'number') {
             throw new Error('Invalid jump arguments');
           }
-          const folders = vscode.workspace.workspaceFolders ?? [];
-          const normalized = filePath.replace(/\\/g, '/').toLowerCase();
-          const insideWorkspace = folders.some((f) => {
-            const root = f.uri.fsPath.replace(/\\/g, '/').toLowerCase();
-            return (
-              normalized === root ||
-              normalized.startsWith(root + '/') ||
-              normalized.startsWith(root.replace(/\/$/, '') + '/')
-            );
-          });
-          if (!insideWorkspace) {
+          const uri = vscode.Uri.file(filePath);
+          if (!vscode.workspace.getWorkspaceFolder(uri)) {
             throw new Error('target path is outside the current workspace');
           }
-          const uri = vscode.Uri.file(filePath);
           const doc = await vscode.workspace.openTextDocument(uri);
           const editor = await vscode.window.showTextDocument(doc);
           const pos = new vscode.Position(Math.max(0, lineNumber | 0), 0);
