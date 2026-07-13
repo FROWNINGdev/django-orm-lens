@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
+import { randomBytes } from 'crypto';
 import { WorkspaceIndex } from './types';
+
+const MERMAID_VERSION = '10.9.4';
 
 function escapeLabel(s: string): string {
   return s.replace(/[^A-Za-z0-9_]/g, '_');
@@ -75,7 +78,7 @@ function html(mermaidSource: string, cspSource: string, nonce: string): string {
   <div class="diagram-wrap">
     <pre class="mermaid" id="d">${mermaidSource.replace(/</g, '&lt;')}</pre>
   </div>
-  <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.min.js"></script>
   <script nonce="${nonce}">
     (function(){
       try {
@@ -90,10 +93,7 @@ function html(mermaidSource: string, cspSource: string, nonce: string): string {
 }
 
 function makeNonce(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let out = '';
-  for (let i = 0; i < 32; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+  return randomBytes(24).toString('base64').replace(/[^A-Za-z0-9]/g, '');
 }
 
 let panel: vscode.WebviewPanel | undefined;
