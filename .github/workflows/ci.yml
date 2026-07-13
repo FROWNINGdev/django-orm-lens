@@ -17,6 +17,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Run tests
+        run: npm test
       - name: Package VSIX
         run: npx --yes @vscode/vsce package --out django-orm-lens.vsix
       - uses: actions/upload-artifact@v4

@@ -44,10 +44,11 @@ export function buildMermaid(index: WorkspaceIndex): string {
             : f.relationKind === 'OneToOneField'
             ? '||--||'
             : '}o--||';
-        const parts: string[] = [f.name];
-        if (f.onDelete) parts.push(f.onDelete);
-        if (f.throughModel) parts.push(`through ${f.throughModel}`);
-        if (f.relatedName) parts.push(`as ${f.relatedName}`);
+        const sanitizeLabel = (s: string) => s.replace(/[^A-Za-z0-9_.\- ]/g, '_');
+        const parts: string[] = [sanitizeLabel(f.name)];
+        if (f.onDelete) parts.push(sanitizeLabel(f.onDelete));
+        if (f.throughModel) parts.push(`through ${sanitizeLabel(f.throughModel)}`);
+        if (f.relatedName) parts.push(`as ${sanitizeLabel(f.relatedName)}`);
         const label = parts.length > 1
           ? `${parts[0]} [${parts.slice(1).join(', ')}]`
           : parts[0];

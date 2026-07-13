@@ -168,10 +168,6 @@ def _looks_like_model(base_classes: List[str]) -> bool:
         tail = b.split(".")[-1]
         if NON_MODEL_TAIL.match(tail):
             return False
-    for b in base_classes:
-        tail = b.split(".")[-1]
-        if NON_MODEL_TAIL.match(tail):
-            continue
         if re.search(r"models\.Model$", b):
             return True
         if re.match(
