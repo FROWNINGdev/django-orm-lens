@@ -79,7 +79,11 @@ function setupWatcher(context: vscode.ExtensionContext) {
   if (!autoRefresh) return;
   watcher = vscode.workspace.createFileSystemWatcher('**/models.py');
   const trigger = () => {
-    refresh().catch(() => {});
+    refresh().catch((err) =>
+      outputChannel.appendLine(
+        `[watcher-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
+      )
+    );
   };
   watcher.onDidChange(trigger, null, context.subscriptions);
   watcher.onDidCreate(trigger, null, context.subscriptions);
@@ -177,7 +181,11 @@ export async function activate(context: vscode.ExtensionContext) {
           vscode.window.showWarningMessage(
             `Django ORM Lens: could not open ${filePath}. It may have been moved, deleted, or is outside the workspace. (${msg})`
           );
-          refresh().catch(() => {});
+          refresh().catch((refreshErr) =>
+            outputChannel.appendLine(
+              `[jump-refresh] ${refreshErr instanceof Error ? refreshErr.stack ?? refreshErr.message : String(refreshErr)}`
+            )
+          );
         }
       }
     )
