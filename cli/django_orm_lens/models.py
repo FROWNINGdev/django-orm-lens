@@ -23,6 +23,7 @@ class ParsedField:
     relation_kind: Optional[RelationKind] = None
     on_delete: Optional[str] = None
     related_name: Optional[str] = None
+    through_model: Optional[str] = None
 
     def to_dict(self) -> dict:
         out = {

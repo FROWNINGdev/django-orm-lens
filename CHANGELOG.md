@@ -5,6 +5,13 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [py-1.0.5] - 2026-07-13
+
+Hotfix release. Python package only. VS Code extension unchanged at 0.3.1.
+
+### Fixed
+- **Crash on `ManyToManyField(through=...)`** — `_extract_through_model` was called from `parse_models_file` but never defined, and `through_model` was assigned on `ParsedField` without a matching dataclass field. Any Django project with an M2M `through=` argument would raise `NameError` / `AttributeError` and return an empty index. Both are now declared. Discovered by QA sweep of 1.0.4 with type-design and Python reviewers.
+
 ## [0.3.1] - 2026-07-13
 
 ### Added

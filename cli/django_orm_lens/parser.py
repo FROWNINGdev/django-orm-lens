@@ -135,6 +135,16 @@ def _extract_related_name(args_block: str):
     return m.group(1) or m.group(2)
 
 
+def _extract_through_model(args_block: str):
+    m = re.search(
+        r"\bthrough\s*=\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_.]*))",
+        args_block,
+    )
+    if not m:
+        return None
+    return m.group(1) or m.group(2) or m.group(3)
+
+
 def _read_balanced_args(lines: Sequence[str], start: int):
     open_idx = lines[start].index("(")
     depth = 0
