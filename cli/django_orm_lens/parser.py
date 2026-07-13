@@ -89,10 +89,16 @@ def _detect_class_indent(lines: Sequence[str], class_line_idx: int) -> int:
     return 4
 
 
+_BODY_REGEX_CACHE: dict = {}
+
+
 def _build_body_regexes(indent: int):
+    cached = _BODY_REGEX_CACHE.get(indent)
+    if cached is not None:
+        return cached
     w = r"\s{" + str(indent) + r"}"
     w2 = r"\s{" + str(indent * 2) + r"}"
-    return {
+    result = {
         "FIELD_RE": re.compile(
             rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\("
         ),
@@ -105,6 +111,8 @@ def _build_body_regexes(indent: int):
         ),
         "META_BODY_RE": re.compile(r"^\s{" + str(indent * 2) + r",}"),
     }
+    _BODY_REGEX_CACHE[indent] = result
+    return result
 
 
 def _extract_related(args_block: str):
