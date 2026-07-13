@@ -130,29 +130,14 @@ Dark theme. Light theme. Your theme. Follows your icon theme, your font, your ke
 
 <div align="center">
 <img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
-<br/><sub><i>Sidebar tree — apps → models → fields, grouped and searchable</i></sub>
 </div>
 
-<br/>
+**Also included in the extension:**
 
-<div align="center">
-<img src="media/er-diagram.png" alt="Live Mermaid ER diagram in a webview beside the editor with edge labels showing CASCADE and through models" width="90%"/>
-<br/><sub><i>Live ER diagram — cardinality arrows, edge labels (<code>CASCADE</code>, <code>through Model</code>, <code>as related_name</code>), theme-aware, export to SVG</i></sub>
-</div>
-
-<br/>
-
-<div align="center">
-<img src="media/hover.png" alt="Hover card popping up over a ForeignKey string showing the target model's fields and a Jump-to link" width="90%"/>
-<br/><sub><i>Hover cards — over any <code>ForeignKey('app.Model')</code> or <code>ManyToManyField(...)</code>, with one-click jump</i></sub>
-</div>
-
-<br/>
-
-<div align="center">
-<img src="media/codelens.png" alt="CodeLens showing field count relation count and Open ER diagram action above a Django model class" width="90%"/>
-<br/><sub><i>CodeLens — above every <code>class Model</code>: field count, relation count, <b>Open ER diagram</b> action</i></sub>
-</div>
+- 🕸️ **Live ER diagram** — Mermaid cardinality arrows, edge labels (`CASCADE`, `through Model`, `as related_name`), theme-aware, one-click SVG export
+- 🔎 **Hover cards** — over any `ForeignKey('app.Model')` or `ManyToManyField(...)`, with a one-click jump link
+- 🧭 **CodeLens** — above every `class Model` line: field count, relation count, and an **Open ER diagram** action
+- 🎨 **Named themes** — `auto` / `default` / `dark` / `forest` / `neutral` for the diagram webview
 
 <br/>
 
