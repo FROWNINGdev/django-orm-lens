@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - **`jumpToModel` workspace check hardened** — the previous manual `.toLowerCase()` prefix comparison was Windows-oriented and could false-positive on case-sensitive filesystems (Linux). Switched to `vscode.workspace.getWorkspaceFolder(uri)`, which VS Code resolves with OS-appropriate case handling. Simpler code, correct on every platform.
 
+## [py-1.0.8] - 2026-07-13
+
+Python package only. VS Code extension unchanged at 0.3.3.
+
+### Added
+- **Friendly welcome when `django-orm-lens` runs without a subcommand** — previously bare invocation printed a cryptic `argparse: the following arguments are required: command` error, killing the pip-install-and-poke-around funnel. Now shows a compact commands table + docs link so a new user immediately sees what to try next.
+
 ## [py-1.0.7] - 2026-07-13
 
 Python package only. VS Code extension unchanged at 0.3.1.
