@@ -2,8 +2,6 @@ import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import { WorkspaceIndex } from './types';
 
-const MERMAID_VERSION = '10.9.4';
-
 function escapeLabel(s: string): string {
   return s.replace(/[^A-Za-z0-9_]/g, '_');
 }
@@ -73,13 +71,13 @@ function resolveTheme(): string {
     : 'dark';
 }
 
-function html(mermaidSource: string, cspSource: string, nonce: string): string {
+function html(mermaidSource: string, cspSource: string, nonce: string, mermaidUri: string): string {
   const theme = resolveTheme();
   return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}' https://cdn.jsdelivr.net; font-src ${cspSource} https:; img-src ${cspSource} data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}'; font-src ${cspSource} data:; img-src ${cspSource} data:;">
 <title>Django ORM Lens — ER Diagram</title>
 <style>
   html, body { margin: 0; padding: 0; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); font-family: var(--vscode-font-family); }
@@ -105,7 +103,7 @@ function html(mermaidSource: string, cspSource: string, nonce: string): string {
   <div class="diagram-wrap">
     <pre class="mermaid" id="d">${mermaidSource.replace(/</g, '&lt;')}</pre>
   </div>
-  <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.min.js"></script>
+  <script nonce="${nonce}" src="${mermaidUri}"></script>
   <script nonce="${nonce}">
     (function(){
       const vscode = acquireVsCodeApi();
@@ -162,8 +160,15 @@ let panel: vscode.WebviewPanel | undefined;
 
 export function showGraph(context: vscode.ExtensionContext, index: WorkspaceIndex) {
   const mermaidSource = buildMermaid(index);
+  const mermaidFileUri = vscode.Uri.joinPath(
+    context.extensionUri,
+    'media',
+    'vendor',
+    'mermaid.min.js'
+  );
   if (panel) {
-    panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce());
+    const mermaidUri = panel.webview.asWebviewUri(mermaidFileUri).toString();
+    panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce(), mermaidUri);
     panel.reveal(vscode.ViewColumn.Beside);
     return;
   }
@@ -171,9 +176,14 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
     'djangoOrmLensGraph',
     'Django ORM Lens — ER Diagram',
     vscode.ViewColumn.Beside,
-    { enableScripts: true, retainContextWhenHidden: true }
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')],
+    }
   );
-  panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce());
+  const mermaidUri = panel.webview.asWebviewUri(mermaidFileUri).toString();
+  panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce(), mermaidUri);
   panel.webview.onDidReceiveMessage(
     async (msg: { type: string; payload?: string; message?: string }) => {
       if (msg.type === 'export-svg' && typeof msg.payload === 'string') {
