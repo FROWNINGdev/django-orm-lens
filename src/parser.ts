@@ -109,6 +109,13 @@ function extractRelatedName(argsBlock: string): string | undefined {
   return m ? m[1] || m[2] : undefined;
 }
 
+function extractThroughModel(argsBlock: string): string | undefined {
+  const m = argsBlock.match(
+    /\bthrough\s*=\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_.]*))/
+  );
+  return m ? m[1] || m[2] || m[3] : undefined;
+}
+
 function readBalancedArgs(lines: string[], startIdx: number): {
   argsBlock: string;
   endIdx: number;
@@ -241,6 +248,10 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
           if (onDelete) field.onDelete = onDelete;
           const relatedName = extractRelatedName(argsInner);
           if (relatedName) field.relatedName = relatedName;
+          if (fieldType === 'ManyToManyField') {
+            const throughModel = extractThroughModel(argsInner);
+            if (throughModel) field.throughModel = throughModel;
+          }
         }
         model.fields.push(field);
         j = endIdx + 1;

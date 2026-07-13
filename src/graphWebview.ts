@@ -8,7 +8,7 @@ function escapeLabel(s: string): string {
   return s.replace(/[^A-Za-z0-9_]/g, '_');
 }
 
-function buildMermaid(index: WorkspaceIndex): string {
+export function buildMermaid(index: WorkspaceIndex): string {
   const lines: string[] = ['erDiagram'];
   const modelNames = new Set<string>();
   for (const app of index.apps) {
@@ -46,6 +46,7 @@ function buildMermaid(index: WorkspaceIndex): string {
             : '}o--||';
         const parts: string[] = [f.name];
         if (f.onDelete) parts.push(f.onDelete);
+        if (f.throughModel) parts.push(`through ${f.throughModel}`);
         if (f.relatedName) parts.push(`as ${f.relatedName}`);
         const label = parts.length > 1
           ? `${parts[0]} [${parts.slice(1).join(', ')}]`
