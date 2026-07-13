@@ -4,7 +4,7 @@
 
 **Static analysis + MCP server for Django models.** Terminal- and AI-agent-friendly.
 
-Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.FROWNINGdev%2Fdjango-orm-lens) as `io.github.FROWNINGdev/django-orm-lens`.
+Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.FROWNINGdev/django-orm-lens`.
 
 Ships with a zero-dependency parser, a JSON/Markdown/table CLI, and an optional
 MCP (Model Context Protocol) server so any AI coding agent — Cursor, Aider,

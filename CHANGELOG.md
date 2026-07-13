@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`throughModel` on the M2M edge** — Mermaid ER diagrams now render `through=` on `ManyToManyField` relations, e.g. `authors [through Authorship]`. First-time external contribution by [@kingrubic](https://github.com/kingrubic) in [#5](https://github.com/FROWNINGdev/django-orm-lens/pull/5).
-- **Listed on [Glama.ai MCP directory](https://glama.ai/mcp/servers/vjrz91hg8o)** — third discovery channel alongside VS Code Marketplace and the official MCP Registry.
+- **Listed on [Glama.ai MCP directory](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)** — third discovery channel alongside VS Code Marketplace and the official MCP Registry.
 
 ## [py-1.0.4] - 2026-07-13
 
@@ -23,7 +23,7 @@ Python package parity release. Extension bumped in parallel to 0.3.1.
 Python package only. VS Code extension unchanged at 0.3.0.
 
 ### Added
-- **Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.FROWNINGdev%2Fdjango-orm-lens)** — the server is now discoverable through the canonical Model Context Protocol directory. MCP-compatible clients can find it by name (`io.github.FROWNINGdev/django-orm-lens`).
+- **Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/)** — the server is now discoverable through the canonical Model Context Protocol directory. MCP-compatible clients can find it by name (`io.github.FROWNINGdev/django-orm-lens`).
 - `cli/server.json` — MCP Registry metadata (PyPI package, stdio transport, uvx runtime hint).
 - Ownership-verification marker in `cli/README.md` (hidden HTML comment) so the registry can prove the PyPI package is ours.
 
