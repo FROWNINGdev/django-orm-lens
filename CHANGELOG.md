@@ -5,7 +5,24 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2026-07-13
+## [0.1.1] - 2026-07-13
+
+### Added
+- Support for split `models/` package directories (multi-file apps).
+- Support for bare field imports (`from django.db.models import CharField`).
+- Output channel "Django ORM Lens" for surfaced scan errors.
+
+### Fixed
+- Parser now detects indentation width per class instead of assuming 4 spaces (2-space codebases were showing zero fields).
+- False-positive base-class detection: `ModelAdmin`, `ModelSerializer`, `ModelForm`, `ResponseModel`, and similar classes are no longer treated as database models.
+- Race condition in the workspace scanner: concurrent saves could leave stale results in the tree.
+- `Jump to Model` crashed when the target file had been deleted between scan and click — now shows a warning and refreshes.
+
+### Security
+- Webview nonce is now generated via `crypto.randomBytes` instead of `Math.random()`.
+- Mermaid CDN reference pinned to `10.9.4` (was floating on `mermaid@10`).
+
+## [0.1.0] - 2026-07-07
 
 ### Added
 - Initial release.
