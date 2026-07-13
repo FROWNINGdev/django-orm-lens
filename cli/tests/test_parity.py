@@ -1,0 +1,71 @@
+"""Cross-language parity test — Python mirror of test/parity.test.js.
+
+Both tests parse the same fixture (test/fixtures/parity_input.py) and assert
+the same structural shape. If either parser drifts, one test breaks and the
+mismatch surfaces in review before it lands.
+
+Run: python -m unittest discover cli/tests -v
+"""
+
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+from django_orm_lens.parser import parse_models_file
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+FIXTURE_PATH = REPO_ROOT / "test" / "fixtures" / "parity_input.py"
+
+
+class ParityFixtureTest(unittest.TestCase):
+    def test_model_shape_matches_golden_expectations(self) -> None:
+        source = FIXTURE_PATH.read_text(encoding="utf-8")
+        models = parse_models_file(str(FIXTURE_PATH), source)
+
+        self.assertEqual(len(models), 4, "four top-level model classes")
+        self.assertEqual(
+            [m.name for m in models],
+            ["Author", "Book", "Tag", "BookTag"],
+        )
+
+        for m in models:
+            self.assertEqual(m.app_name, "fixtures", f"{m.name}: app_name derived from parent dir")
+
+        author = models[0]
+        self.assertEqual(len(author.fields), 1)
+        self.assertEqual(author.fields[0].name, "name")
+        self.assertEqual(author.fields[0].type, "CharField")
+        self.assertFalse(author.fields[0].is_relation)
+
+        book = models[1]
+        self.assertEqual(len(book.fields), 4, "title + author + editor + tags")
+        self.assertEqual(book.meta, {"ordering": "['title']"})
+
+        author_field = next(f for f in book.fields if f.name == "author")
+        self.assertEqual(author_field.type, "ForeignKey")
+        self.assertTrue(author_field.is_relation)
+        self.assertEqual(author_field.relation_kind, "ForeignKey")
+        self.assertEqual(author_field.related_model, "Author")
+        self.assertEqual(author_field.on_delete, "CASCADE")
+        self.assertEqual(author_field.related_name, "books")
+
+        editor_field = next(f for f in book.fields if f.name == "editor")
+        self.assertEqual(editor_field.relation_kind, "OneToOneField")
+        self.assertEqual(editor_field.on_delete, "SET_NULL")
+        self.assertEqual(editor_field.related_name, "edited_book")
+
+        tags_field = next(f for f in book.fields if f.name == "tags")
+        self.assertEqual(tags_field.relation_kind, "ManyToManyField")
+        self.assertEqual(tags_field.related_model, "Tag")
+        self.assertEqual(tags_field.through_model, "BookTag")
+
+        book_tag = models[3]
+        self.assertEqual(len(book_tag.fields), 2)
+        self.assertEqual(book_tag.fields[0].name, "book")
+        self.assertEqual(book_tag.fields[0].on_delete, "CASCADE")
+        self.assertEqual(book_tag.fields[1].name, "tag")
+
+
+if __name__ == "__main__":
+    unittest.main()
