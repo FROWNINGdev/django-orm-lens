@@ -130,6 +130,28 @@ Dark theme. Light theme. Your theme. Follows your icon theme, your font, your ke
 
 <div align="center">
 <img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
+<br/><sub><i>Sidebar tree — apps → models → fields, grouped and searchable</i></sub>
+</div>
+
+<br/>
+
+<div align="center">
+<img src="media/er-diagram.png" alt="Live Mermaid ER diagram in a webview beside the editor with edge labels showing CASCADE and through models" width="90%"/>
+<br/><sub><i>Live ER diagram — cardinality arrows, edge labels (<code>CASCADE</code>, <code>through Model</code>, <code>as related_name</code>), theme-aware, export to SVG</i></sub>
+</div>
+
+<br/>
+
+<div align="center">
+<img src="media/hover.png" alt="Hover card popping up over a ForeignKey string showing the target model's fields and a Jump-to link" width="90%"/>
+<br/><sub><i>Hover cards — over any <code>ForeignKey('app.Model')</code> or <code>ManyToManyField(...)</code>, with one-click jump</i></sub>
+</div>
+
+<br/>
+
+<div align="center">
+<img src="media/codelens.png" alt="CodeLens showing field count relation count and Open ER diagram action above a Django model class" width="90%"/>
+<br/><sub><i>CodeLens — above every <code>class Model</code>: field count, relation count, <b>Open ER diagram</b> action</i></sub>
 </div>
 
 <br/>
@@ -233,19 +255,49 @@ No settings screen. No sign-in. No telemetry.
 
 <br/>
 
+## 🎯 Who this is for
+
+- **Django developers** joining a codebase with 10+ apps and getting lost in `models.py` sprawl.
+- **Contract / freelance engineers** who need to grasp an unfamiliar Django project in the first hour, not the first week.
+- **Teams onboarding new hires** who want a one-glance schema view without spinning up documentation infrastructure.
+- **AI-agent power users** (Cursor / Aider / Claude Desktop / Zed / Continue) who need the agent to answer schema questions accurately — without giving it database credentials or booting Django.
+- **CI pipelines** that verify schema shape (e.g. "did we accidentally break a `related_name`?") without importing the project.
+- **Solo indie devs** on a broken venv or someone else's laptop — no `runserver`, no `manage.py migrate`, still works.
+
+<br/>
+
+## 🗺️ Market position
+
+Django ORM Lens sits at the intersection of **editor tooling** and **AI-agent tooling** — a slot no existing package covers:
+
+| Segment | Existing option | What it costs you |
+|---|---|---|
+| Boot-and-graph | `django-extensions graph_models` | Requires Graphviz + Django settings + a working DB URL |
+| Web-based viewer | `django-schema-graph` | Requires a running Django server; hosts one more thing to break |
+| Admin panel | Django Admin | Requires runserver + auth + database — great for data, not for architecture |
+| Editor plugin | PyCharm's Django Structure | Locked to PyCharm; no CLI, no AI-agent story |
+| MCP server | (none until now) | AI agents guess your schema from source, imperfectly |
+
+**Django ORM Lens is the only tool that ships three surfaces from one parser:** a VS Code extension (any Code fork), a zero-dep CLI (terminals + CI), and an MCP server (AI agents). All static. All free. All MIT.
+
+<br/>
+
 ## 🤔 How is this different?
 
-| | **Django ORM Lens** | `django-extensions graph_models` | `django-schema-graph` | Django Admin |
-|---|:-:|:-:|:-:|:-:|
-| Works without a bootable Django project | ✅ | ❌ | ❌ | ❌ |
-| Zero-install (no graphviz, no server) | ✅ | ❌ | ❌ | ❌ |
-| Sidebar tree inside the editor | ✅ | ❌ | ❌ | ❌ |
-| Live ER diagram | ✅ | ✅ | ✅ | ❌ |
-| Hover cards on `ForeignKey` | ✅ | ❌ | ❌ | ❌ |
-| Split `models/` package support | ✅ | ⚠️ | ⚠️ | ✅ |
-| CLI for terminal / CI | ✅ | ⚠️ | ❌ | ❌ |
-| MCP server for AI agents | ✅ | ❌ | ❌ | ❌ |
-| Free & open-source | ✅ | ✅ | ✅ | ✅ |
+| | **Django ORM Lens** | `django-extensions graph_models` | `django-schema-graph` | Django Admin | PyCharm Django Structure |
+|---|:-:|:-:|:-:|:-:|:-:|
+| Works without a bootable Django project | ✅ | ❌ | ❌ | ❌ | ⚠️ |
+| Zero-install (no graphviz, no server) | ✅ | ❌ | ❌ | ❌ | ❌ (needs PyCharm) |
+| Works in VS Code / Cursor / any Code fork | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Sidebar tree inside the editor | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Live ER diagram | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Hover cards on `ForeignKey` | ✅ | ❌ | ❌ | ❌ | ⚠️ |
+| CodeLens on model classes | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Split `models/` package support | ✅ | ⚠️ | ⚠️ | ✅ | ✅ |
+| CLI for terminal / CI | ✅ | ⚠️ | ❌ | ❌ | ❌ |
+| MCP server for AI agents | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Discoverable in the [MCP Registry](https://registry.modelcontextprotocol.io/) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Free & open-source (MIT) | ✅ | ✅ | ✅ | ✅ | ❌ (paid IDE) |
 
 <br/>
 
@@ -301,19 +353,21 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] Python CLI + MCP server for terminals and AI agents
 - [x] Welcome view for empty workspaces
 - [x] Path-safe jump-to-definition and sanitized hover markdown
+- [x] **v0.3.0** — CodeLens above each model class (`N fields · N relations · Open ER diagram`)
+- [x] **v0.3.0** — Edge labels on the diagram (`CASCADE`, `SET_NULL`, `PROTECT`, `related_name`)
+- [x] **v0.3.0** — Named color themes (`auto` / `default` / `dark` / `forest` / `neutral`)
+- [x] **v0.3.1** — `through_model` on M2M edges (contributed by [@kingrubic](https://github.com/kingrubic))
+- [x] **v0.3.1** — Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/) + [Glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
 
-**Next (v0.3.0)**
+**Next**
 
-- [ ] CodeLens above each `class Model`: `N relations · N fields · Open ERD`
-- [ ] Edge labels on the diagram: `CASCADE`, `SET_NULL`, `PROTECT`, `related_name`
-- [ ] Zoom + minimap + auto-layout inside the webview
-- [ ] Named color themes (default / ocean / sunset / forest / dark)
+- [ ] Zoom + minimap + auto-layout inside the webview ([#4](https://github.com/FROWNINGdev/django-orm-lens/issues/4))
+- [ ] ORM query autocomplete inside `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
 - [ ] App / model toggle checkboxes to declutter huge schemas
 
 **Later**
 
 - [ ] Migration dependency graph
-- [ ] ORM query autocomplete inside `.filter()/.exclude()/.annotate()`
 - [ ] Third-party field support (`django-mptt`, `django-taggit`, `django-model-utils`)
 - [ ] JetBrains / PyCharm plugin (if there is demand)
 
