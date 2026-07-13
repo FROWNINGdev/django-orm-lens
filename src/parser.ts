@@ -111,7 +111,7 @@ function extractRelatedName(argsBlock: string): string | undefined {
 
 function extractThroughModel(argsBlock: string): string | undefined {
   const m = argsBlock.match(
-    /through\s*=\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_.]*))/
+    /\bthrough\s*=\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_.]*))/
   );
   return m ? m[1] || m[2] || m[3] : undefined;
 }

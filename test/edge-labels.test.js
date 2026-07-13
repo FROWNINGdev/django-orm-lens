@@ -13,6 +13,10 @@ Module._load = function (request, parent, isMain) {
 const { buildMermaid } = require('../out/graphWebview');
 const { parseModelsFile } = require('../out/parser');
 
+test.after(() => {
+  Module._load = originalLoad;
+});
+
 test('labels OneToOneField metadata and ManyToManyField through models', () => {
   const models = parseModelsFile('/project/app/models.py', `
 class User(models.Model):
@@ -25,7 +29,7 @@ class Profile(models.Model):
 
 class Group(models.Model):
     members = models.ManyToManyField(
-        'User', through='Membership', related_name='groups'
+        'User', passthrough='Ignored', through='Membership', related_name='groups'
     )
 
 class Membership(models.Model):
