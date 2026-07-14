@@ -148,7 +148,11 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     if (this.filter) {
       const walk = (list: TreeNode[]): TreeNode | undefined => {
         for (const n of list) {
-          if (n.label === element.label && n.kind === element.kind) return n;
+          if (
+            n.label === element.label &&
+            n.kind === element.kind &&
+            n.filePath === element.filePath
+          ) return n;
           if (n.children) {
             const found = walk(n.children);
             if (found) return found;

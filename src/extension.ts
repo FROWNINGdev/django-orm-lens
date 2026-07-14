@@ -72,12 +72,18 @@ async function refresh(): Promise<void> {
   return scanInFlight;
 }
 
+let watcherDisposables: vscode.Disposable[] = [];
+
 function setupWatcher(context: vscode.ExtensionContext) {
   const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
   const autoRefresh = cfg.get<boolean>('autoRefresh', true);
+  watcherDisposables.forEach((d) => d.dispose());
+  watcherDisposables = [];
   watcher?.dispose();
+  watcher = undefined;
   if (!autoRefresh) return;
   watcher = vscode.workspace.createFileSystemWatcher('**/models.py');
+  const watcherSplit = vscode.workspace.createFileSystemWatcher('**/models/*.py');
   const trigger = () => {
     refresh().catch((err) =>
       outputChannel.appendLine(
@@ -85,10 +91,15 @@ function setupWatcher(context: vscode.ExtensionContext) {
       )
     );
   };
-  watcher.onDidChange(trigger, null, context.subscriptions);
-  watcher.onDidCreate(trigger, null, context.subscriptions);
-  watcher.onDidDelete(trigger, null, context.subscriptions);
-  context.subscriptions.push(watcher);
+  watcherDisposables.push(
+    watcher.onDidChange(trigger),
+    watcher.onDidCreate(trigger),
+    watcher.onDidDelete(trigger),
+    watcherSplit.onDidChange(trigger),
+    watcherSplit.onDidCreate(trigger),
+    watcherSplit.onDidDelete(trigger),
+  );
+  context.subscriptions.push(watcher, watcherSplit);
 }
 
 export async function activate(context: vscode.ExtensionContext) {

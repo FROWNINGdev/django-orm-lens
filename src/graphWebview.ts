@@ -184,7 +184,7 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
   );
   const mermaidUri = panel.webview.asWebviewUri(mermaidFileUri).toString();
   panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce(), mermaidUri);
-  panel.webview.onDidReceiveMessage(
+  const msgHandler = panel.webview.onDidReceiveMessage(
     async (msg: { type: string; payload?: string; message?: string }) => {
       if (msg.type === 'export-svg' && typeof msg.payload === 'string') {
         try {
@@ -197,11 +197,10 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
       } else if (msg.type === 'export-error') {
         vscode.window.showWarningMessage(`Export failed: ${msg.message ?? 'unknown'}`);
       }
-    },
-    null,
-    context.subscriptions
+    }
   );
   panel.onDidDispose(() => {
+    msgHandler.dispose();
     panel = undefined;
-  }, null, context.subscriptions);
+  });
 }
