@@ -67,44 +67,45 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <div align="center">
 
-<table>
-  <tr>
-    <td align="center" width="180">
-      <h2>🚀 818+</h2>
-      <sub><b>pip installs</b><br/>first week</sub>
-    </td>
-    <td align="center" width="180">
-      <h2>🔥 441</h2>
-      <sub><b>installs</b><br/>peak day</sub>
-    </td>
-    <td align="center" width="180">
-      <h2>👥 134</h2>
-      <sub><b>unique cloners</b><br/>14-day window</sub>
-    </td>
-    <td align="center" width="180">
-      <h2>⭐ 5.0</h2>
-      <sub><b>VS Code rating</b><br/>Marketplace</sub>
-    </td>
-  </tr>
-</table>
+<!-- Headline split-badges (dark label · colored value) -->
+
+[![First-week installs](https://img.shields.io/badge/first--week_installs-818%2B-3775a9?style=for-the-badge&logo=pypi&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
+[![Peak day](https://img.shields.io/badge/peak_day_installs-441-f97316?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
+[![Unique cloners](https://img.shields.io/badge/unique_cloners_14d-134-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
+[![VS Code rating](https://img.shields.io/badge/VS_Code_rating-5.0_%E2%98%85-eab308?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 
 <br/>
 
-[![PyPI Downloads](https://img.shields.io/pypi/dw/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=weekly%20downloads&color=3775a9)](https://pypi.org/project/django-orm-lens/)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-official_listing-6f42c1?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)](https://registry.modelcontextprotocol.io/)
-[![Glama.ai](https://img.shields.io/badge/Glama.ai-listed-0f172a?style=for-the-badge)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
-[![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge)](https://mcp.so/servers/django-orm-lens)
+<!-- Live counters + directories -->
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/frowningdev.django-orm-lens?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=VS%20Code&color=0c4b33)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-[![Python Versions](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&color=3775a9)](https://pypi.org/project/django-orm-lens/)
-[![License MIT](https://img.shields.io/badge/license-MIT-16a34a?style=for-the-badge)](LICENSE)
-[![Star on GitHub](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=eab308)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
+[![PyPI weekly](https://img.shields.io/pypi/dw/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=weekly%20downloads&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
+[![PyPI monthly](https://img.shields.io/pypi/dm/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=monthly%20downloads&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
+[![GitHub stars](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=stars&labelColor=1e293b&color=eab308)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=forks&labelColor=1e293b&color=64748b)](https://github.com/FROWNINGdev/django-orm-lens/network/members)
+
+<br/>
+
+<!-- MCP directories -->
+
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-official_listing-6f42c1?style=for-the-badge&labelColor=1e293b)](https://registry.modelcontextprotocol.io/)
+[![Glama.ai](https://img.shields.io/badge/Glama.ai-listed-0f172a?style=for-the-badge&labelColor=1e293b)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+[![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge&labelColor=1e293b)](https://mcp.so/servers/django-orm-lens)
+
+<br/>
+
+<!-- Tech stack + license -->
+
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/frowningdev.django-orm-lens?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=VS%20Code&labelColor=1e293b&color=0c4b33)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
+[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&label=Python&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
+[![Django](https://img.shields.io/badge/Django-4.0_%E2%80%93_5.1-092e20?style=for-the-badge&logo=django&logoColor=white&labelColor=1e293b)](https://www.djangoproject.com/)
+[![License MIT](https://img.shields.io/badge/license-MIT-16a34a?style=for-the-badge&labelColor=1e293b)](LICENSE)
 
 </div>
 
-<sub><i>Point-in-time numbers, updated 2026-07-14. Weekly downloads badge is live from PyPI.</i></sub>
+<sub><i>Updated 2026-07-14. PyPI weekly / monthly, GitHub stars / forks, and PyPI / VS Code version badges auto-refresh live.</i></sub>
 
-> If the tool saves you a `grep` next time you touch a strange Django project — **[star helps others find it](https://github.com/FROWNINGdev/django-orm-lens)**.
+> If the tool saves you a `grep` next time you touch a strange Django project — **[star helps others find it](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**.
 
 ---
 
