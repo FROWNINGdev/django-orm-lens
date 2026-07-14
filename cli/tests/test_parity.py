@@ -87,5 +87,25 @@ class ExtractOnDeleteTest(unittest.TestCase):
         self.assertIsNone(_extract_on_delete("null=True, blank=True"))
 
 
+class ParserGuardsTest(unittest.TestCase):
+    """Regression tests for parser guards added in ce3bd0e (round 1 audit)."""
+
+    def test_read_balanced_args_no_open_paren_returns_empty(self) -> None:
+        """A field-shaped line without ( must not raise ValueError."""
+        from django_orm_lens.parser import _read_balanced_args
+        self.assertEqual(_read_balanced_args(["    name = CharField"], 0), ("", 0))
+
+    def test_detect_class_indent_clamps_at_32(self) -> None:
+        """A crafted deep-indent input must not exceed the ReDoS clamp."""
+        from django_orm_lens.parser import _detect_class_indent
+        deep = " " * 200 + "x = 1"
+        self.assertEqual(_detect_class_indent(["class Foo(Model):", deep], 0), 32)
+
+    def test_detect_class_indent_expands_tabs_to_four(self) -> None:
+        """A tab-indented body reports width 4, not raw byte length 1."""
+        from django_orm_lens.parser import _detect_class_indent
+        self.assertEqual(_detect_class_indent(["class Foo(Model):", "	x = 1"], 0), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
