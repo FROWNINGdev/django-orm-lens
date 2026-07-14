@@ -8,6 +8,13 @@ Thumbs.db
 .env
 tmp_tests/
 
+# Local maintainer scratch (never committed — see django-orm-lens-MAINTAINER/)
+.marketplace-*.md
+CURATOR.md
+OWNER-QUEUE.md
+PRODUCT-STRATEGY.md
+PROJECT-GAPS.md
+
 # Python (cli/)
 cli/dist/
 cli/build/
