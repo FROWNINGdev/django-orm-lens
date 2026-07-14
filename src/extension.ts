@@ -111,6 +111,23 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('djangoOrmLens.filter', async () => {
+      const value = await vscode.window.showInputBox({
+        prompt: 'Filter models and fields',
+        placeHolder: 'e.g. User, order.status, ForeignKey',
+        value: treeProvider.getFilter(),
+      });
+      if (value !== undefined) treeProvider.setFilter(value);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('djangoOrmLens.clearFilter', () => {
+      treeProvider.setFilter('');
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('djangoOrmLens.showGraph', async () => {
       if (currentIndex.apps.length === 0) await refresh();
       showGraph(context, currentIndex);

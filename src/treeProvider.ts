@@ -71,15 +71,44 @@ function buildTree(index: WorkspaceIndex): TreeNode[] {
   }));
 }
 
+function filterTree(nodes: TreeNode[], needle: string): TreeNode[] {
+  if (!needle) return nodes;
+  const q = needle.toLowerCase();
+  const walk = (list: TreeNode[]): TreeNode[] => {
+    const out: TreeNode[] = [];
+    for (const n of list) {
+      const selfHit =
+        n.label.toLowerCase().includes(q) ||
+        (n.description ?? '').toLowerCase().includes(q);
+      const kids = n.children ? walk(n.children) : [];
+      if (selfHit || kids.length > 0) {
+        out.push({ ...n, children: kids.length > 0 ? kids : n.children });
+      }
+    }
+    return out;
+  };
+  return walk(nodes);
+}
+
 export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   private _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private roots: TreeNode[] = [];
+  private filter = '';
 
   setIndex(index: WorkspaceIndex) {
     this.roots = buildTree(index);
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  setFilter(needle: string) {
+    this.filter = needle.trim();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  getFilter(): string {
+    return this.filter;
   }
 
   getTreeItem(element: TreeNode): vscode.TreeItem {
@@ -104,7 +133,22 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   getChildren(element?: TreeNode): TreeNode[] {
-    if (!element) return this.roots;
+    const filtered = filterTree(this.roots, this.filter);
+    if (!element) return filtered;
+    if (this.filter) {
+      const walk = (list: TreeNode[]): TreeNode | undefined => {
+        for (const n of list) {
+          if (n.label === element.label && n.kind === element.kind) return n;
+          if (n.children) {
+            const found = walk(n.children);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+      const match = walk(filtered);
+      return match?.children ?? element.children ?? [];
+    }
     return element.children ?? [];
   }
 }

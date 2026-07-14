@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "Live sidebar + ER diagram for your Django models. Navigate apps, models, fields and relationships without leaving the editor.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "frowningdev",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -69,19 +69,39 @@
       {
         "command": "djangoOrmLens.jumpToModel",
         "title": "Django ORM Lens: Jump to Model"
+      },
+      {
+        "command": "djangoOrmLens.filter",
+        "title": "Django ORM Lens: Filter Models",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "djangoOrmLens.clearFilter",
+        "title": "Django ORM Lens: Clear Filter",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "djangoOrmLens.filter",
+          "when": "view == djangoOrmLens.models",
+          "group": "navigation@1"
+        },
+        {
+          "command": "djangoOrmLens.clearFilter",
+          "when": "view == djangoOrmLens.models",
+          "group": "navigation@2"
+        },
+        {
           "command": "djangoOrmLens.refresh",
           "when": "view == djangoOrmLens.models",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "djangoOrmLens.showGraph",
           "when": "view == djangoOrmLens.models",
-          "group": "navigation"
+          "group": "navigation@4"
         }
       ]
     },
