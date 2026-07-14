@@ -99,7 +99,9 @@ function extractOnDelete(argsBlock: string): string | undefined {
   const m = argsBlock.match(
     /on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)/
   );
-  return m?.[1];
+  if (m) return m[1];
+  if (argsBlock.match(/on_delete\s*=\s*(?:models\.)?SET\s*\(/)) return 'SET';
+  return undefined;
 }
 
 function extractRelatedName(argsBlock: string): string | undefined {

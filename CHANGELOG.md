@@ -5,7 +5,12 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.4] + [py-1.0.10] - 2026-07-15
+
+Combined release — the parser hardening ships identically in both the VS Code extension and the Python CLI. Product of a 3-round security + stability + type-design + Django-semantics audit.
+
+### Added
+- **`on_delete=models.SET(default_value)` callable form now recognised** — previous regex `[A-Z][A-Z_]+` matched only bare identifiers (`CASCADE`, `SET_NULL`, `PROTECT`, etc.) and silently dropped the callable form used to inject a default value on delete. Parser now falls back to matching `on_delete=SET(` and records `"SET"`, so consumers know the field has a dynamic on_delete rather than treating it as absent.
 
 ### Security
 - **ReDoS clamp on class-indent detection** — `_detect_class_indent` now clamps the reported indent width to 32 and expands tabs to width 4 before use. A crafted `models.py` with an absurd number of leading spaces (10k+) or a tab that produced a width-mismatched regex could previously build patterns like `\s{20000,}` for the meta-body match and trigger catastrophic backtracking. Fixes both the ReDoS vector and the tab-indent correctness bug (Meta blocks in tab-indented codebases were silently unparsed).

@@ -144,7 +144,11 @@ def _extract_related(args_block: str):
 
 def _extract_on_delete(args_block: str):
     m = re.search(r"on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)", args_block)
-    return m.group(1) if m else None
+    if m:
+        return m.group(1)
+    if re.search(r"on_delete\s*=\s*(?:models\.)?SET\s*\(", args_block):
+        return "SET"
+    return None
 
 
 def _extract_related_name(args_block: str):
