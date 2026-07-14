@@ -65,19 +65,46 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 ## 📊 Traction
 
-<sub>Updated 2026-07-14. Numbers are point-in-time.</sub>
+<div align="center">
 
-| Signal | Where | Reading |
-|--------|-------|---------|
-| **818 pip installs** in the first week | [PyPI](https://pypi.org/project/django-orm-lens/) | Live |
-| **441 pip installs** on the day py-1.0.8 shipped | PyPI stats | Peak day |
-| **134 unique cloners** in the first 14-day window | GitHub Insights (Traffic) | Rolling window |
-| Listed on the **official Model Context Protocol Registry** | [`io.github.FROWNINGdev/django-orm-lens`](https://registry.modelcontextprotocol.io/) | Confirmed |
-| Listed on **Glama.ai** MCP directory | [glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens) | Confirmed |
-| Listed on **mcp.so** MCP directory | [mcp.so](https://mcp.so/servers/django-orm-lens) | Confirmed |
-| Three interfaces on one core | PyPI CLI + VS Code Marketplace + MCP server | Live |
+<table>
+  <tr>
+    <td align="center" width="180">
+      <h2>🚀 818+</h2>
+      <sub><b>pip installs</b><br/>first week</sub>
+    </td>
+    <td align="center" width="180">
+      <h2>🔥 441</h2>
+      <sub><b>installs</b><br/>peak day</sub>
+    </td>
+    <td align="center" width="180">
+      <h2>👥 134</h2>
+      <sub><b>unique cloners</b><br/>14-day window</sub>
+    </td>
+    <td align="center" width="180">
+      <h2>⭐ 5.0</h2>
+      <sub><b>VS Code rating</b><br/>Marketplace</sub>
+    </td>
+  </tr>
+</table>
 
-Star the repo if the tool saves you a search — it helps other Django devs find it while they are looking for the same thing.
+<br/>
+
+[![PyPI Downloads](https://img.shields.io/pypi/dw/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=weekly%20downloads&color=3775a9)](https://pypi.org/project/django-orm-lens/)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-official_listing-6f42c1?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)](https://registry.modelcontextprotocol.io/)
+[![Glama.ai](https://img.shields.io/badge/Glama.ai-listed-0f172a?style=for-the-badge)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+[![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge)](https://mcp.so/servers/django-orm-lens)
+
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/frowningdev.django-orm-lens?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=VS%20Code&color=0c4b33)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Python Versions](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&color=3775a9)](https://pypi.org/project/django-orm-lens/)
+[![License MIT](https://img.shields.io/badge/license-MIT-16a34a?style=for-the-badge)](LICENSE)
+[![Star on GitHub](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=eab308)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
+
+</div>
+
+<sub><i>Point-in-time numbers, updated 2026-07-14. Weekly downloads badge is live from PyPI.</i></sub>
+
+> If the tool saves you a `grep` next time you touch a strange Django project — **[star helps others find it](https://github.com/FROWNINGdev/django-orm-lens)**.
 
 ---
 
