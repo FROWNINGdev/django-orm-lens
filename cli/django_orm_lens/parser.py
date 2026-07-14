@@ -86,7 +86,7 @@ def _read_multiline_class(lines: Sequence[str], start: int):
             if m:
                 return m, i
             return None, i
-    return None, len(lines) - 1
+    return None, start
 
 
 def _detect_class_indent(lines: Sequence[str], class_line_idx: int) -> int:

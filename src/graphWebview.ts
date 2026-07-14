@@ -74,7 +74,7 @@ function resolveTheme(): string {
 function html(mermaidSource: string, cspSource: string, nonce: string, mermaidUri: string): string {
   const theme = resolveTheme();
   return `<!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}'; font-src ${cspSource} data:; img-src ${cspSource} data:;">
@@ -90,6 +90,7 @@ function html(mermaidSource: string, cspSource: string, nonce: string, mermaidUr
     cursor: pointer; font-family: inherit;
   }
   header button:hover { background: var(--vscode-button-hoverBackground); }
+  header button:focus-visible { outline: 2px solid var(--vscode-focusBorder, #007acc); outline-offset: 2px; }
   .diagram-wrap { padding: 16px; overflow: auto; }
   pre.mermaid { background: transparent; }
 </style>
@@ -97,12 +98,12 @@ function html(mermaidSource: string, cspSource: string, nonce: string, mermaidUr
 <body>
   <header>
     <h1>Django ORM Lens — ER Diagram</h1>
-    <button id="export-svg" title="Save the diagram as an SVG file">Export SVG</button>
-    <span class="stats" id="stats"></span>
+    <button id="export-svg" type="button" aria-label="Export diagram as SVG file" title="Save the diagram as an SVG file">Export SVG</button>
+    <span class="stats" id="stats" aria-live="polite"></span>
   </header>
-  <div class="diagram-wrap">
+  <main class="diagram-wrap" role="region" aria-label="Entity-relationship diagram">
     <pre class="mermaid" id="d">${mermaidSource.replace(/</g, '&lt;')}</pre>
-  </div>
+  </main>
   <script nonce="${nonce}" src="${mermaidUri}"></script>
   <script nonce="${nonce}">
     (function(){
