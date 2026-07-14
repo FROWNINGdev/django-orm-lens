@@ -63,6 +63,24 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 ---
 
+## 📊 Traction
+
+<sub>Updated 2026-07-14. Numbers are point-in-time.</sub>
+
+| Signal | Where | Reading |
+|--------|-------|---------|
+| **818 pip installs** in the first week | [PyPI](https://pypi.org/project/django-orm-lens/) | Live |
+| **441 pip installs** on the day py-1.0.8 shipped | PyPI stats | Peak day |
+| **134 unique cloners** in the first 14-day window | GitHub Insights (Traffic) | Rolling window |
+| Listed on the **official Model Context Protocol Registry** | [`io.github.FROWNINGdev/django-orm-lens`](https://registry.modelcontextprotocol.io/) | Confirmed |
+| Listed on **Glama.ai** MCP directory | [glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens) | Confirmed |
+| Listed on **mcp.so** MCP directory | [mcp.so](https://mcp.so/servers/django-orm-lens) | Confirmed |
+| Three interfaces on one core | PyPI CLI + VS Code Marketplace + MCP server | Live |
+
+Star the repo if the tool saves you a search — it helps other Django devs find it while they are looking for the same thing.
+
+---
+
 ## ⚡ Install
 
 **VS Code / Cursor / Windsurf / any Code fork:**
