@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { scanWorkspace } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
 import { showGraph } from './graphWebview';
+import { DjangoHoverProvider } from './hoverProvider';
 import { WorkspaceIndex } from './types';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
@@ -93,6 +94,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('djangoOrmLens.models', treeProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      { language: 'python' },
+      new DjangoHoverProvider(() => currentIndex)
+    )
   );
 
   context.subscriptions.push(
