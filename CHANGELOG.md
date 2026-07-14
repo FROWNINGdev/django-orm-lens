@@ -5,6 +5,16 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- **ReDoS clamp on class-indent detection** — `_detect_class_indent` now clamps the reported indent width to 32 and expands tabs to width 4 before use. A crafted `models.py` with an absurd number of leading spaces (10k+) or a tab that produced a width-mismatched regex could previously build patterns like `\s{20000,}` for the meta-body match and trigger catastrophic backtracking. Fixes both the ReDoS vector and the tab-indent correctness bug (Meta blocks in tab-indented codebases were silently unparsed).
+
+### Fixed
+- **Workspace scan no longer aborts on a single broken `models.py`** — `scan_workspace` (Python CLI) and `scanWorkspace` (VS Code extension) previously wrapped both the read AND the parse in one broad try/catch. A parser exception in a single file (e.g. missing `(` after a matched field, malformed multi-line class header) would either abort the whole workspace scan with exit 1 (Python) or silently drop that file's models from the tree (TypeScript). Now the read and parse are caught separately: parse errors log a per-file warning to stderr (Python) or dev-tools console (TypeScript) and scanning continues on the next file.
+- **Multi-line class header parser no longer near-loops on malformed signatures** — `_read_multiline_class` used to return `None` when parens closed but the joined buffer didn't match `CLASS_RE`. The caller would then advance by only one line, causing every continuation line of a malformed wrap to be re-evaluated as a potential class header. Now returns `(None, end_index)` so the caller skips past the whole section.
+- **`_read_balanced_args` guard for missing `(`** — if a matched field somehow doesn't have `(` on its starting line, `.index("(")` used to raise `ValueError` that propagated out of `parse_models_file` and aborted the entire scan. Now returns an empty args block and the field is captured with no relation metadata.
+
 ## [0.3.3] - 2026-07-13
 
 ### Security

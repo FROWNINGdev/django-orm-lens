@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import time
 from fnmatch import fnmatch
 from pathlib import Path
@@ -59,6 +60,14 @@ BARE_FIELD_TYPES = "|".join(
 
 
 def _read_multiline_class(lines: Sequence[str], start: int):
+    """Read a possibly-multi-line ``class Foo(Bar,\n    Baz):`` header.
+
+    Returns ``(match, end_line_idx)`` on success, ``(None, end_line_idx)`` if
+    the parens closed but the joined buffer did not match a class signature,
+    and ``(None, last_line_idx)`` when the wrap never closes. Always a tuple —
+    callers use ``end_line_idx`` to advance past the section instead of
+    re-scanning each continuation line.
+    """
     buffer = lines[start]
     depth = 0
     saw_open = False
@@ -76,8 +85,8 @@ def _read_multiline_class(lines: Sequence[str], start: int):
             m = CLASS_RE.match(buffer)
             if m:
                 return m, i
-            return None
-    return None
+            return None, i
+    return None, len(lines) - 1
 
 
 def _detect_class_indent(lines: Sequence[str], class_line_idx: int) -> int:
@@ -85,7 +94,9 @@ def _detect_class_indent(lines: Sequence[str], class_line_idx: int) -> int:
     for i in range(class_line_idx + 1, end):
         m = re.match(r"^([\t ]+)\S", lines[i])
         if m:
-            return len(m.group(1))
+            raw = m.group(1)
+            width = sum(4 if ch == "\t" else 1 for ch in raw)
+            return min(width, 32)
     return 4
 
 
@@ -154,6 +165,8 @@ def _extract_through_model(args_block: str):
 
 
 def _read_balanced_args(lines: Sequence[str], start: int):
+    if "(" not in lines[start]:
+        return "", start
     open_idx = lines[start].index("(")
     depth = 0
     parts: List[str] = []
@@ -207,9 +220,13 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
         class_match = CLASS_RE.match(line)
         class_header_end = i
         if not class_match and CLASS_START_RE.match(line):
-            joined = _read_multiline_class(lines, i)
-            if joined:
-                class_match, class_header_end = joined
+            joined_match, joined_end = _read_multiline_class(lines, i)
+            if joined_match is not None:
+                class_match = joined_match
+                class_header_end = joined_end
+            else:
+                i = joined_end + 1
+                continue
         if not class_match:
             i += 1
             continue
@@ -332,7 +349,14 @@ def scan_workspace(
             content = py.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        models = parse_models_file(str(py), content)
+        try:
+            models = parse_models_file(str(py), content)
+        except Exception as exc:
+            print(
+                f"warning: skipping {py}: {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            continue
         if not models:
             continue
         app_dir, app_name = _app_dir_for(str(py))

@@ -290,9 +290,14 @@ export async function scanWorkspace(
   const appMap = new Map<string, ParsedApp>();
 
   for (const uri of uris) {
+    let content: string;
     try {
       const bytes = await vscode.workspace.fs.readFile(uri);
-      const content = Buffer.from(bytes).toString('utf-8');
+      content = Buffer.from(bytes).toString('utf-8');
+    } catch (err) {
+      continue;
+    }
+    try {
       const models = parseModelsFile(uri.fsPath, content);
       if (models.length === 0) continue;
       const { dir: appDir, name: appName } = appDirFor(uri.fsPath);
@@ -303,7 +308,7 @@ export async function scanWorkspace(
       }
       app.models.push(...models);
     } catch (err) {
-      // ignore unreadable files
+      console.error(`django-orm-lens: parser error in ${uri.fsPath}`, err);
     }
   }
 
