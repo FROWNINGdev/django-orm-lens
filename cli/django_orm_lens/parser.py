@@ -1,7 +1,11 @@
 """Django models.py parser — Python port of the VS Code extension parser.
 
-Static regex-based parser. Zero third-party deps. Produces the same schema
-as the TypeScript ``src/parser.ts`` so tools can consume either interchangeably.
+Static regex-based parser. Zero third-party deps. Produces a structurally
+compatible schema with the TypeScript ``src/parser.ts`` (fields, relations,
+Meta) — the cross-language golden fixture under ``test/`` pins the shared
+shape. Note: indent detection on the Python side expands tabs to width 4
+and clamps to 32 (ReDoS mitigation); the TypeScript side reports raw
+character width. Both agree on the common 4-space case.
 
 Key semantics preserved from the TS parser:
 * multi-line ``class X(A, B):`` inheritance;
@@ -62,11 +66,18 @@ BARE_FIELD_TYPES = "|".join(
 def _read_multiline_class(lines: Sequence[str], start: int):
     """Read a possibly-multi-line ``class Foo(Bar,\n    Baz):`` header.
 
-    Returns ``(match, end_line_idx)`` on success, ``(None, end_line_idx)`` if
-    the parens closed but the joined buffer did not match a class signature,
-    and ``(None, last_line_idx)`` when the wrap never closes. Always a tuple —
-    callers use ``end_line_idx`` to advance past the section instead of
-    re-scanning each continuation line.
+    Returns ``(match, end_line_idx)`` on success, ``(None, end_line_idx)``
+    when the parens closed but the joined buffer did not match a class
+    signature, and ``(None, start)`` when the wrap never closes (truncated
+    or malformed file). Always a tuple.
+
+    Advance semantics for the caller:
+    * closed-but-no-match: use ``end_line_idx`` to skip past the whole
+      wrapped section without re-scanning each continuation line;
+    * never-closes: advance one line past ``start`` so the outer loop
+      keeps making progress on the rest of the file instead of jumping
+      to EOF (which used to drop any valid models below the malformed
+      header).
     """
     buffer = lines[start]
     depth = 0
