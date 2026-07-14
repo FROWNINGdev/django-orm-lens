@@ -12,7 +12,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from django_orm_lens.parser import parse_models_file
+from django_orm_lens.parser import _extract_on_delete, parse_models_file
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_PATH = REPO_ROOT / "test" / "fixtures" / "parity_input.py"
@@ -65,6 +65,26 @@ class ParityFixtureTest(unittest.TestCase):
         self.assertEqual(book_tag.fields[0].name, "book")
         self.assertEqual(book_tag.fields[0].on_delete, "CASCADE")
         self.assertEqual(book_tag.fields[1].name, "tag")
+
+
+class ExtractOnDeleteTest(unittest.TestCase):
+    """Regression tests for _extract_on_delete callable-form fix (py-1.0.10)."""
+
+    def test_bare_identifier_forms(self) -> None:
+        self.assertEqual(_extract_on_delete("on_delete=CASCADE"), "CASCADE")
+        self.assertEqual(_extract_on_delete("on_delete=models.SET_NULL"), "SET_NULL")
+        self.assertEqual(_extract_on_delete("on_delete=PROTECT"), "PROTECT")
+
+    def test_set_callable_form_returns_SET(self) -> None:
+        """The SET(default_value) callable form used to be silently dropped."""
+        self.assertEqual(
+            _extract_on_delete("to='User', on_delete=models.SET(get_default)"),
+            "SET",
+        )
+        self.assertEqual(_extract_on_delete("on_delete=SET(0)"), "SET")
+
+    def test_absent_on_delete_returns_none(self) -> None:
+        self.assertIsNone(_extract_on_delete("null=True, blank=True"))
 
 
 if __name__ == "__main__":
