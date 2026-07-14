@@ -12,3 +12,10 @@ examples/**
 tmp_tests/**
 media/*.svg
 !media/**/*.png
+# Maintainer-only artefacts — never ship in VSIX
+.*.log
+*.log
+.release-*
+.marketplace-*
+.env
+scripts/**
