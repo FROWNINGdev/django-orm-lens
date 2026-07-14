@@ -139,10 +139,26 @@ export async function activate(context: vscode.ExtensionContext) {
       'djangoOrmLens.jumpToModel',
       async (filePath: string, lineNumber: number) => {
         try {
+          if (typeof filePath !== 'string' || typeof lineNumber !== 'number') {
+            throw new Error('Invalid jump arguments');
+          }
+          const folders = vscode.workspace.workspaceFolders ?? [];
+          const normalized = filePath.replace(/\\/g, '/').toLowerCase();
+          const insideWorkspace = folders.some((f) => {
+            const root = f.uri.fsPath.replace(/\\/g, '/').toLowerCase();
+            return (
+              normalized === root ||
+              normalized.startsWith(root + '/') ||
+              normalized.startsWith(root.replace(/\/$/, '') + '/')
+            );
+          });
+          if (!insideWorkspace) {
+            throw new Error('target path is outside the current workspace');
+          }
           const uri = vscode.Uri.file(filePath);
           const doc = await vscode.workspace.openTextDocument(uri);
           const editor = await vscode.window.showTextDocument(doc);
-          const pos = new vscode.Position(lineNumber, 0);
+          const pos = new vscode.Position(Math.max(0, lineNumber | 0), 0);
           editor.selection = new vscode.Selection(pos, pos);
           editor.revealRange(
             new vscode.Range(pos, pos),
@@ -151,7 +167,7 @@ export async function activate(context: vscode.ExtensionContext) {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           vscode.window.showWarningMessage(
-            `Django ORM Lens: could not open ${filePath}. It may have been moved or deleted. (${msg})`
+            `Django ORM Lens: could not open ${filePath}. It may have been moved, deleted, or is outside the workspace. (${msg})`
           );
           refresh().catch(() => {});
         }

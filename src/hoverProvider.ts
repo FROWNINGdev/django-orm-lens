@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import { ParsedModel, WorkspaceIndex } from './types';
 
+function md(text: string): string {
+  return text.replace(/[\\`*_{}[\]()#+\-.!|<>]/g, (c) => `\\${c}`);
+}
+
 export class DjangoHoverProvider implements vscode.HoverProvider {
   constructor(private getIndex: () => WorkspaceIndex) {}
 
@@ -24,29 +28,33 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
     const model = this.findModel(index, raw, targetName);
     if (!model) return undefined;
 
-    const md = new vscode.MarkdownString();
-    md.isTrusted = true;
-    md.supportHtml = false;
-    md.appendMarkdown(`**${model.appName}.${model.name}**  \n`);
-    md.appendMarkdown(`_${model.baseClasses.join(', ') || 'models.Model'}_\n\n`);
+    const doc = new vscode.MarkdownString();
+    doc.isTrusted = { enabledCommands: ['djangoOrmLens.jumpToModel'] };
+    doc.supportHtml = false;
+    doc.appendMarkdown(`**${md(model.appName)}.${md(model.name)}**\n\n`);
+    doc.appendMarkdown(
+      `_${md(model.baseClasses.join(', ') || 'models.Model')}_\n\n`
+    );
 
     const scalars = model.fields.filter((f) => !f.isRelation);
     const relations = model.fields.filter((f) => f.isRelation);
 
     if (scalars.length > 0) {
-      md.appendMarkdown('**Fields**\n');
+      doc.appendMarkdown('**Fields**\n');
       for (const f of scalars.slice(0, 12)) {
-        md.appendMarkdown(`- \`${f.name}\` — ${f.type}\n`);
+        doc.appendMarkdown(`- \`${md(f.name)}\` — ${md(f.type)}\n`);
       }
       if (scalars.length > 12) {
-        md.appendMarkdown(`- _...and ${scalars.length - 12} more_\n`);
+        doc.appendMarkdown(`- _…and ${scalars.length - 12} more_\n`);
       }
     }
     if (relations.length > 0) {
-      md.appendMarkdown('\n**Relations**\n');
+      doc.appendMarkdown('\n**Relations**\n');
       for (const f of relations) {
-        md.appendMarkdown(
-          `- \`${f.name}\` → **${f.relatedModel ?? '?'}** _(${f.relationKind})_\n`
+        doc.appendMarkdown(
+          `- \`${md(f.name)}\` → **${md(f.relatedModel ?? '?')}** _(${md(
+            f.relationKind ?? ''
+          )})_\n`
         );
       }
     }
@@ -54,11 +62,11 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
     const jumpArgs = encodeURIComponent(
       JSON.stringify([model.filePath, model.lineNumber])
     );
-    md.appendMarkdown(
-      `\n[Jump to \`${model.name}\` definition](command:djangoOrmLens.jumpToModel?${jumpArgs})`
+    doc.appendMarkdown(
+      `\n[Jump to ${md(model.name)}](command:djangoOrmLens.jumpToModel?${jumpArgs})`
     );
 
-    return new vscode.Hover(md, wordRange);
+    return new vscode.Hover(doc, wordRange);
   }
 
   private findModel(
