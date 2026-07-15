@@ -5,6 +5,19 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Django 5.2 classifier and CI matrix (Python 3.10-3.12 × Django 4.2-5.2)
+- `cascade_preview` MCP tool — group inbound relations by on_delete behavior
+- `on_delete` field on inbound relations in `find_relations` output
+- VS Code: "Find Reverse References" action in the sidebar tree context menu
+- Optional-dependencies group `[full]` (alias for `[mcp]`, for install clarity)
+
+### Changed
+- README: added "Works offline / broken venv / someone else's laptop / CI" positioning line
+- README: added Django version support column to comparison table
+
 ## [0.3.4] + [py-1.0.10] - 2026-07-15
 
 Combined release — the parser hardening ships identically in both the VS Code extension and the Python CLI. Product of a 3-round security + stability + type-design + Django-semantics audit.

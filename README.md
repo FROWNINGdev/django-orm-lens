@@ -141,6 +141,8 @@ Requires Python 3.9+. Zero runtime dependencies for the CLI.
 
 ## 🎯 The problem
 
+> **Works offline. Works on a broken venv. Works on someone else's laptop. Works in CI.**
+
 You open a Django project. It has 20 apps. You need to answer a simple question:
 
 > _"Which app owns the `Order` model, and how is it connected to `User`?"_
@@ -367,6 +369,9 @@ Django ORM Lens sits at the intersection of **editor tooling** and **AI-agent to
 | MCP server for AI agents | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Discoverable in the [MCP Registry](https://registry.modelcontextprotocol.io/) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Free & open-source (MIT) | ✅ | ✅ | ✅ | ✅ | ❌ (paid IDE) |
+| Django version support | **4.0 – 5.2** | latest | 3.2 – 4.1 (stale since 2023) | latest | latest |
+
+> *`django-schema-graph` has not been updated since 2023-05 and does not test Django 5.x.*
 
 <br/>
 
