@@ -5,6 +5,27 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] + [py-1.0.15] - 2026-07-16
+
+Major visual upgrade for the ER diagram — the VS Code webview now renders every model as an interactive React Flow node instead of a static Mermaid SVG. Drag models around to lay the diagram out the way you think about it, click a node to highlight its inbound and outbound relations, double-click to jump straight to the class in `models.py`. Edges are colour-coded by relation semantics (ForeignKey CASCADE / SET_NULL / PROTECT, OneToOne, ManyToMany with `through=` label) so the on_delete blast radius is visible at a glance. Ships with a minimap, zoom controls, and PNG / SVG export. Automatic hierarchical layout via `elkjs`. Python CLI is unchanged in behaviour — the version bump keeps the extension and CLI shipping together, and the Mermaid emitter (`build_mermaid`) remains available for the CLI `--mermaid` output.
+
+### Added
+- **Interactive ER diagram (React Flow)** — replaces Mermaid rendering in the VS Code webview. Draggable nodes with rounded corners, drop shadow, and Inter-family typography. Each node shows `app · Model` header and every field with a colour-coded badge (FK / 1:1 / M2M / plain). Edges are laid out with `elkjs` layered algorithm (`RIGHT` direction, orthogonal routing) so hierarchies read naturally instead of the force-directed mush the previous Mermaid `erDiagram` rendered as workspace size grew.
+- **Click-to-focus highlighting** — clicking any model dims unrelated nodes to 35 % opacity, keeps the selected node plus every connected neighbour at full brightness, and animates its edges. Click empty canvas or the same node again to clear.
+- **Double-click to jump to source** — double-clicking a node posts `jumpToModel` back to the extension, which opens the `models.py` file in the primary editor column at the model's class line. Reuses the existing message handler contract from the Mermaid webview.
+- **PNG + SVG export** — new Export dropdown in the header uses `html-to-image` to serialise the diagram viewport at 2× pixel ratio (PNG) or as inline SVG. Falls back to VS Code's `showSaveDialog` for the target path.
+- **MiniMap + zoom controls** — bottom-right minimap (150×100) with the current selection highlighted in the accent colour; bottom-left React Flow zoom controls (zoom in / out / fit view). Both surfaces inherit VS Code panel colours via CSS variables and use a subtle `backdrop-filter: blur(6px)` for the Linear/ChartDB aesthetic.
+- **Relation-kind legend** — small footer chip explains the FK CASCADE / SET_NULL / PROTECT / 1:1 / M2M colour palette so you don't have to guess.
+
+### Changed
+- **Webview build pipeline now uses esbuild.** New `npm run build:webview` bundles `src/webview/graph.tsx` → `media/webview/graph.js` as a minified IIFE (~1.85 MB raw / ~565 KB gzipped, well under the 3 MB VSIX budget). `npm run build` runs both `build:extension` (tsc) and `build:webview` (esbuild). The webview source under `src/webview/` is excluded from the extension's `tsc` project via `tsconfig.json`.
+- **Webview header rebuilt to Linear/Vercel spec** — 48 px tall, subtle 2 px gradient bottom border (`transparent → focus → transparent`), workspace name in the title, app + model count badge, refresh button, and export dropdown.
+- **`diagramTheme` config values `default` / `forest` / `neutral` now collapse to the `light` React Flow palette.** The old Mermaid-specific enum values are still accepted for setting compatibility but no longer produce distinct visuals — Mermaid is the only renderer that had those. `auto` and `dark` behave as before.
+
+### Kept
+- **Mermaid vendored file (`media/vendor/mermaid.min.js`) stays in the VSIX** in case a user needs to roll back to v0.3.8 by re-enabling the old renderer.
+- **CLI `build_mermaid` emitter is unchanged.** The Python CLI still exposes `--mermaid` for terminal / CI consumers, so agents and pipelines that scrape the Mermaid output are unaffected.
+
 ## [0.3.8] + [py-1.0.14] - 2026-07-16
 
 Second hotfix on the two 0.3.6 regressions that 0.3.7's partial fix did not fully resolve for users running a single-app workspace ("hello/" opened at the app root). Icon rendered blank on some installs even after the theme-aware SVG rewrite; the workspace scan still came up empty on cold-start when `vscode.workspace.findFiles` returned no results before the file index was warm. This release simplifies the icon glyph and adds a direct filesystem walker fallback so the scan never depends on the file index being ready.
