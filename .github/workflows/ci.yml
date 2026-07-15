@@ -25,3 +25,27 @@ jobs:
         with:
           name: vsix
           path: django-orm-lens.vsix
+
+  python-cli:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        django-version: ["4.2", "5.0", "5.1", "5.2"]
+        exclude:
+          - python-version: "3.10"
+            django-version: "5.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install CLI + test extras
+        working-directory: cli
+        run: |
+          pip install -e ".[dev]"
+          pip install "Django==${{ matrix.django-version }}.*"
+      - name: Run pytest
+        working-directory: cli
+        run: python -m pytest -q
