@@ -5,18 +5,20 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.5] + [py-1.0.11] - 2026-07-15
+
+Combined release — Django 5.2 support, cascade blast-radius preview for AI agents, and a reverse-references sidebar action. Feature-set derived from a competitive analysis of `meshy/django-schema-graph` (stale since 2023, Django ≤ 4.1) and MCP peers (`gts360/django-mcp-server`, `kitespark/django-mcp`) — all of which require a running Django process; django-orm-lens keeps the zero-runtime moat.
 
 ### Added
-- Django 5.2 classifier and CI matrix (Python 3.10-3.12 × Django 4.2-5.2)
-- `cascade_preview` MCP tool — group inbound relations by on_delete behavior
-- `on_delete` field on inbound relations in `find_relations` output
-- VS Code: "Find Reverse References" action in the sidebar tree context menu
-- Optional-dependencies group `[full]` (alias for `[mcp]`, for install clarity)
+- **Django 5.2 support** — new `Framework :: Django :: 5.2` classifier and a CI matrix job (`python-cli`) that runs pytest against Python 3.10-3.12 × Django 4.2-5.2 in parallel with the existing Node/TS build.
+- **`cascade_preview` MCP tool** — new tool `cascade_preview(app_label, model_name)` returns inbound relations grouped by `on_delete` behavior into `cascade_kills` / `set_null` / `protected` buckets. Lets AI agents preview a delete's blast radius before acting, using only static parse (no DB, no boot).
+- **`on_delete` on inbound relations** — `find_relations` inbound entries now include the `on_delete` value (`CASCADE`, `SET_NULL`, `PROTECT`, `SET_DEFAULT`, `DO_NOTHING`, `RESTRICT`, or `SET` for callable form) extracted via the existing parser helper.
+- **VS Code: "Find Reverse References" context action** — right-click any model in the sidebar tree → `Find Reverse References` → QuickPick of every FK/OneToOne/M2M pointing at this model, using the in-memory workspace index (no re-parse).
+- **`[full]` optional-dependencies alias** — `pip install "django-orm-lens[full]"` is now equivalent to `[mcp]`; documents the default install as zero-dependency in a pyproject header comment.
 
 ### Changed
-- README: added "Works offline / broken venv / someone else's laptop / CI" positioning line
-- README: added Django version support column to comparison table
+- **README hero** — added `Works offline. Works on a broken venv. Works on someone else's laptop. Works in CI.` positioning line under the problem section.
+- **README comparison table** — added Django version support row (ours 4.0-5.2 · schema-graph 3.2-4.1 stale since 2023 · django-extensions latest) with an explicit stale-since-2023 note for `django-schema-graph`.
 
 ## [0.3.4] + [py-1.0.10] - 2026-07-15
 
