@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `describe_migration_dependency` MCP tool — return per-app migration DAG (dependencies, roots, leaves, cross-app deps) from static AST parse, no Django boot. Standout differentiator: no other Django MCP server or graph tool (django-schema-graph, django-extensions graph_models, gts360/django-mcp-server, kitespark/django-mcp, admin-mcp-api) offers migration-conflict introspection without a running Django process.
 
+### Changed
+- **MCP server prints a one-line star-ask on startup** (stderr). Mirrors the CLI welcome convention from py-1.0.9. Zero effect on the JSON-RPC protocol (stderr is out-of-band); surfaces in Cursor, Aider, mcp-inspector, and any client that shows server logs.
+
 ### Fixed
 - **Activity-bar icon now appears on any workspace, not only Django ones.** Previously the extension activated exclusively on `workspaceContains:**/manage.py` or `workspaceContains:**/models.py`, so a user who installed the extension without a Django project open saw no icon and no way to discover the tool ("I installed it and see nothing" — real user report). Added `onStartupFinished` to `activationEvents` so the icon always renders; added a `viewsWelcome` empty-state message explaining the tool looks for `manage.py` / `models.py`, with quick actions to open a folder, refresh the scan, or read docs on GitHub. Django auto-activation on those files is unchanged.
 

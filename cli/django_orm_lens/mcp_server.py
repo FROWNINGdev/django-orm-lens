@@ -250,6 +250,17 @@ def main() -> int:
 
     server = FastMCP("django-orm-lens")
 
+    # Subtle star-ask on startup (stderr — stdout is reserved for JSON-RPC).
+    # Mirrors the CLI welcome convention from py-1.0.9. MCP clients that
+    # surface server stderr (Cursor, Aider, mcp-inspector) show this once
+    # per session; silent clients ignore it. Zero effect on tool protocol.
+    print(
+        "django-orm-lens MCP ready — "
+        "if it saves your agent time, a star helps: "
+        "https://github.com/FROWNINGdev/django-orm-lens",
+        file=sys.stderr,
+    )
+
     def _register(name: str, description: str, handler):
         if name == "list_apps":
             @server.tool(name=name, description=description)
