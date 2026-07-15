@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `describe_migration_dependency` MCP tool — return per-app migration DAG (dependencies, roots, leaves, cross-app deps) from static AST parse, no Django boot. Standout differentiator: no other Django MCP server or graph tool (django-schema-graph, django-extensions graph_models, gts360/django-mcp-server, kitespark/django-mcp, admin-mcp-api) offers migration-conflict introspection without a running Django process.
 
+### Fixed
+- **Activity-bar icon now appears on any workspace, not only Django ones.** Previously the extension activated exclusively on `workspaceContains:**/manage.py` or `workspaceContains:**/models.py`, so a user who installed the extension without a Django project open saw no icon and no way to discover the tool ("I installed it and see nothing" — real user report). Added `onStartupFinished` to `activationEvents` so the icon always renders; added a `viewsWelcome` empty-state message explaining the tool looks for `manage.py` / `models.py`, with quick actions to open a folder, refresh the scan, or read docs on GitHub. Django auto-activation on those files is unchanged.
+
 ## [0.3.5] + [py-1.0.11] - 2026-07-15
 
 Combined release — Django 5.2 support, cascade blast-radius preview for AI agents, and a reverse-references sidebar action. Feature-set derived from a competitive analysis of `meshy/django-schema-graph` (stale since 2023, Django ≤ 4.1) and MCP peers (`gts360/django-mcp-server`, `kitespark/django-mcp`) — all of which require a running Django process; django-orm-lens keeps the zero-runtime moat.
