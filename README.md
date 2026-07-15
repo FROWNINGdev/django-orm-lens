@@ -331,7 +331,7 @@ No settings screen. No sign-in. No telemetry.
 - **Django developers** joining a codebase with 10+ apps and getting lost in `models.py` sprawl.
 - **Contract / freelance engineers** who need to grasp an unfamiliar Django project in the first hour, not the first week.
 - **Teams onboarding new hires** who want a one-glance schema view without spinning up documentation infrastructure.
-- **AI-agent power users** (Cursor / Aider / Claude Desktop / Zed / Continue) who need the agent to answer schema questions accurately — without giving it database credentials or booting Django.
+- **AI-agent power users** (Cursor / Aider / Zed / Continue / any MCP-compatible client) who need the agent to answer schema questions accurately — without giving it database credentials or booting Django.
 - **CI pipelines** that verify schema shape (e.g. "did we accidentally break a `related_name`?") without importing the project.
 - **Solo indie devs** on a broken venv or someone else's laptop — no `runserver`, no `manage.py migrate`, still works.
 
