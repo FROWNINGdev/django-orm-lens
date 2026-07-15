@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "Live sidebar + ER diagram for your Django models. Navigate apps, models, fields and relationships without leaving the editor.",
-  "version": "0.3.8",
+  "version": "0.4.0",
   "publisher": "frowningdev",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -59,7 +59,7 @@
     "viewsWelcome": [
       {
         "view": "djangoOrmLens.models",
-        "contents": "No Django apps detected in this workspace.\n\nDjango ORM Lens looks for any folder containing `manage.py` or `models.py`.\n\n[Open a Django project](command:vscode.openFolder)\n\nOr scan the current workspace again:\n[Refresh](command:djangoOrmLens.refresh)\n\nLearn more on [GitHub](https://github.com/FROWNINGdev/django-orm-lens)."
+        "contents": "No Django models found in this workspace.\n\nDjango ORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\nMake sure you have opened a folder that contains a Django project."
       }
     ],
     "commands": [
@@ -91,12 +91,6 @@
         "command": "djangoOrmLens.findReverseRefs",
         "title": "Django ORM Lens: Find Reverse References",
         "icon": "$(references)"
-      }
-    ],
-    "viewsWelcome": [
-      {
-        "view": "djangoOrmLens.models",
-        "contents": "No Django models found in this workspace.\n\nDjango ORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\nMake sure you have opened a folder that contains a Django project."
       }
     ],
     "menus": {
@@ -152,7 +146,13 @@
         "djangoOrmLens.diagramTheme": {
           "type": "string",
           "default": "auto",
-          "enum": ["auto", "default", "dark", "forest", "neutral"],
+          "enum": [
+            "auto",
+            "default",
+            "dark",
+            "forest",
+            "neutral"
+          ],
           "enumDescriptions": [
             "Match the current VS Code color theme (dark or light)",
             "Mermaid's default light palette",
@@ -172,7 +172,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "tsc -p ./",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p ./",
+    "build:webview": "esbuild src/webview/graph.tsx --bundle --minify --outfile=media/webview/graph.js --format=iife --loader:.css=text --target=es2020 --define:process.env.NODE_ENV=\\\"production\\\"",
     "test": "npm run build && node --test",
     "watch": "tsc -watch -p ./",
     "package": "vsce package",
@@ -180,9 +182,19 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
     "sharp": "^0.35.3",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.11.2",
+    "elkjs": "^0.11.1",
+    "html-to-image": "^1.11.13",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   }
 }
