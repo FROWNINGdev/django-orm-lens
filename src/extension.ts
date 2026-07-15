@@ -4,7 +4,7 @@ import { DjangoTreeProvider } from './treeProvider';
 import { showGraph } from './graphWebview';
 import { DjangoHoverProvider } from './hoverProvider';
 import { DjangoCodeLensProvider } from './codeLensProvider';
-import { WorkspaceIndex } from './types';
+import { TreeNode, WorkspaceIndex } from './types';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
 let treeProvider: DjangoTreeProvider;
@@ -188,6 +188,63 @@ export async function activate(context: vscode.ExtensionContext) {
             )
           );
         }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'djangoOrmLens.findReverseRefs',
+      async (node?: TreeNode) => {
+        if (!node || node.kind !== 'model') {
+          vscode.window.showInformationMessage(
+            'Django ORM Lens: right-click a model in the sidebar to find reverse references.'
+          );
+          return;
+        }
+        const modelName = node.label;
+        const inbound: {
+          from: string;
+          field: string;
+          kind: string;
+          onDelete: string;
+        }[] = [];
+        for (const app of currentIndex.apps) {
+          for (const other of app.models) {
+            if (
+              other.name === modelName &&
+              other.filePath === node.filePath
+            ) {
+              continue;
+            }
+            for (const f of other.fields) {
+              if (!f.isRelation || !f.relatedModel) continue;
+              const tail = f.relatedModel.split('.').pop();
+              if (tail === modelName) {
+                inbound.push({
+                  from: `${app.name}.${other.name}`,
+                  field: f.name,
+                  kind: f.relationKind ?? 'ForeignKey',
+                  onDelete: f.onDelete ?? 'unknown',
+                });
+              }
+            }
+          }
+        }
+        if (inbound.length === 0) {
+          vscode.window.showInformationMessage(
+            `No models reference ${modelName}.`
+          );
+          return;
+        }
+        const items = inbound.map((r) => ({
+          label: `${r.from}.${r.field}`,
+          description: `${r.kind} · on_delete=${r.onDelete}`,
+        }));
+        await vscode.window.showQuickPick(items, {
+          title: `Reverse references to ${modelName} (${inbound.length})`,
+          placeHolder: 'Models that point at this one',
+        });
       }
     )
   );

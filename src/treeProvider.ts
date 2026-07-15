@@ -132,6 +132,9 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     item.description = element.description;
     item.tooltip = element.tooltip ?? element.label;
     if (element.iconId) item.iconPath = new vscode.ThemeIcon(element.iconId);
+    if (element.kind === 'model') {
+      item.contextValue = 'djangoOrmLensModel';
+    }
     if (element.filePath && typeof element.lineNumber === 'number') {
       item.command = {
         command: 'djangoOrmLens.jumpToModel',

@@ -79,6 +79,11 @@
         "command": "djangoOrmLens.clearFilter",
         "title": "Django ORM Lens: Clear Filter",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "djangoOrmLens.findReverseRefs",
+        "title": "Django ORM Lens: Find Reverse References",
+        "icon": "$(references)"
       }
     ],
     "viewsWelcome": [
@@ -108,6 +113,13 @@
           "command": "djangoOrmLens.showGraph",
           "when": "view == djangoOrmLens.models",
           "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "djangoOrmLens.findReverseRefs",
+          "when": "view == djangoOrmLens.models && viewItem == djangoOrmLensModel",
+          "group": "navigation"
         }
       ]
     },
