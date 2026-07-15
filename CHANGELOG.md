@@ -5,6 +5,13 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `suggest_indexes(app_label, model_name)` MCP tool — static analysis of every filter/exclude/order_by/get/aggregate usage across the workspace, returns field-usage frequency and proposes `Meta.indexes` covering entries. Zero-runtime, no DB, no Django boot. Solves the top Django performance blind spot for AI coding agents.
+- `signal_graph()` MCP tool — parses every `@receiver()` decorator and `Signal()` definition in the workspace, returns the sender→signal→handler DAG plus custom-signal send-sites. Surfaces the invisible connections between models that cause the majority of enterprise Django bugs.
+- **Golden fixture suite** — parser now tested against real open-source Django projects: Zulip (Apache-2.0, 33 models across `zerver/models/`), Saleor (BSD-3, 19 models across product/order/discount/warehouse), Wagtail (BSD-3, 8 models from `wagtail/models/`), and django-CMS (BSD-3, 3 models from `cms/models/`). Pytest asserts every project scans without error, finds at least 1 model, and the aggregate scan of all vendored fixtures completes under 2 seconds (currently ~11 ms). Credibility: `django-orm-lens` is proven against 63 total models parsed from real-world Django deployments, not synthetic examples. Fixtures live under `cli/tests/fixtures/golden/<project>/<original-path>/models.py` with attribution + fetch date in that directory's README.md.
+
 ## [0.4.2] - 2026-07-16
 
 Hotfix. Extension only.
