@@ -5,6 +5,13 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-16
+
+VS Code extension only. Python CLI unchanged.
+
+### Changed
+- **Branded activity-bar icon** — replaced the generic Material database cylinder (which rendered as an apparently blank slot at 24×24 in some VS Code themes) with a three-connected-tables silhouette that reads unambiguously as "ORM schema" at any size. Uses `stroke="currentColor"` so the icon inherits VS Code's activity-bar foreground colour on every theme (dark/light/high-contrast). Reload the VS Code window after updating to pick up the new icon — VS Code caches activity-bar SVGs per extension host.
+
 ## [0.4.0] + [py-1.0.15] - 2026-07-16
 
 Major visual upgrade for the ER diagram — the VS Code webview now renders every model as an interactive React Flow node instead of a static Mermaid SVG. Drag models around to lay the diagram out the way you think about it, click a node to highlight its inbound and outbound relations, double-click to jump straight to the class in `models.py`. Edges are colour-coded by relation semantics (ForeignKey CASCADE / SET_NULL / PROTECT, OneToOne, ManyToMany with `through=` label) so the on_delete blast radius is visible at a glance. Ships with a minimap, zoom controls, and PNG / SVG export. Automatic hierarchical layout via `elkjs`. Python CLI is unchanged in behaviour — the version bump keeps the extension and CLI shipping together, and the Mermaid emitter (`build_mermaid`) remains available for the CLI `--mermaid` output.
