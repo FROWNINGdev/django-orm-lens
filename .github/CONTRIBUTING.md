@@ -83,6 +83,25 @@ Marked with `good first issue` in the tracker:
 - If you're a first-time contributor, we'll credit you in the CHANGELOG on
   release — thanks in advance!
 
+## Release checklist (maintainer only)
+
+Every release commit must bump **all three** version-bearing files atomically —
+skipping any one causes downstream registry desync (Glama, mcp.so, PyPI, VS Code
+Marketplace can each go out of sync independently). This list exists because
+`server.json` was silently skipped in four consecutive releases and eventually
+tripped a Glama build failure.
+
+- [ ] `cli/pyproject.toml` → `version = "X.Y.Z"` (Python CLI, PyPI)
+- [ ] `package.json` → `"version": "A.B.C"` (VS Code extension, Marketplace)
+- [ ] `cli/server.json` → **both** top-level `"version"` AND `packages[0].version`
+      set to the Python CLI version (MCP Registry → Glama, mcp.so sync)
+- [ ] `CHANGELOG.md` → rename `[Unreleased]` → `[A.B.C] + [py-X.Y.Z] - YYYY-MM-DD`
+      with combined-release intro paragraph (see `[0.3.5] + [py-1.0.11]` for shape)
+- [ ] Release commit message: `release: vA.B.C + py-X.Y.Z — <one-line headline>`
+- [ ] Tag both: `git tag vA.B.C && git tag py-vX.Y.Z && git push --tags`
+      (each tag triggers its own auto-publish workflow; both must fire for
+      Marketplace + PyPI to both update)
+
 ## Code of Conduct
 
 Participation in this project is governed by our
