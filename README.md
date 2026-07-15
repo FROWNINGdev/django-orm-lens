@@ -69,9 +69,9 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <!-- Headline split-badges (dark label · colored value) -->
 
-[![First-week installs](https://img.shields.io/badge/first--week_installs-818%2B-3775a9?style=for-the-badge&logo=pypi&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
+[![First-week installs](https://img.shields.io/badge/first--week_installs-1082%2B-3775a9?style=for-the-badge&logo=pypi&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
 [![Peak day](https://img.shields.io/badge/peak_day_installs-441-f97316?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
-[![Unique cloners](https://img.shields.io/badge/unique_cloners_14d-134-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
+[![Unique cloners](https://img.shields.io/badge/unique_cloners_14d-171-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
 [![VS Code rating](https://img.shields.io/badge/VS_Code_rating-5.0_%E2%98%85-eab308?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 
 <br/>
