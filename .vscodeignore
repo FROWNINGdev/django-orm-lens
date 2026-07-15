@@ -12,8 +12,8 @@ docs/**
 examples/**
 tmp_tests/**
 test/**
-media/*.svg
 !media/**/*.png
+!media/**/*.svg
 !media/webview/**
 # Maintainer-only artefacts — never ship in VSIX
 .*.log

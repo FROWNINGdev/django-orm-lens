@@ -5,6 +5,13 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-07-16
+
+Hotfix. Extension only.
+
+### Fixed
+- **Activity-bar icon actually ships in the VSIX now.** A stray `media/*.svg` line in `.vscodeignore` (introduced during the 0.4.0 React Flow packaging pass) silently excluded `media/activitybar.svg` from the published extension. The branded icon rendered in Extension Development Host (files read from repo path directly) but was completely absent from the Marketplace VSIX — VS Code had nothing to draw, so the sidebar slot appeared blank. Ignore pattern replaced with an explicit whitelist (`!media/**/*.png`, `!media/**/*.svg`, `!media/webview/**`).
+
 ## [0.4.1] - 2026-07-16
 
 VS Code extension only. Python CLI unchanged.
