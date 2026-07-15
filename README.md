@@ -103,7 +103,7 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 </div>
 
-<sub><i>Updated 2026-07-14. PyPI weekly / monthly, GitHub stars / forks, and PyPI / VS Code version badges auto-refresh live.</i></sub>
+<sub><i>Updated 2026-07-15. PyPI weekly / monthly, GitHub stars / forks, and PyPI / VS Code version badges auto-refresh live.</i></sub>
 
 > If the tool saves you a `grep` next time you touch a strange Django project — **[star helps others find it](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**.
 
