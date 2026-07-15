@@ -76,6 +76,15 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <br/>
 
+<!-- Cross-platform reach snapshot -->
+
+[![VS Code downloads](https://img.shields.io/badge/VS_Code_downloads-113-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![GitHub views](https://img.shields.io/badge/GitHub_views_14d-256-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
+[![LinkedIn posts](https://img.shields.io/badge/LinkedIn_posts_live-4-0a66c2?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1e293b)](https://linkedin.com/company/django-orm-lens)
+[![Awesome-list PRs](https://img.shields.io/badge/awesome--list_PRs-2_pending-16a34a?style=for-the-badge&logo=awesomelists&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev)
+
+<br/>
+
 <!-- Live counters + directories -->
 
 [![PyPI weekly](https://img.shields.io/pypi/dw/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=weekly%20downloads&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
