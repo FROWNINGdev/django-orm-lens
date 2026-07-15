@@ -284,11 +284,39 @@ export async function scanWorkspace(
   excludeGlobs: string[]
 ): Promise<WorkspaceIndex> {
   const excludePattern = `{${excludeGlobs.join(',')}}`;
-  const [flat, split] = await Promise.all([
-    vscode.workspace.findFiles('**/models.py', excludePattern),
-    vscode.workspace.findFiles('**/models/*.py', excludePattern),
-  ]);
-  const uris = [...flat, ...split.filter((u) => !u.fsPath.endsWith('__init__.py'))];
+  const folders = vscode.workspace.workspaceFolders ?? [];
+
+  // Use RelativePattern per workspace folder so root-level models.py is matched
+  // reliably on all platforms. A bare `**/models.py` include-pattern is
+  // interpreted by VS Code's file-search backend as "under a subdirectory" on
+  // some setups (notably Windows), silently skipping a single-app workspace
+  // where the Django app is opened as the workspace root.
+  const results = await Promise.all(
+    folders.flatMap((folder) => [
+      vscode.workspace.findFiles(
+        new vscode.RelativePattern(folder, '**/models.py'),
+        excludePattern
+      ),
+      vscode.workspace.findFiles(
+        new vscode.RelativePattern(folder, 'models.py'),
+        excludePattern
+      ),
+      vscode.workspace.findFiles(
+        new vscode.RelativePattern(folder, '**/models/*.py'),
+        excludePattern
+      ),
+    ])
+  );
+  const seen = new Set<string>();
+  const uris: vscode.Uri[] = [];
+  for (const batch of results) {
+    for (const u of batch) {
+      if (u.fsPath.endsWith('__init__.py')) continue;
+      if (seen.has(u.fsPath)) continue;
+      seen.add(u.fsPath);
+      uris.push(u);
+    }
+  }
   const appMap = new Map<string, ParsedApp>();
 
   for (const uri of uris) {

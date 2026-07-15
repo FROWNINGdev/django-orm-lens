@@ -110,8 +110,36 @@ export async function activate(context: vscode.ExtensionContext) {
   statusItem.command = 'djangoOrmLens.showGraph';
   context.subscriptions.push(statusItem);
 
+  const treeView = vscode.window.createTreeView('djangoOrmLens.models', {
+    treeDataProvider: treeProvider,
+  });
+  context.subscriptions.push(treeView);
+
+  // Re-scan when the sidebar becomes visible. Covers the case where the
+  // extension activated via `onStartupFinished` before the workspace file
+  // index was ready (findFiles returns empty), and the tree only pops
+  // open later when the user clicks the icon.
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('djangoOrmLens.models', treeProvider)
+    treeView.onDidChangeVisibility((e) => {
+      if (e.visible && currentIndex.apps.length === 0) {
+        refresh().catch((err) =>
+          outputChannel.appendLine(
+            `[visibility-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
+          )
+        );
+      }
+    })
+  );
+
+  // Re-scan when workspace folders change (folder add/remove/open).
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      refresh().catch((err) =>
+        outputChannel.appendLine(
+          `[workspace-folders-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
+        )
+      );
+    })
   );
 
   context.subscriptions.push(
@@ -267,6 +295,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
   setupWatcher(context);
   await refresh();
+
+  // Backstop: if the first scan happened before the workspace file index
+  // was warm (common with `onStartupFinished` activation), try again once
+  // after a short delay. Cheap — early-exits on the second scan if the
+  // first one already populated results.
+  if (currentIndex.apps.length === 0 && (vscode.workspace.workspaceFolders?.length ?? 0) > 0) {
+    setTimeout(() => {
+      if (currentIndex.apps.length === 0) {
+        refresh().catch((err) =>
+          outputChannel.appendLine(
+            `[startup-retry] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
+          )
+        );
+      }
+    }, 1500);
+  }
 }
 
 export function deactivate() {
