@@ -6,3 +6,4 @@ out/
 Thumbs.db
 *.log
 .env
+tmp_tests/

@@ -5,6 +5,22 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-07-15
+
+The polish release. Consolidates hover, filter, welcome, security hardening, and diagram export into a single minor bump.
+
+### Added
+- **Export ER diagram as SVG** — new button in the diagram panel header saves the rendered graph to a file inside your workspace.
+- **Welcome view** — when no Django models are found, the sidebar now shows a friendly explanation and a Refresh action instead of a blank panel.
+- **Smart tree expansion** — apps start expanded on small projects (<= 40 models) and collapsed on larger ones; a filter always expands to reveal matches.
+- **Multi-line class inheritance** — the parser now handles Black-formatted classes where the base list wraps across two or three lines.
+
+### Security
+- **jumpToModel path scoping** — the jump command now rejects any target outside the current workspaceFolders. Prevents a crafted models.py from opening arbitrary local files.
+- **Hover markdown sanitization** — parser-derived strings are escaped and the trusted-command scope is narrowed to djangoOrmLens.jumpToModel only. Blocks command-URI injection through model or field names.
+
+### Docs
+
 ## [0.1.3] - 2026-07-14
 
 ### Added
