@@ -5,6 +5,14 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] + [py-1.0.13] - 2026-07-16
+
+Hotfix release — closes the two regressions reported against 0.3.6: the activity-bar icon rendered blank (stroke-based SVG that VS Code's activity-bar CSS couldn't theme reliably), and single-app workspaces opened at the app root ("hello/" containing `models.py` directly) came up empty because the include-glob and initial-scan timing both failed the root-file case. TypeScript extension fixes only; Python CLI + MCP server are re-published at the same version for combined-release parity.
+
+### Fixed
+- **Activity-bar icon is now visible on every theme.** The previous SVG was a stroke-based line drawing with `fill="none"` on both the root and every shape. VS Code's activity-bar renderer applies its own theme foreground via `fill: currentColor`, which the inline `fill="none"` overrode — the icon rendered as a blank slot on most themes ("I see the panel open but the sidebar icon is gone" — real user report). Icon is now a fill-based database + magnifier drawn with `fill="currentColor"`, matching the codicon convention for activity-bar entries.
+- **Workspace with `models.py` at the root now scans on activation.** Two root causes: (1) `vscode.workspace.findFiles('**/models.py', ...)` was expected to match root-level files, but on some setups (notably single-folder workspaces on Windows) the leading `**/` requires at least one path segment and silently skipped `<root>/models.py`. Now uses a `vscode.RelativePattern` per workspace folder with an explicit `models.py` include alongside `**/models.py` and `**/models/*.py`, de-duplicated on `fsPath`. (2) With `onStartupFinished` activation (added in 0.3.6) the initial `refresh()` can race the workspace file index and return zero results before it's warm. Now also re-scans on `TreeView.onDidChangeVisibility` (user clicks the sidebar), on `workspace.onDidChangeWorkspaceFolders`, and once as a 1.5s startup backstop if the first scan came back empty against a non-empty workspace. Manual `Refresh scan` from the welcome view is unaffected and continues to work.
+
 ## [0.3.6] + [py-1.0.12] - 2026-07-16
 
 Combined release — migration-dependency debugger for AI agents, always-visible activity-bar icon with empty-state welcome, and a subtle star-ask on MCP startup. Ships the three feature commits accumulated since 0.3.5: the migration DAG tool closes a gap no other Django MCP server addresses (agents can now trace conflict chains without booting Django), while the UX and star-ask improvements close the discoverability/conversion loop between install and star.
