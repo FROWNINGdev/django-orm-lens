@@ -5,7 +5,9 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] + [py-1.0.16] - 2026-07-16
+
+MCP tools for AI-agent Django expertise. Ships three flagship additions built on the zero-runtime static-analysis moat: two new MCP tools that solve the top pain points in the Django tooling ecosystem — index recommendations and signal graph visualisation — plus a golden-fixture test suite that proves the parser survives real-world Django code (63 models across Zulip, Saleor, Wagtail, django-CMS). Positioning shifts from "ER diagram + navigation" to "the static-analysis brain that Django AI agents plug into."
 
 ### Added
 - `suggest_indexes(app_label, model_name)` MCP tool — static analysis of every filter/exclude/order_by/get/aggregate usage across the workspace, returns field-usage frequency and proposes `Meta.indexes` covering entries. Zero-runtime, no DB, no Django boot. Solves the top Django performance blind spot for AI coding agents.

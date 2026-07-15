@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "Live sidebar + ER diagram for your Django models. Navigate apps, models, fields and relationships without leaving the editor.",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "frowningdev",
   "license": "MIT",
   "icon": "media/icon.png",
