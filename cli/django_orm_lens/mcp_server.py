@@ -1,11 +1,12 @@
 """MCP (Model Context Protocol) stdio server for Django ORM Lens.
 
-Exposes five read-only tools that any MCP-compatible AI agent can call:
+Exposes six read-only tools that any MCP-compatible AI agent can call:
 
 * ``list_apps``       — list Django apps with model counts
 * ``list_models``    — flat ``app.Model`` list, optional app filter
 * ``describe_model`` — full field/relation/Meta detail for one model
 * ``find_relations`` — inbound + outbound relations for one model
+* ``cascade_preview`` — group inbound relations by on_delete behavior
 * ``er_diagram``     — Mermaid ER diagram string for the whole workspace
 
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
@@ -131,8 +132,54 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
                             "from": f"{app.name}.{other.name}",
                             "field": f.name,
                             "kind": f.relation_kind,
+                            "on_delete": f.on_delete or "unknown",
                         }
                     )
+    return json.dumps(out, indent=2)
+
+
+def _tool_cascade_preview(args: Dict[str, Any]) -> str:
+    idx = _get_index()
+    app_label = (args or {}).get("app_label", "")
+    model_name = (args or {}).get("model_name", "")
+    ref = f"{app_label}.{model_name}" if app_label else model_name
+    m = _find(idx, ref)
+    if not m:
+        raise ValueError(f"model {ref!r} not found")
+    target_app = None
+    for app in idx.apps:
+        if m in app.models:
+            target_app = app.name
+            break
+    out: Dict[str, Any] = {
+        "target": f"{target_app}.{m.name}" if target_app else m.name,
+        "cascade_kills": [],
+        "set_null": [],
+        "protected": [],
+    }
+    tail = m.name
+    for app in idx.apps:
+        for other in app.models:
+            if other is m:
+                continue
+            for f in other.fields:
+                if not f.is_relation or not f.related_model:
+                    continue
+                t = f.related_model.split(".")[-1]
+                if t != tail:
+                    continue
+                on_delete = (f.on_delete or "").upper()
+                entry = {
+                    "model": f"{app.name}.{other.name}",
+                    "via_field": f.name,
+                }
+                if on_delete == "CASCADE":
+                    entry["count_hint"] = "unknown"
+                    out["cascade_kills"].append(entry)
+                elif on_delete in ("SET_NULL", "SET_DEFAULT", "SET"):
+                    out["set_null"].append(entry)
+                elif on_delete in ("PROTECT", "RESTRICT"):
+                    out["protected"].append(entry)
     return json.dumps(out, indent=2)
 
 
@@ -156,7 +203,11 @@ TOOLS = {
     },
     "find_relations": {
         "handler": _tool_find_relations,
-        "description": "Outbound (this model → others) and inbound (others → this) relations.",
+        "description": "Outbound (this model → others) and inbound (others → this) relations. Inbound entries include on_delete behavior.",
+    },
+    "cascade_preview": {
+        "handler": _tool_cascade_preview,
+        "description": "Blast radius of deleting a row: inbound relations grouped by on_delete behavior (cascade_kills, set_null, protected).",
     },
     "er_diagram": {
         "handler": _tool_er_diagram,
@@ -196,6 +247,10 @@ def main() -> int:
             @server.tool(name=name, description=description)
             def find_relations(model: str) -> str:
                 return handler({"model": model})
+        elif name == "cascade_preview":
+            @server.tool(name=name, description=description)
+            def cascade_preview(app_label: str, model_name: str) -> str:
+                return handler({"app_label": app_label, "model_name": model_name})
         elif name == "er_diagram":
             @server.tool(name=name, description=description)
             def er_diagram() -> str:
