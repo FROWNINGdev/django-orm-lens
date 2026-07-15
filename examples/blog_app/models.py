@@ -54,3 +54,10 @@ class Profile(models.Model):
     bio = models.TextField(blank=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True)
     website = models.URLField(blank=True)
+
+
+class Article(
+    models.Model
+):
+    title = models.CharField(max_length=200)
+    body = models.TextField()

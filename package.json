@@ -81,6 +81,12 @@
         "icon": "$(clear-all)"
       }
     ],
+    "viewsWelcome": [
+      {
+        "view": "djangoOrmLens.models",
+        "contents": "No Django models found in this workspace.\n\nDjango ORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\nMake sure you have opened a folder that contains a Django project."
+      }
+    ],
     "menus": {
       "view/title": [
         {

@@ -15,6 +15,32 @@ const RELATION_TYPES: RelationKind[] = [
 ];
 
 const CLASS_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:/;
+const CLASS_START_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/;
+
+function readMultilineClass(
+  lines: string[],
+  startIdx: number
+): { match: RegExpMatchArray; endIdx: number } | null {
+  let buffer = lines[startIdx];
+  let depth = 0;
+  let sawOpen = false;
+  for (let i = startIdx; i < lines.length; i++) {
+    const src = i === startIdx ? lines[i] : lines[i].trimStart();
+    for (const ch of src) {
+      if (ch === '(') {
+        depth++;
+        sawOpen = true;
+      } else if (ch === ')') depth--;
+    }
+    if (i > startIdx) buffer += ' ' + src;
+    if (sawOpen && depth === 0) {
+      const m = buffer.match(CLASS_RE);
+      if (m) return { match: m, endIdx: i };
+      break;
+    }
+  }
+  return null;
+}
 
 function detectClassIndent(lines: string[], classLineIdx: number): number {
   for (let i = classLineIdx + 1; i < Math.min(classLineIdx + 30, lines.length); i++) {
@@ -103,7 +129,15 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-    const classMatch = line.match(CLASS_RE);
+    let classMatch = line.match(CLASS_RE);
+    let classHeaderEnd = i;
+    if (!classMatch && CLASS_START_RE.test(line)) {
+      const joined = readMultilineClass(lines, i);
+      if (joined) {
+        classMatch = joined.match;
+        classHeaderEnd = joined.endIdx;
+      }
+    }
     if (!classMatch) {
       i++;
       continue;
@@ -141,11 +175,11 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
       baseClasses,
     };
 
-    const indent = detectClassIndent(lines, i);
+    const indent = detectClassIndent(lines, classHeaderEnd);
     const { FIELD_RE, BARE_FIELD_RE, META_START_RE, META_ITEM_RE, META_BODY_RE } =
       buildBodyRegexes(indent);
 
-    let j = i + 1;
+    let j = classHeaderEnd + 1;
     while (j < lines.length) {
       const innerLine = lines[j];
       if (/^class\s+/.test(innerLine) && !/^\s+class/.test(innerLine)) {

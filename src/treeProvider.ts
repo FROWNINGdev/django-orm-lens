@@ -96,10 +96,16 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 
   private roots: TreeNode[] = [];
   private filter = '';
+  private totalModels = 0;
 
   setIndex(index: WorkspaceIndex) {
     this.roots = buildTree(index);
+    this.totalModels = index.apps.reduce((n, a) => n + a.models.length, 0);
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  isEmpty(): boolean {
+    return this.roots.length === 0;
   }
 
   setFilter(needle: string) {
@@ -112,12 +118,16 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   getTreeItem(element: TreeNode): vscode.TreeItem {
-    const collapsible =
-      element.children && element.children.length > 0
-        ? element.kind === 'app'
-          ? vscode.TreeItemCollapsibleState.Expanded
-          : vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None;
+    const hasChildren = !!element.children && element.children.length > 0;
+    const largeProject = this.totalModels > 40;
+    const activeFilter = this.filter.length > 0;
+    const collapsible = !hasChildren
+      ? vscode.TreeItemCollapsibleState.None
+      : element.kind === 'app' && !largeProject && !activeFilter
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : element.kind === 'app' && activeFilter
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : vscode.TreeItemCollapsibleState.Collapsed;
     const item = new vscode.TreeItem(element.label, collapsible);
     item.description = element.description;
     item.tooltip = element.tooltip ?? element.label;
