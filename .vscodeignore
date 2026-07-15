@@ -6,12 +6,15 @@ src/**
 tsconfig.json
 **/*.map
 **/*.ts
+**/*.tsx
 node_modules/**
 docs/**
 examples/**
 tmp_tests/**
+test/**
 media/*.svg
 !media/**/*.png
+!media/webview/**
 # Maintainer-only artefacts — never ship in VSIX
 .*.log
 *.log
