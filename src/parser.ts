@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import {
   ParsedApp,
   ParsedField,
@@ -280,17 +281,74 @@ function appDirFor(fsPath: string): { dir: string; name: string } {
   return { dir: parent, name: parentName };
 }
 
+// Convert a "**/name/**" style glob prefix/segment into a simple test.
+// We only need enough coverage for the default exclude patterns
+// (**/migrations/**, **/venv/**, **/node_modules/**, etc.) — anything more
+// exotic falls back to matching the raw pattern as a substring.
+function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
+  const segments = patterns
+    .map((p) => {
+      const m = p.match(/^\*\*\/([^/*]+)\/\*\*$/);
+      return m ? m[1] : null;
+    })
+    .filter((s): s is string => !!s);
+  const raw = patterns.filter((p) => !/^\*\*\/([^/*]+)\/\*\*$/.test(p));
+  return (rel: string) => {
+    const parts = rel.split('/');
+    for (const seg of segments) if (parts.includes(seg)) return true;
+    for (const r of raw) if (rel.includes(r)) return true;
+    return false;
+  };
+}
+
+// Walk a directory synchronously collecting every models.py and models/*.py.
+// Used as a fallback when vscode.workspace.findFiles returns no results
+// (workspace file index cold, or platform-specific glob quirks that
+// silently drop root-level models.py — the recurring "opened the Django
+// app folder as the workspace root, extension shows empty" report).
+function walkForModels(root: string, isExcluded: (rel: string) => boolean): string[] {
+  const results: string[] = [];
+  const stack: string[] = [root];
+  while (stack.length) {
+    const dir = stack.pop()!;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(root, full).split(path.sep).join('/');
+      if (isExcluded(rel)) continue;
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith('.')) continue;
+        stack.push(full);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      if (entry.name === '__init__.py') continue;
+      if (entry.name === 'models.py') {
+        results.push(full);
+        continue;
+      }
+      // models/<something>.py — the split-package layout.
+      if (path.basename(dir) === 'models' && entry.name.endsWith('.py')) {
+        results.push(full);
+      }
+    }
+  }
+  return results;
+}
+
 export async function scanWorkspace(
   excludeGlobs: string[]
 ): Promise<WorkspaceIndex> {
   const excludePattern = `{${excludeGlobs.join(',')}}`;
   const folders = vscode.workspace.workspaceFolders ?? [];
 
-  // Use RelativePattern per workspace folder so root-level models.py is matched
-  // reliably on all platforms. A bare `**/models.py` include-pattern is
-  // interpreted by VS Code's file-search backend as "under a subdirectory" on
-  // some setups (notably Windows), silently skipping a single-app workspace
-  // where the Django app is opened as the workspace root.
+  // Primary path: ask VS Code's file index. Fast when it's warm, honours
+  // user files.exclude, works for multi-root workspaces.
   const results = await Promise.all(
     folders.flatMap((folder) => [
       vscode.workspace.findFiles(
@@ -315,6 +373,24 @@ export async function scanWorkspace(
       if (seen.has(u.fsPath)) continue;
       seen.add(u.fsPath);
       uris.push(u);
+    }
+  }
+
+  // Fallback: walk each workspace folder directly. Triggered when the file
+  // index is empty (cold start via `onStartupFinished`, or the `**/models.py`
+  // glob silently missed root-level files on this platform). We only pay the
+  // cost when the primary path found nothing, so this is a no-op in the
+  // common warm-cache case.
+  if (uris.length === 0 && folders.length > 0) {
+    const isExcluded = excludeMatcher(excludeGlobs);
+    for (const folder of folders) {
+      if (folder.uri.scheme !== 'file') continue;
+      const found = walkForModels(folder.uri.fsPath, isExcluded);
+      for (const p of found) {
+        if (seen.has(p)) continue;
+        seen.add(p);
+        uris.push(vscode.Uri.file(p));
+      }
     }
   }
   const appMap = new Map<string, ParsedApp>();
