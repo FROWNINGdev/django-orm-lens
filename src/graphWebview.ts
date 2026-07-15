@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { randomBytes } from 'crypto';
 import { WorkspaceIndex } from './types';
 
+// Kept exported for CLI parity — the Python side still emits Mermaid, and
+// downstream tests import this symbol.
 function escapeLabel(s: string): string {
   return s.replace(/[^A-Za-z0-9_]/g, '_');
 }
@@ -60,19 +63,62 @@ export function buildMermaid(index: WorkspaceIndex): string {
   return lines.join('\n');
 }
 
-function resolveTheme(): string {
+function resolveTheme(): 'dark' | 'light' {
   const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
   const raw = cfg.get<string>('diagramTheme', 'auto');
-  if (raw !== 'auto') return raw;
+  if (raw === 'default' || raw === 'forest' || raw === 'neutral') return 'light';
+  if (raw === 'dark') return 'dark';
   const kind = vscode.window.activeColorTheme.kind;
   return kind === vscode.ColorThemeKind.Light ||
     kind === vscode.ColorThemeKind.HighContrastLight
-    ? 'default'
+    ? 'light'
     : 'dark';
 }
 
-function html(mermaidSource: string, cspSource: string, nonce: string, mermaidUri: string): string {
-  const theme = resolveTheme();
+function buildIndexPayload(index: WorkspaceIndex): Record<string, unknown> {
+  const workspaceName =
+    vscode.workspace.workspaceFolders?.[0]?.name ??
+    (vscode.workspace.name ? vscode.workspace.name : 'workspace');
+  return {
+    apps: index.apps.map((app) => ({
+      name: app.name,
+      path: app.path,
+      models: app.models.map((m) => ({
+        name: m.name,
+        appName: m.appName,
+        filePath: m.filePath,
+        lineNumber: m.lineNumber,
+        fields: m.fields.map((f) => ({
+          name: f.name,
+          type: f.type,
+          isRelation: f.isRelation,
+          relatedModel: f.relatedModel,
+          relationKind: f.relationKind,
+          onDelete: f.onDelete,
+          relatedName: f.relatedName,
+          throughModel: f.throughModel,
+          lineNumber: f.lineNumber,
+        })),
+      })),
+    })),
+    scannedAt: index.scannedAt,
+    workspaceName,
+    theme: resolveTheme(),
+  };
+}
+
+function html(
+  cspSource: string,
+  nonce: string,
+  scriptUri: string,
+  initialPayload: Record<string, unknown>
+): string {
+  const serialised = JSON.stringify(initialPayload)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -80,54 +126,19 @@ function html(mermaidSource: string, cspSource: string, nonce: string, mermaidUr
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}'; font-src ${cspSource} data:; img-src ${cspSource} data:;">
 <title>Django ORM Lens — ER Diagram</title>
 <style>
-  html, body { margin: 0; padding: 0; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); font-family: var(--vscode-font-family); }
-  header { padding: 12px 16px; border-bottom: 1px solid var(--vscode-panel-border); display:flex; justify-content: space-between; align-items:center; gap: 12px; }
-  header h1 { font-size: 14px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
-  header .stats { font-size: 12px; opacity: 0.7; margin-left: auto; }
-  header button {
-    background: var(--vscode-button-background); color: var(--vscode-button-foreground);
-    border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px;
-    cursor: pointer; font-family: inherit;
-  }
-  header button:hover { background: var(--vscode-button-hoverBackground); }
-  header button:focus-visible { outline: 2px solid var(--vscode-focusBorder, #007acc); outline-offset: 2px; }
-  .diagram-wrap { padding: 16px; overflow: auto; }
-  pre.mermaid { background: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); font-family: var(--vscode-font-family); }
+  #dol-root { height: 100vh; width: 100vw; }
+  #dol-fallback { padding: 24px; font-size: 13px; opacity: 0.75; }
 </style>
 </head>
 <body>
-  <header>
-    <h1>Django ORM Lens — ER Diagram</h1>
-    <button id="export-svg" type="button" aria-label="Export diagram as SVG file" title="Save the diagram as an SVG file">Export SVG</button>
-    <span class="stats" id="stats" aria-live="polite"></span>
-  </header>
-  <main class="diagram-wrap" role="region" aria-label="Entity-relationship diagram">
-    <pre class="mermaid" id="d">${mermaidSource.replace(/</g, '&lt;')}</pre>
-  </main>
-  <script nonce="${nonce}" src="${mermaidUri}"></script>
+  <div id="dol-root">
+    <div id="dol-fallback">Loading ER diagram…</div>
+  </div>
   <script nonce="${nonce}">
-    (function(){
-      const vscode = acquireVsCodeApi();
-      try {
-        mermaid.initialize({ startOnLoad: true, theme: ${JSON.stringify(theme)}, securityLevel: 'strict' });
-      } catch (e) {
-        document.getElementById('d').textContent = 'Mermaid failed to load: ' + e.message;
-        return;
-      }
-      document.getElementById('export-svg').addEventListener('click', () => {
-        const svg = document.querySelector('#d svg');
-        if (!svg) {
-          vscode.postMessage({ type: 'export-error', message: 'Diagram has not rendered yet.' });
-          return;
-        }
-        const clone = svg.cloneNode(true);
-        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-        const serializer = new XMLSerializer();
-        const source = '<?xml version="1.0" encoding="UTF-8"?>\\n' + serializer.serializeToString(clone);
-        vscode.postMessage({ type: 'export-svg', payload: source });
-      });
-    })();
+    window.__INITIAL_INDEX__ = ${serialised};
   </script>
+  <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
 }
@@ -136,17 +147,28 @@ function makeNonce(): string {
   return randomBytes(24).toString('base64').replace(/[^A-Za-z0-9]/g, '');
 }
 
-async function saveSvg(svg: string): Promise<void> {
+async function saveExport(
+  format: 'png' | 'svg',
+  dataUrl: string
+): Promise<void> {
   const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
   const target = await vscode.window.showSaveDialog({
-    title: 'Export ER Diagram as SVG',
+    title: `Export ER Diagram as ${format.toUpperCase()}`,
     defaultUri: defaultUri
-      ? vscode.Uri.joinPath(defaultUri, 'django-orm-diagram.svg')
+      ? vscode.Uri.joinPath(defaultUri, `django-orm-diagram.${format}`)
       : undefined,
-    filters: { 'SVG Image': ['svg'] },
+    filters:
+      format === 'png'
+        ? { 'PNG Image': ['png'] }
+        : { 'SVG Image': ['svg'] },
   });
   if (!target) return;
-  await vscode.workspace.fs.writeFile(target, Buffer.from(svg, 'utf-8'));
+  const comma = dataUrl.indexOf(',');
+  const bytes =
+    comma >= 0 && dataUrl.startsWith('data:')
+      ? Buffer.from(dataUrl.slice(comma + 1), 'base64')
+      : Buffer.from(dataUrl, 'utf-8');
+  await vscode.workspace.fs.writeFile(target, bytes);
   const open = 'Open File';
   const choice = await vscode.window.showInformationMessage(
     `Saved to ${target.fsPath}`,
@@ -158,19 +180,29 @@ async function saveSvg(svg: string): Promise<void> {
 }
 
 let panel: vscode.WebviewPanel | undefined;
+let currentIndex: WorkspaceIndex | undefined;
 
-export function showGraph(context: vscode.ExtensionContext, index: WorkspaceIndex) {
-  const mermaidSource = buildMermaid(index);
-  const mermaidFileUri = vscode.Uri.joinPath(
+function renderInto(context: vscode.ExtensionContext, target: vscode.WebviewPanel) {
+  const scriptFileUri = vscode.Uri.joinPath(
     context.extensionUri,
     'media',
-    'vendor',
-    'mermaid.min.js'
+    'webview',
+    'graph.js'
   );
+  const scriptUri = target.webview.asWebviewUri(scriptFileUri).toString();
+  const payload = currentIndex
+    ? buildIndexPayload(currentIndex)
+    : { apps: [], scannedAt: 0, theme: resolveTheme() };
+  target.webview.html = html(target.webview.cspSource, makeNonce(), scriptUri, payload);
+}
+
+export function showGraph(context: vscode.ExtensionContext, index: WorkspaceIndex) {
+  currentIndex = index;
   if (panel) {
-    const mermaidUri = panel.webview.asWebviewUri(mermaidFileUri).toString();
-    panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce(), mermaidUri);
+    renderInto(context, panel);
     panel.reveal(vscode.ViewColumn.Beside);
+    // Also push over messaging so an already-open panel updates without a full reload.
+    panel.webview.postMessage({ type: 'index', payload: buildIndexPayload(index) });
     return;
   }
   panel = vscode.window.createWebviewPanel(
@@ -183,23 +215,69 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
       localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')],
     }
   );
-  const mermaidUri = panel.webview.asWebviewUri(mermaidFileUri).toString();
-  panel.webview.html = html(mermaidSource, panel.webview.cspSource, makeNonce(), mermaidUri);
+  renderInto(context, panel);
+
   const msgHandler = panel.webview.onDidReceiveMessage(
-    async (msg: { type: string; payload?: string; message?: string }) => {
-      if (msg.type === 'export-svg' && typeof msg.payload === 'string') {
+    async (msg: {
+      type: string;
+      filePath?: string;
+      lineNumber?: number;
+      format?: 'png' | 'svg';
+      payload?: string;
+    }) => {
+      if (!panel) return;
+      if (msg.type === 'ready') {
+        if (currentIndex) {
+          panel.webview.postMessage({
+            type: 'index',
+            payload: buildIndexPayload(currentIndex),
+          });
+        }
+        return;
+      }
+      if (
+        msg.type === 'jumpToModel' &&
+        typeof msg.filePath === 'string' &&
+        typeof msg.lineNumber === 'number'
+      ) {
         try {
-          await saveSvg(msg.payload);
+          const uri = vscode.Uri.file(msg.filePath);
+          if (!vscode.workspace.getWorkspaceFolder(uri)) {
+            throw new Error('target path is outside the current workspace');
+          }
+          const doc = await vscode.workspace.openTextDocument(uri);
+          const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+          const pos = new vscode.Position(Math.max(0, msg.lineNumber | 0), 0);
+          editor.selection = new vscode.Selection(pos, pos);
+          editor.revealRange(
+            new vscode.Range(pos, pos),
+            vscode.TextEditorRevealType.InCenter
+          );
         } catch (err) {
-          vscode.window.showErrorMessage(
-            `Could not save SVG: ${err instanceof Error ? err.message : String(err)}`
+          const message = err instanceof Error ? err.message : String(err);
+          vscode.window.showWarningMessage(
+            `Django ORM Lens: could not open ${path.basename(msg.filePath)}: ${message}`
           );
         }
-      } else if (msg.type === 'export-error') {
-        vscode.window.showWarningMessage(`Export failed: ${msg.message ?? 'unknown'}`);
+        return;
+      }
+      if (
+        msg.type === 'export' &&
+        (msg.format === 'png' || msg.format === 'svg') &&
+        typeof msg.payload === 'string'
+      ) {
+        try {
+          await saveExport(msg.format, msg.payload);
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `Could not save ${msg.format.toUpperCase()}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+        return;
       }
     }
   );
+
   panel.onDidDispose(() => {
     msgHandler.dispose();
     panel = undefined;

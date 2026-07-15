@@ -1,0 +1,352 @@
+:root {
+  --dol-bg: var(--vscode-editor-background, #0f172a);
+  --dol-fg: var(--vscode-editor-foreground, #e2e8f0);
+  --dol-node-bg: #1e293b;
+  --dol-node-border: #334155;
+  --dol-node-header-bg: #0f172a;
+  --dol-node-text: #e2e8f0;
+  --dol-node-muted: #94a3b8;
+  --dol-field-plain: #64748b;
+  --dol-color-fk: #ef4444;
+  --dol-color-fk-cascade: #ef4444;
+  --dol-color-fk-setnull: #f59e0b;
+  --dol-color-fk-protect: #10b981;
+  --dol-color-o2o: #3b82f6;
+  --dol-color-m2m: #a855f7;
+  --dol-accent: var(--vscode-focusBorder, #3b82f6);
+  --dol-border: rgba(148, 163, 184, 0.25);
+  --dol-panel-bg: rgba(15, 23, 42, 0.85);
+}
+
+body.dol-light {
+  --dol-node-bg: #f8fafc;
+  --dol-node-border: #e2e8f0;
+  --dol-node-header-bg: #f1f5f9;
+  --dol-node-text: #0f172a;
+  --dol-node-muted: #64748b;
+  --dol-field-plain: #94a3b8;
+  --dol-panel-bg: rgba(248, 250, 252, 0.9);
+  --dol-border: rgba(15, 23, 42, 0.12);
+}
+
+html, body, #dol-root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--dol-bg);
+  color: var(--dol-fg);
+  font-family: var(--vscode-font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.dol-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.dol-header {
+  height: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: relative;
+  background: var(--dol-bg);
+  z-index: 4;
+}
+
+.dol-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--dol-accent), transparent);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dol-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--dol-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dol-header-title .dol-title-sep {
+  opacity: 0.5;
+  margin: 0 6px;
+}
+
+.dol-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dol-badge {
+  font-size: 11px;
+  color: var(--dol-node-muted);
+  background: rgba(148, 163, 184, 0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--dol-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.dol-btn {
+  background: var(--vscode-button-background, #334155);
+  color: var(--vscode-button-foreground, #e2e8f0);
+  border: 1px solid var(--dol-border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 100ms;
+}
+.dol-btn:hover {
+  background: var(--vscode-button-hoverBackground, #475569);
+}
+.dol-btn:focus-visible {
+  outline: 2px solid var(--dol-accent);
+  outline-offset: 2px;
+}
+
+.dol-export {
+  position: relative;
+}
+.dol-export-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--dol-panel-bg);
+  border: 1px solid var(--dol-border);
+  border-radius: 8px;
+  min-width: 140px;
+  padding: 4px;
+  z-index: 20;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+.dol-export-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--dol-fg);
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dol-export-menu button:hover {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.dol-canvas {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+}
+
+.react-flow__background {
+  background: var(--dol-bg);
+}
+
+.dol-node {
+  background: var(--dol-node-bg);
+  color: var(--dol-node-text);
+  border: 1px solid var(--dol-node-border);
+  border-radius: 10px;
+  width: 260px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.dol-node-header {
+  background: var(--dol-node-header-bg);
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--dol-node-border);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dol-node-app {
+  color: var(--dol-node-muted);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: lowercase;
+}
+.dol-node-dot {
+  color: var(--dol-node-muted);
+}
+.dol-node-name {
+  color: var(--dol-node-text);
+}
+
+.dol-node-body {
+  padding: 6px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.dol-node-empty {
+  color: var(--dol-node-muted);
+  padding: 8px 12px;
+  font-style: italic;
+  font-size: 11px;
+}
+.dol-node-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.dol-node-field:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+.dol-field-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.dol-field-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.dol-field-type {
+  color: var(--dol-node-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  font-family: var(--vscode-editor-font-family, 'SF Mono', 'Consolas', monospace);
+}
+
+.dol-handle {
+  width: 8px;
+  height: 8px;
+  background: var(--dol-node-border);
+  border: 2px solid var(--dol-node-bg);
+}
+
+.dol-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--dol-node-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+}
+.dol-empty-state code {
+  background: rgba(148, 163, 184, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.react-flow__controls {
+  background: var(--dol-panel-bg);
+  border: 1px solid var(--dol-border);
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.react-flow__controls-button {
+  background: transparent;
+  color: var(--dol-fg);
+  border-bottom: 1px solid var(--dol-border);
+  fill: currentColor;
+}
+.react-flow__controls-button:hover {
+  background: rgba(148, 163, 184, 0.15);
+}
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__minimap {
+  background: var(--dol-panel-bg) !important;
+  border: 1px solid var(--dol-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.react-flow__edge-path {
+  stroke-width: 1.6;
+}
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke-width: 2.4;
+}
+.react-flow__edge-text {
+  font-family: var(--vscode-font-family, inherit);
+  font-size: 10px;
+  fill: var(--dol-node-text);
+}
+.react-flow__edge-textbg {
+  fill: var(--dol-node-bg);
+  fill-opacity: 0.85;
+}
+
+.dol-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: var(--dol-panel-bg);
+  border: 1px solid var(--dol-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 10px;
+  color: var(--dol-node-muted);
+  z-index: 5;
+  backdrop-filter: blur(6px);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.dol-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dol-legend-swatch {
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+}
