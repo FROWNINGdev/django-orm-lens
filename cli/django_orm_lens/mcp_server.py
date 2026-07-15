@@ -1,6 +1,6 @@
 """MCP (Model Context Protocol) stdio server for Django ORM Lens.
 
-Exposes eight read-only tools that any MCP-compatible AI agent can call:
+Exposes nine read-only tools that any MCP-compatible AI agent can call:
 
 * ``list_apps``       — list Django apps with model counts
 * ``list_models``    — flat ``app.Model`` list, optional app filter
@@ -10,6 +10,7 @@ Exposes eight read-only tools that any MCP-compatible AI agent can call:
 * ``er_diagram``     — Mermaid ER diagram string for the whole workspace
 * ``describe_migration_dependency`` — per-app migration DAG from static AST parse
 * ``suggest_indexes`` — proposed ``Meta.indexes`` from workspace QuerySet usage
+* ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` decorators
 
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
 stays zero-dep. Install with the extras: ``pip install 'django-orm-lens[mcp]'``.
@@ -30,6 +31,7 @@ from .migrations_parser import describe_migration_dependency
 from .models import WorkspaceIndex
 from .parser import DEFAULT_EXCLUDES, scan_workspace
 from .query_analyzer import suggest_indexes as _suggest_indexes
+from .signals_parser import signal_graph as _signal_graph
 
 
 def _workspace_root() -> str:
@@ -224,6 +226,19 @@ def _tool_suggest_indexes(args: Dict[str, Any]) -> str:
     return json.dumps(result, indent=2)
 
 
+def _tool_signal_graph(_args: Dict[str, Any]) -> str:
+    """Return the sender→signal→handler DAG for the workspace.
+
+    Static AST parse of every ``@receiver(...)`` decorator plus every
+    module-level ``x = Signal(...)`` custom-signal definition and its
+    ``.send(...)`` call-sites. Surfaces cross-model side effects and
+    orphan handlers whose sender model isn't in the workspace.
+    """
+    index = _get_index()
+    result = _signal_graph(_workspace_root(), index=index)
+    return json.dumps(result, indent=2)
+
+
 TOOLS = {
     "list_apps": {
         "handler": _tool_list_apps,
@@ -256,6 +271,10 @@ TOOLS = {
     "suggest_indexes": {
         "handler": _tool_suggest_indexes,
         "description": "Static analysis of every filter/exclude/get/order_by/aggregate usage of a model across the workspace. Returns field-usage frequency and proposes Meta.indexes covering entries. Zero-runtime, no DB, no Django boot.",
+    },
+    "signal_graph": {
+        "handler": _tool_signal_graph,
+        "description": "Parse every @receiver() decorator and Signal() definition in the workspace. Returns sender→signal→handler DAG plus custom-signal send-sites and orphan handlers. Zero-runtime, no DB, no Django boot.",
     },
 }
 
@@ -318,6 +337,10 @@ def main() -> int:
             @server.tool(name=name, description=description)
             def suggest_indexes(app_label: str, model_name: str) -> str:
                 return handler({"app_label": app_label, "model_name": model_name})
+        elif name == "signal_graph":
+            @server.tool(name=name, description=description)
+            def signal_graph() -> str:
+                return handler({})
 
     for name, spec in TOOLS.items():
         _register(name, spec["description"], spec["handler"])
