@@ -5,7 +5,9 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.6] + [py-1.0.12] - 2026-07-16
+
+Combined release — migration-dependency debugger for AI agents, always-visible activity-bar icon with empty-state welcome, and a subtle star-ask on MCP startup. Ships the three feature commits accumulated since 0.3.5: the migration DAG tool closes a gap no other Django MCP server addresses (agents can now trace conflict chains without booting Django), while the UX and star-ask improvements close the discoverability/conversion loop between install and star.
 
 ### Added
 - `describe_migration_dependency` MCP tool — return per-app migration DAG (dependencies, roots, leaves, cross-app deps) from static AST parse, no Django boot. Standout differentiator: no other Django MCP server or graph tool (django-schema-graph, django-extensions graph_models, gts360/django-mcp-server, kitespark/django-mcp, admin-mcp-api) offers migration-conflict introspection without a running Django process.
