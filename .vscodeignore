@@ -9,5 +9,6 @@ tsconfig.json
 node_modules/**
 docs/**
 examples/**
+tmp_tests/**
 media/*.svg
 !media/**/*.png
