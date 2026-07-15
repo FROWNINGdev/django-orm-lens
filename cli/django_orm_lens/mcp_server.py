@@ -1,6 +1,6 @@
 """MCP (Model Context Protocol) stdio server for Django ORM Lens.
 
-Exposes seven read-only tools that any MCP-compatible AI agent can call:
+Exposes eight read-only tools that any MCP-compatible AI agent can call:
 
 * ``list_apps``       — list Django apps with model counts
 * ``list_models``    — flat ``app.Model`` list, optional app filter
@@ -9,6 +9,7 @@ Exposes seven read-only tools that any MCP-compatible AI agent can call:
 * ``cascade_preview`` — group inbound relations by on_delete behavior
 * ``er_diagram``     — Mermaid ER diagram string for the whole workspace
 * ``describe_migration_dependency`` — per-app migration DAG from static AST parse
+* ``suggest_indexes`` — proposed ``Meta.indexes`` from workspace QuerySet usage
 
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
 stays zero-dep. Install with the extras: ``pip install 'django-orm-lens[mcp]'``.
@@ -28,6 +29,7 @@ from .cli import _build_mermaid
 from .migrations_parser import describe_migration_dependency
 from .models import WorkspaceIndex
 from .parser import DEFAULT_EXCLUDES, scan_workspace
+from .query_analyzer import suggest_indexes as _suggest_indexes
 
 
 def _workspace_root() -> str:
@@ -204,6 +206,24 @@ def _tool_describe_migration_dependency(args: Dict[str, Any]) -> str:
     return json.dumps(result, indent=2)
 
 
+def _tool_suggest_indexes(args: Dict[str, Any]) -> str:
+    """Static analysis of QuerySet usage → proposed ``Meta.indexes`` entries.
+
+    Walks the workspace, captures every ``<Model>.objects.filter/.exclude/
+    .get/.order_by/.aggregate`` call, groups by field frequency and
+    co-occurrence, then proposes single-field and composite indexes.
+    Cross-references with the model's existing ``Meta.indexes`` so
+    already-covered combos are not re-proposed.
+    """
+    app_label = (args or {}).get("app_label", "")
+    model_name = (args or {}).get("model_name", "")
+    if not app_label or not model_name:
+        raise ValueError("app_label and model_name are required")
+    index = _get_index()
+    result = _suggest_indexes(app_label, model_name, _workspace_root(), index=index)
+    return json.dumps(result, indent=2)
+
+
 TOOLS = {
     "list_apps": {
         "handler": _tool_list_apps,
@@ -232,6 +252,10 @@ TOOLS = {
     "describe_migration_dependency": {
         "handler": _tool_describe_migration_dependency,
         "description": "Return per-app migration DAG (dependencies, roots, leaves, cross-app deps) from static AST parse of migrations/*.py. No Django boot, no DB. Lets agents debug migration conflicts safely.",
+    },
+    "suggest_indexes": {
+        "handler": _tool_suggest_indexes,
+        "description": "Static analysis of every filter/exclude/get/order_by/aggregate usage of a model across the workspace. Returns field-usage frequency and proposes Meta.indexes covering entries. Zero-runtime, no DB, no Django boot.",
     },
 }
 
@@ -290,6 +314,10 @@ def main() -> int:
             @server.tool(name=name, description=description)
             def describe_migration_dependency(app_label: str) -> str:
                 return handler({"app_label": app_label})
+        elif name == "suggest_indexes":
+            @server.tool(name=name, description=description)
+            def suggest_indexes(app_label: str, model_name: str) -> str:
+                return handler({"app_label": app_label, "model_name": model_name})
 
     for name, spec in TOOLS.items():
         _register(name, spec["description"], spec["handler"])
