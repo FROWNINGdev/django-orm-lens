@@ -1,6 +1,6 @@
 """MCP (Model Context Protocol) stdio server for Django ORM Lens.
 
-Exposes six read-only tools that any MCP-compatible AI agent can call:
+Exposes seven read-only tools that any MCP-compatible AI agent can call:
 
 * ``list_apps``       — list Django apps with model counts
 * ``list_models``    — flat ``app.Model`` list, optional app filter
@@ -8,6 +8,7 @@ Exposes six read-only tools that any MCP-compatible AI agent can call:
 * ``find_relations`` — inbound + outbound relations for one model
 * ``cascade_preview`` — group inbound relations by on_delete behavior
 * ``er_diagram``     — Mermaid ER diagram string for the whole workspace
+* ``describe_migration_dependency`` — per-app migration DAG from static AST parse
 
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
 stays zero-dep. Install with the extras: ``pip install 'django-orm-lens[mcp]'``.
@@ -24,6 +25,7 @@ import time
 from typing import Any, Dict, List, Tuple
 
 from .cli import _build_mermaid
+from .migrations_parser import describe_migration_dependency
 from .models import WorkspaceIndex
 from .parser import DEFAULT_EXCLUDES, scan_workspace
 
@@ -188,6 +190,20 @@ def _tool_er_diagram(_args: Dict[str, Any]) -> str:
     return _build_mermaid(idx)
 
 
+def _tool_describe_migration_dependency(args: Dict[str, Any]) -> str:
+    """Return migration DAG for one Django app.
+
+    Static AST parse of ``<app>/migrations/*.py`` — no Django boot, no DB.
+    Unique to django-orm-lens across the MCP + Django-graph tool ecosystem
+    (competitors require a running Django process).
+    """
+    app_label = (args or {}).get("app_label", "")
+    if not app_label:
+        raise ValueError("app_label is required")
+    result = describe_migration_dependency(app_label, _workspace_root())
+    return json.dumps(result, indent=2)
+
+
 TOOLS = {
     "list_apps": {
         "handler": _tool_list_apps,
@@ -212,6 +228,10 @@ TOOLS = {
     "er_diagram": {
         "handler": _tool_er_diagram,
         "description": "Emit a Mermaid erDiagram for the whole workspace.",
+    },
+    "describe_migration_dependency": {
+        "handler": _tool_describe_migration_dependency,
+        "description": "Return per-app migration DAG (dependencies, roots, leaves, cross-app deps) from static AST parse of migrations/*.py. No Django boot, no DB. Lets agents debug migration conflicts safely.",
     },
 }
 
@@ -255,6 +275,10 @@ def main() -> int:
             @server.tool(name=name, description=description)
             def er_diagram() -> str:
                 return handler({})
+        elif name == "describe_migration_dependency":
+            @server.tool(name=name, description=description)
+            def describe_migration_dependency(app_label: str) -> str:
+                return handler({"app_label": app_label})
 
     for name, spec in TOOLS.items():
         _register(name, spec["description"], spec["handler"])
