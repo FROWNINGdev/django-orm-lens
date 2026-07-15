@@ -5,6 +5,17 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8] + [py-1.0.14] - 2026-07-16
+
+Second hotfix on the two 0.3.6 regressions that 0.3.7's partial fix did not fully resolve for users running a single-app workspace ("hello/" opened at the app root). Icon rendered blank on some installs even after the theme-aware SVG rewrite; the workspace scan still came up empty on cold-start when `vscode.workspace.findFiles` returned no results before the file index was warm. This release simplifies the icon glyph and adds a direct filesystem walker fallback so the scan never depends on the file index being ready.
+
+### Fixed
+- **Activity-bar icon is now a single centred database glyph that fills the 24×24 canvas.** The v0.3.7 SVG was already `fill="currentColor"`, but the two-shape database + magnifier composition left large empty margins on the left and top, which on some themes (and at some HiDPI scale factors) rendered as an apparently blank slot in the activity bar. Replaced with a codicon-shaped monochrome database drawn from x=4 to x=20, y=2 to y=22 — visually dense across the whole viewbox and unambiguously visible on every theme.
+- **Workspace scan now falls back to a direct filesystem walk when `findFiles` returns empty.** Root cause: `vscode.workspace.findFiles` depends on VS Code's internal file index. On `onStartupFinished` activation the index can be cold, and on some Windows single-folder-workspace setups the `**/models.py` glob silently misses depth-0 `models.py` regardless. v0.3.7 tried to work around this by adding a bare `models.py` `RelativePattern` and a 1.5s startup-retry backstop; both still failed for users who open the Django app folder itself. `scanWorkspace` now runs `findFiles` first as the fast path, and if it returns zero URIs walks each workspace folder with `fs.readdirSync` directly, honouring the same exclude-glob defaults (`**/migrations/**`, `**/venv/**`, ...). Fallback runs once per empty scan — no cost when the file index is warm.
+
+### Tests
+- Added `cli/tests/test_scan_root.py` — three regression tests covering "app-as-workspace-root" (models.py at depth 0), "project-as-workspace-root" (app one level down), and the `**/migrations/**` exclude at root depth. Locks in that the shared parser behaviour never regresses on the single-app layout.
+
 ## [0.3.7] + [py-1.0.13] - 2026-07-16
 
 Hotfix release — closes the two regressions reported against 0.3.6: the activity-bar icon rendered blank (stroke-based SVG that VS Code's activity-bar CSS couldn't theme reliably), and single-app workspaces opened at the app root ("hello/" containing `models.py` directly) came up empty because the include-glob and initial-scan timing both failed the root-file case. TypeScript extension fixes only; Python CLI + MCP server are re-published at the same version for combined-release parity.
