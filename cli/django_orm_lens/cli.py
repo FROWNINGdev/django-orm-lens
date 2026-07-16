@@ -45,6 +45,13 @@ def _add_scan_flags(p: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Print scan timing + file/app/model counts to stderr",
     )
+    p.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        default=False,
+        help="Suppress the 'no models.py found' hint on a zero-model scan",
+    )
 
 
 def _resolve_excludes(cli_excludes: Optional[Sequence[str]]) -> Sequence[str]:
@@ -54,6 +61,12 @@ def _resolve_excludes(cli_excludes: Optional[Sequence[str]]) -> Sequence[str]:
 def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
     """Validate ``--path`` exists before scanning. Silent-empty result on a
     typo'd path is a common confusion — surface it as an error.
+
+    A zero-model result where no ``models.py`` was even walked is a second,
+    quieter version of the same confusion (new users can't tell "it works,
+    your app just has no models" from "the path is wrong"). Print a hint to
+    stderr in that case, unless ``--quiet`` was passed. Exit code is
+    untouched — an empty result is valid, not an error.
     """
     import os
     if not os.path.isdir(args.path):
@@ -63,18 +76,28 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
         )
         raise SystemExit(2)
     excludes = _resolve_excludes(args.exclude)
-    if not getattr(args, "verbose", False):
-        return scan_workspace(args.path, excludes)
+    root = Path(args.path).resolve()
+    verbose = getattr(args, "verbose", False)
 
-    start = time.perf_counter()
+    start = time.perf_counter() if verbose else 0.0
     index = scan_workspace(args.path, excludes)
-    elapsed_ms = (time.perf_counter() - start) * 1000
-    file_count = sum(1 for _ in _iter_python_files(Path(args.path).resolve(), excludes))
-    print(
-        f"scanned {file_count} files in {elapsed_ms:.0f}ms, "
-        f"found {len(index.apps)} apps / {index.total_models()} models",
-        file=sys.stderr,
-    )
+    if verbose:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        file_count = sum(1 for _ in _iter_python_files(root, excludes))
+        print(
+            f"scanned {file_count} files in {elapsed_ms:.0f}ms, "
+            f"found {len(index.apps)} apps / {index.total_models()} models",
+            file=sys.stderr,
+        )
+    if index.total_models() == 0 and not getattr(args, "quiet", False):
+        saw_models_file = any(_iter_python_files(root, excludes))
+        if not saw_models_file:
+            print(
+                f"hint: no models.py found under {args.path}. Django apps typically have\n"
+                "      <app>/models.py or <app>/models/*.py. Check the path or pass\n"
+                "      --exclude to whitelist non-standard layouts.",
+                file=sys.stderr,
+            )
     return index
 
 
