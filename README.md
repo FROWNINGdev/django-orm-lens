@@ -7,6 +7,8 @@
 
 # Django ORM Lens
 
+[English](README.md) · [简体中文](README.zh.md)
+
 ### See your entire Django schema — in your editor, in your terminal, and from your AI agent.
 
 Every app. Every model. Every field. Every relationship. Grouped, navigable, and one keystroke away from a live ER diagram.
