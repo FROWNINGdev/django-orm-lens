@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **CLI `list` subcommand now supports `--format json`.** `django-orm-lens list --format json` emits a pipe-friendly JSON array `[{"app": "...", "model": "..."}, ...]`. The default `text` output remains unchanged for backward compatibility.
+- **`--verbose` / `-v` flag** on every scan-backed CLI subcommand (`scan`, `describe`, `hover`, `list`, `er`). Prints a one-line summary to stderr after the scan — `scanned 12 files in 34ms, found 8 apps / 47 models` — sourced from the actual file walk (`_iter_python_files`), a `time.perf_counter()` measurement around the scan, and the real app/model counts on the returned index. Stdout is untouched either way, so `django-orm-lens list -v | xargs ...` keeps piping cleanly; without `-v` nothing extra is printed. (#14)
 
 ## [0.5.1] + [py-1.0.17] - 2026-07-16
 
