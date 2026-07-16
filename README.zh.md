@@ -7,7 +7,7 @@
 
 # Django ORM Lens
 
-### 在你的编辑器里、终端里,以及从你的 AI agent 那里,看清整个 Django schema。
+在你的编辑器里、终端里,以及从你的 AI agent 那里,看清整个 Django schema。
 
 每一个 app。每一个 model。每一个字段。每一种关系。分组呈现、可逐级展开,并且一键即可打开实时 ER 图。
 
@@ -115,7 +115,7 @@ pip install "django-orm-lens[mcp]"
 
 <sub><i>更新于 2026-07-15。PyPI 周/月下载量、GitHub stars / forks,以及 PyPI / VS Code 版本徽章均实时自动刷新。</i></sub>
 
-> 如果这个工具下次帮你省下一次 `grep`——** [点个 star 让更多人发现它](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**。
+> 如果这个工具下次帮你省下一次 `grep`——**[点个 star 让更多人发现它](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**。
 
 ---
 
@@ -131,9 +131,11 @@ code --install-extension frowningdev.django-orm-lens
 
 **终端与 AI coding agent:**
 
+仅安装 CLI,或加上 `[mcp]` 额外依赖以捆绑面向 AI agent 的 MCP server:
+
 ```bash
-pip install django-orm-lens              # 仅 CLI
-pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP server
+pip install django-orm-lens
+pip install "django-orm-lens[mcp]"
 ```
 
 要求 Python 3.9+。CLI 本身零运行时依赖。
@@ -350,7 +352,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI-agent 工具** 的交叉点�
 | 编辑器插件 | PyCharm 的 Django Structure | 锁定在 PyCharm;无 CLI,无 AI-agent 故事 |
 | MCP server | (此前没有) | AI agent 凭源码猜测你的 schema,并不完美 |
 
-**Django ORM Lens 是唯一一个由同一个解析器提供三种形态的工具有:** 一个 VS Code 扩展(任意 Code 衍生版)、一个零依赖 CLI(终端 + CI),以及一个 MCP server(AI agent)。全部静态。全部免费。全部 MIT。
+**Django ORM Lens 是唯一一个由同一个解析器提供三种形态的工具:** 一个 VS Code 扩展(任意 Code 衍生版)、一个零依赖 CLI(终端 + CI),以及一个 MCP server(AI agent)。全部静态。全部免费。全部 MIT。
 
 <br/>
 

@@ -9,7 +9,7 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-### See your entire Django schema — in your editor, in your terminal, and from your AI agent.
+See your entire Django schema — in your editor, in your terminal, and from your AI agent.
 
 Every app. Every model. Every field. Every relationship. Grouped, navigable, and one keystroke away from a live ER diagram.
 
@@ -133,9 +133,11 @@ Or search **`Django ORM Lens`** in the Extensions view.
 
 **Terminal & AI coding agents:**
 
+Install just the CLI, or add the `[mcp]` extra to bundle the MCP server for AI agents:
+
 ```bash
-pip install django-orm-lens              # CLI only
-pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
+pip install django-orm-lens
+pip install "django-orm-lens[mcp]"
 ```
 
 Requires Python 3.9+. Zero runtime dependencies for the CLI.
