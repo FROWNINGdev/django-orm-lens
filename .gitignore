@@ -7,6 +7,7 @@ Thumbs.db
 *.log
 .env
 tmp_tests/
+.outreach/
 
 # Local maintainer scratch (never committed — see django-orm-lens-MAINTAINER/)
 .marketplace-*.md

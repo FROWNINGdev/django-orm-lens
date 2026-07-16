@@ -220,9 +220,15 @@ def _looks_like_model(base_classes: List[str]) -> bool:
 
 
 def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
-    """Parse a single models.py-style file. Returns 0..N Django model classes."""
+    """Parse a single models.py-style file. Returns 0..N Django model classes.
+
+    Two-pass: (1) collect every class def with base classes + Meta,
+    (2) resolve transitive inheritance via fixed-point so ``Profile(TimeStamped)``
+    where ``TimeStamped(models.Model)`` sits in the same file is correctly
+    identified as a model. Classes with ``Meta.abstract = True`` are dropped.
+    """
     lines = content.splitlines()
-    models: List[ParsedModel] = []
+    all_defs: List[ParsedModel] = []
     parent = os.path.basename(os.path.dirname(file_path))
     if parent == "models":
         app_name = os.path.basename(os.path.dirname(os.path.dirname(file_path)))
@@ -250,7 +256,12 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
         base_classes = [
             s.strip() for s in class_match.group(2).split(",") if s.strip()
         ]
-        if not _looks_like_model(base_classes):
+        # Drop classes whose ALL bases are known non-model tails
+        # (ModelAdmin, Serializer, Manager, etc.) — they can't participate
+        # in a model inheritance chain.
+        if base_classes and all(
+            NON_MODEL_TAIL.match(b.split(".")[-1]) for b in base_classes
+        ):
             i += 1
             continue
 
@@ -313,10 +324,33 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
 
             j += 1
 
-        models.append(model)
+        all_defs.append(model)
         i = j
 
-    return models
+    # 2-pass filter: transitive model resolution + abstract drop.
+    is_model_name = {m.name for m in all_defs if _looks_like_model(m.base_classes)}
+    changed = True
+    while changed:
+        changed = False
+        for m in all_defs:
+            if m.name in is_model_name:
+                continue
+            for b in m.base_classes:
+                tail = b.split(".")[-1]
+                if tail in is_model_name:
+                    is_model_name.add(m.name)
+                    changed = True
+                    break
+
+    result: List[ParsedModel] = []
+    for m in all_defs:
+        if m.name not in is_model_name:
+            continue
+        abstract_val = m.meta.get("abstract", "").strip()
+        if abstract_val in ("True", "1", "true"):
+            continue
+        result.append(m)
+    return result
 
 
 def _iter_python_files(root: Path, excludes: Sequence[str]) -> Iterable[Path]:

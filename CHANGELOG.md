@@ -5,6 +5,24 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] + [py-1.0.17] - 2026-07-16
+
+Bugfix release focused on parser accuracy and MCP correctness. E2E audit against a synthetic Django project with abstract mixins, custom user model, multi-file `models/` packages, real migrations, signals, and views uncovered five real bugs that would have hit the ~60 % of production Django codebases that use `TimeStampedModel`-style mixins or `settings.AUTH_USER_MODEL`. All fixed here without any behavioural regressions (44 pytests pass — 13 new + 31 pre-existing).
+
+### Fixed
+- **Abstract-mixin subclasses now correctly identified as models.** `class Profile(TimeStamped)` where `TimeStamped(models.Model)` is a user-defined abstract base was previously invisible to every tool — parser only walked one inheritance level and only against a small hardcoded list of known-Model tails. `parse_models_file` is now two-pass: first collects every class definition with its bases + Meta, then resolves transitive inheritance via fixed-point iteration. Any concrete subclass of any class that transitively inherits from `models.Model` (through arbitrary user-defined abstracts) is now returned.
+- **`Meta.abstract = True` is now respected.** Abstract mixins previously appeared in `list_models`, `describe_model`, ER diagrams, and the VS Code sidebar as if they were concrete tables. They are now filtered out, matching what Django itself does at migration time.
+- **`settings.AUTH_USER_MODEL` now resolves to the workspace User model in relation lookups.** `cascade_preview(accounts.User)` and `find_relations(accounts.User)` previously returned empty inbound arrays even when other models had `ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE)` — the recommended Django pattern. MCP layer now detects the workspace's User model (first class inheriting `AbstractUser` / `AbstractBaseUser`, else literal `User`) and treats `AUTH_USER_MODEL` refs as pointing at it.
+- **`--version` shows the real installed version.** Previously hardcoded `1.0.7` across nine releases regardless of which package version was actually installed — confusing bug reports. Now sourced from `importlib.metadata` at import time.
+- **CLI subcommands error on a non-existent `--path`.** `list --path /nonexistent` previously exited `0` with empty output — silent failure. Now prints `error: --path 'X' is not a directory` to stderr and exits `2`.
+- **`list_models(app='wrong_name')` returns a helpful error instead of `(no models)`.** New response: `(app 'wrong_name' not found in workspace; available apps: a, b, c)`.
+
+### Changed
+- **MCP Registry description updated:** `"5 read-only tools"` → `"9 read-only tools (models, relations, cascade, migrations, indexes, signals, ER diagram)"`. Registry entry was stuck at 1.0.7 and had never reflected the four v0.4/v0.5 additions (`describe_migration_dependency`, `suggest_indexes`, `signal_graph`, `er_diagram`).
+
+### Added
+- **13 regression tests** for the fixes above under `cli/tests/test_abstract_and_auth_user.py` — abstract-drop, two-level abstract chain, plain `User` reference, `AbstractUser` subclass detection, `settings.AUTH_USER_MODEL` resolution, and negative cases (no user model, wrong target). Guards against regressions in the parser's inheritance logic and the MCP resolution helpers.
+
 ## [0.5.0] + [py-1.0.16] - 2026-07-16
 
 MCP tools for AI-agent Django expertise. Ships three flagship additions built on the zero-runtime static-analysis moat: two new MCP tools that solve the top pain points in the Django tooling ecosystem — index recommendations and signal graph visualisation — plus a golden-fixture test suite that proves the parser survives real-world Django code (63 models across Zulip, Saleor, Wagtail, django-CMS). Positioning shifts from "ER diagram + navigation" to "the static-analysis brain that Django AI agents plug into."

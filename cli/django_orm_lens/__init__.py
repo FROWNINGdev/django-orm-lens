@@ -4,7 +4,14 @@ Terminal / editor-agnostic parser for Django models.py files.
 Ships a CLI and an optional MCP server for AI coding agents.
 """
 
-__version__ = "1.0.7"
+try:
+    from importlib.metadata import PackageNotFoundError, version as _pkg_version
+    try:
+        __version__ = _pkg_version("django-orm-lens")
+    except PackageNotFoundError:
+        __version__ = "0.0.0+local"
+except ImportError:
+    __version__ = "0.0.0+local"
 
 from .models import ParsedApp, ParsedField, ParsedModel, WorkspaceIndex
 from .parser import parse_models_file, scan_workspace

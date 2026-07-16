@@ -42,6 +42,20 @@ def _resolve_excludes(cli_excludes: Optional[Sequence[str]]) -> Sequence[str]:
     return tuple(cli_excludes) if cli_excludes else DEFAULT_EXCLUDES
 
 
+def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
+    """Validate ``--path`` exists before scanning. Silent-empty result on a
+    typo'd path is a common confusion — surface it as an error.
+    """
+    import os
+    if not os.path.isdir(args.path):
+        print(
+            f"error: --path {args.path!r} is not a directory",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    return scan_workspace(args.path, _resolve_excludes(args.exclude))
+
+
 def _find_model(index: WorkspaceIndex, ref: str) -> Optional[ParsedModel]:
     if "." in ref:
         app_name, model_name = ref.split(".", 1)
@@ -58,13 +72,13 @@ def _find_model(index: WorkspaceIndex, ref: str) -> Optional[ParsedModel]:
 
 
 def _cmd_scan(args: argparse.Namespace) -> int:
-    idx = scan_workspace(args.path, _resolve_excludes(args.exclude))
+    idx = _load_index(args)
     print(format_index(idx, args.format))
     return 0
 
 
 def _cmd_describe(args: argparse.Namespace) -> int:
-    idx = scan_workspace(args.path, _resolve_excludes(args.exclude))
+    idx = _load_index(args)
     model = _find_model(idx, args.model)
     if model is None:
         print(f"error: model {args.model!r} not found", file=sys.stderr)
@@ -74,7 +88,7 @@ def _cmd_describe(args: argparse.Namespace) -> int:
 
 
 def _cmd_hover(args: argparse.Namespace) -> int:
-    idx = scan_workspace(args.path, _resolve_excludes(args.exclude))
+    idx = _load_index(args)
     model = _find_model(idx, args.model)
     if model is None:
         print(f"error: model {args.model!r} not found", file=sys.stderr)
@@ -84,7 +98,7 @@ def _cmd_hover(args: argparse.Namespace) -> int:
 
 
 def _cmd_list(args: argparse.Namespace) -> int:
-    idx = scan_workspace(args.path, _resolve_excludes(args.exclude))
+    idx = _load_index(args)
     for app in idx.apps:
         for m in app.models:
             print(f"{app.name}.{m.name}")
@@ -92,7 +106,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
 
 
 def _cmd_er(args: argparse.Namespace) -> int:
-    idx = scan_workspace(args.path, _resolve_excludes(args.exclude))
+    idx = _load_index(args)
     mermaid = _build_mermaid(idx)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as fh:

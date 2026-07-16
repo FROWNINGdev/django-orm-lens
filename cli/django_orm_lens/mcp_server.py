@@ -74,6 +74,12 @@ def _tool_list_apps(_args: Dict[str, Any]) -> str:
 def _tool_list_models(args: Dict[str, Any]) -> str:
     idx = _get_index()
     only_app = (args or {}).get("app")
+    if only_app and not any(a.name == only_app for a in idx.apps):
+        available = ", ".join(sorted(a.name for a in idx.apps)) or "(none)"
+        return (
+            f"(app '{only_app}' not found in workspace; "
+            f"available apps: {available})"
+        )
     rows: List[str] = []
     for app in idx.apps:
         if only_app and app.name != only_app:
@@ -96,6 +102,42 @@ def _find(idx, ref: str):
             if m.name == ref:
                 return m
     return None
+
+
+_USER_BASE_MARKERS = ("AbstractUser", "AbstractBaseUser")
+
+
+def _workspace_user_model(idx):
+    """Return (app_name, model) for the workspace's Django User model.
+
+    Used to resolve ``settings.AUTH_USER_MODEL`` references. Heuristic:
+    1) first model whose bases include ``AbstractUser`` / ``AbstractBaseUser``,
+    2) else first model literally named ``User``, 3) else ``(None, None)``.
+    """
+    for app in idx.apps:
+        for m in app.models:
+            for b in m.base_classes:
+                tail = b.split(".")[-1]
+                if tail in _USER_BASE_MARKERS:
+                    return app.name, m
+    for app in idx.apps:
+        for m in app.models:
+            if m.name == "User":
+                return app.name, m
+    return None, None
+
+
+def _rel_matches_target(related_model, target_name, user_model):
+    """True iff ``related_model`` string points at ``target_name``. Handles
+    ``settings.AUTH_USER_MODEL`` by resolving to the workspace user model."""
+    if not related_model:
+        return False
+    tail = related_model.split(".")[-1]
+    if tail == target_name:
+        return True
+    if tail == "AUTH_USER_MODEL" and user_model is not None:
+        return user_model.name == target_name
+    return False
 
 
 def _tool_describe_model(args: Dict[str, Any]) -> str:
@@ -123,24 +165,24 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
                     "target": f.related_model,
                 }
             )
-    tail = m.name
+    _, user_model = _workspace_user_model(idx)
     for app in idx.apps:
         for other in app.models:
             if other is m:
                 continue
             for f in other.fields:
-                if not f.is_relation or not f.related_model:
+                if not f.is_relation:
                     continue
-                t = f.related_model.split(".")[-1]
-                if t == tail:
-                    out["inbound"].append(
-                        {
-                            "from": f"{app.name}.{other.name}",
-                            "field": f.name,
-                            "kind": f.relation_kind,
-                            "on_delete": f.on_delete or "unknown",
-                        }
-                    )
+                if not _rel_matches_target(f.related_model, m.name, user_model):
+                    continue
+                out["inbound"].append(
+                    {
+                        "from": f"{app.name}.{other.name}",
+                        "field": f.name,
+                        "kind": f.relation_kind,
+                        "on_delete": f.on_delete or "unknown",
+                    }
+                )
     return json.dumps(out, indent=2)
 
 
@@ -163,16 +205,15 @@ def _tool_cascade_preview(args: Dict[str, Any]) -> str:
         "set_null": [],
         "protected": [],
     }
-    tail = m.name
+    _, user_model = _workspace_user_model(idx)
     for app in idx.apps:
         for other in app.models:
             if other is m:
                 continue
             for f in other.fields:
-                if not f.is_relation or not f.related_model:
+                if not f.is_relation:
                     continue
-                t = f.related_model.split(".")[-1]
-                if t != tail:
+                if not _rel_matches_target(f.related_model, m.name, user_model):
                     continue
                 on_delete = (f.on_delete or "").upper()
                 entry = {
