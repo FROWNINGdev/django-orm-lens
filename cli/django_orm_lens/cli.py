@@ -13,6 +13,7 @@ Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from typing import List, Optional, Sequence
 
@@ -99,10 +100,17 @@ def _cmd_hover(args: argparse.Namespace) -> int:
 
 def _cmd_list(args: argparse.Namespace) -> int:
     idx = _load_index(args)
-    for app in idx.apps:
-        for m in app.models:
-            print(f"{app.name}.{m.name}")
-    return 0
+    fmt = args.format.lower()
+    if fmt == "json":
+        payload = [{"app": app.name, "model": m.name} for app in idx.apps for m in app.models]
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    if fmt == "text":
+        for app in idx.apps:
+            for m in app.models:
+                print(f"{app.name}.{m.name}")
+        return 0
+    raise ValueError(f"Unknown format: {fmt!r}. Use text | json.")
 
 
 def _cmd_er(args: argparse.Namespace) -> int:
@@ -209,6 +217,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     lst = sub.add_parser("list", help="Flat list of app.Model — pipes well into shell")
     _add_scan_flags(lst)
+    lst.add_argument(
+        "--format", "-f", choices=("text", "json"), default="text"
+    )
     lst.set_defaults(func=_cmd_list)
 
     er = sub.add_parser("er", help="Emit a Mermaid ER diagram (stdout or file)")

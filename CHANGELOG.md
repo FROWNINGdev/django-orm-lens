@@ -5,6 +5,11 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **CLI `list` subcommand now supports `--format json`.** `django-orm-lens list --format json` emits a pipe-friendly JSON array `[{"app": "...", "model": "..."}, ...]`. The default `text` output remains unchanged for backward compatibility.
+
 ## [0.5.1] + [py-1.0.17] - 2026-07-16
 
 Bugfix release focused on parser accuracy and MCP correctness. E2E audit against a synthetic Django project with abstract mixins, custom user model, multi-file `models/` packages, real migrations, signals, and views uncovered five real bugs that would have hit the ~60 % of production Django codebases that use `TimeStampedModel`-style mixins or `settings.AUTH_USER_MODEL`. All fixed here without any behavioural regressions (44 pytests pass — 13 new + 31 pre-existing).
