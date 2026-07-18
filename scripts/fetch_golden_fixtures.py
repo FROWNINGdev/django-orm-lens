@@ -57,6 +57,13 @@ PROJECTS = {
             "cms/models/pluginmodel.py",
         ],
     },
+    "mezzanine": {
+        "repo": "stephenmcd/mezzanine",
+        "ref": "master",
+        "paths": [
+            "mezzanine/blog/models.py",
+        ],
+    },
 }
 
 
