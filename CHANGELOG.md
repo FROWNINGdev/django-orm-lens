@@ -7,10 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] + [py-1.1.0] - 2026-07-19
+
+Feature release — three new CLI subcommands (`nplusone`, `migration-risk`, `diff`), webview polish, and three README translations. 127 tests passing.
+
 ### Added
+
+- **CLI `nplusone` subcommand — static N+1 detector.** Walks `.py` files and flags queryset iteration where FK / M2M attributes are accessed inside the loop without a matching `.select_related(...)` / `.prefetch_related(...)`. Schema-backed high-confidence classification when a workspace index is available, heuristic medium-confidence fallback otherwise. Reports `file:line`, loop variable, queryset variable, accessed relations, and a suggested fix. Flags: `--path`, `--format text|json`, `--confidence high|medium|all`, `--exit-zero`. Exit code 1 on findings (CI-friendly). 18 tests.
+- **CLI `migration-risk` subcommand — production-safety linter for Django migrations.** Analyzes `<app>/migrations/*.py` files and flags seven classes of risky operations: `AddField(NOT NULL, no default)`, `RemoveField`/`DeleteModel` still referenced by live code, `RenameField`/`RenameModel` (breaks rolling deployments), `AddIndex` without `CONCURRENTLY`, lossy `AlterField` type changes, `RunSQL` without `reverse_sql`, and `AddField(unique=True)` without a row-unique default. Cross-references the current models schema. Per-finding severity (`critical` / `warning` / `info`) and confidence (`high` / `medium` / `low`). Flags: `--path`, `--format text|json`, `--severity critical|warning|info|all`, `--exit-zero`. 31 tests.
+- **CLI `diff` subcommand — compare two schema JSON dumps.** `django-orm-lens list --format=json > before.json` on `main`, then again on a PR branch → `after.json`, then `django-orm-lens diff before.json after.json` prints added / removed models, added / removed / changed fields, and added / removed / changed relations. Text and JSON output. Exit 1 on any delta (git-diff-like), `--exit-zero` for advisory CI stages. 21 tests.
+- **Webview: color-code minimap dots by app.** ER-diagram minimap now tints nodes by their owning Django app using a deterministic FNV-1a-based hue, so large schemas can be visually grouped at a glance. Focused node retains the accent color.
 - **CLI `list` subcommand now supports `--format json`.** `django-orm-lens list --format json` emits a pipe-friendly JSON array `[{"app": "...", "model": "..."}, ...]`. The default `text` output remains unchanged for backward compatibility.
-- **`--verbose` / `-v` flag** on every scan-backed CLI subcommand (`scan`, `describe`, `hover`, `list`, `er`). Prints a one-line summary to stderr after the scan — `scanned 12 files in 34ms, found 8 apps / 47 models` — sourced from the actual file walk (`_iter_python_files`), a `time.perf_counter()` measurement around the scan, and the real app/model counts on the returned index. Stdout is untouched either way, so `django-orm-lens list -v | xargs ...` keeps piping cleanly; without `-v` nothing extra is printed. (#14)
-- **CLI: friendlier hint when no `models.py` is found.** `scan`/`describe`/`hover`/`list`/`er` previously printed a silently-empty result (e.g. `{"apps": []}`) with no signal to a new user whether the tool worked or the `--path` was wrong. When zero models are found *and* no `models.py`/`models/*.py` file was walked at all, a `hint: no models.py found under <path>...` line is now printed to stderr (stdout stays clean for piping, exit code stays `0`). New `--quiet`/`-q` flag suppresses the hint. (#12)
+- **`--verbose` / `-v` flag** on every scan-backed CLI subcommand (`scan`, `describe`, `hover`, `list`, `er`). Prints a one-line summary to stderr after the scan — `scanned 12 files in 34ms, found 8 apps / 47 models` — sourced from the actual file walk, a `time.perf_counter()` measurement around the scan, and the real app/model counts on the returned index. Stdout is untouched either way. (#14)
+- **CLI: friendlier hint when no `models.py` is found.** `scan`/`describe`/`hover`/`list`/`er` previously printed a silently-empty result. When zero models are found *and* no `models.py`/`models/*.py` file was walked at all, a `hint: no models.py found under <path>...` line is now printed to stderr (stdout stays clean, exit code stays `0`). New `--quiet`/`-q` flag suppresses the hint. (#12)
+
+### Docs
+
+- **README translations:** `README.ru.md` (Russian), `README.es.md` (Spanish), `README.zh.md` (Chinese). Language switcher added at the top of each file. Closes #9, #10, #11.
+- **README: added Screenshots section** between Install and The problem, with capture instructions for six product screenshots covering VS Code (sidebar / ER diagram / hover card), CLI (`list`, `er`), and MCP (Cursor conversation). Closes #15.
 
 ## [0.5.1] + [py-1.0.17] - 2026-07-16
 
