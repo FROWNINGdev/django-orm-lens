@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
+<img src="../../media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
 
 <br/>
 <br/>
@@ -30,7 +30,7 @@
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/frowningdev.django-orm-lens?color=0c4b33&label=rating)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
 [![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=pypi)](https://pypi.org/project/django-orm-lens/)
 [![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9)](https://pypi.org/project/django-orm-lens/)
-[![License MIT](https://img.shields.io/badge/license-MIT-0c4b33?style=flat)](LICENSE)
+[![License MIT](https://img.shields.io/badge/license-MIT-0c4b33?style=flat)](../../LICENSE)
 [![CI](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml)
 
 </div>
@@ -112,7 +112,7 @@ pip install "django-orm-lens[mcp]"
 [![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&label=Python&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Django](https://img.shields.io/badge/Django-4.0_%E2%80%93_5.1-092e20?style=for-the-badge&logo=django&logoColor=white&labelColor=1e293b)](https://www.djangoproject.com/)
-[![License MIT](https://img.shields.io/badge/license-MIT-16a34a?style=for-the-badge&labelColor=1e293b)](LICENSE)
+[![License MIT](https://img.shields.io/badge/license-MIT-16a34a?style=for-the-badge&labelColor=1e293b)](../../LICENSE)
 
 </div>
 
@@ -219,7 +219,7 @@ pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
 ## 📸 界面预览
 
 <div align="center">
-<img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
+<img src="../../media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
 </div>
 
 **扩展中还包含：**
