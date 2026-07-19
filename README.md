@@ -106,7 +106,7 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <!-- Tech stack + license -->
 
-[![VS Code v0.5.1](https://img.shields.io/badge/VS_Code-v0.5.1-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![VS Code v0.6.0](https://img.shields.io/badge/VS_Code-v0.6.0-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&label=Python&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Django](https://img.shields.io/badge/Django-4.0_%E2%80%93_5.1-092e20?style=for-the-badge&logo=django&logoColor=white&labelColor=1e293b)](https://www.djangoproject.com/)
@@ -138,6 +138,14 @@ pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
 ```
 
 Requires Python 3.9+. Zero runtime dependencies for the CLI.
+
+**Docker (v0.6+):**
+
+```bash
+docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/django-orm-lens scan --path .
+```
+
+Multi-arch (amd64 + arm64). No Python required on the host. Good for CI and one-off audits.
 
 <br/>
 
@@ -278,14 +286,17 @@ The same parser that powers the VS Code extension ships as a standalone Python p
 ### CLI
 
 ```bash
-django-orm-lens scan -f json          # every app, every model, every field
-django-orm-lens describe blog.Post    # one model in Markdown
-django-orm-lens hover blog.Post       # compact hover card
-django-orm-lens list | fzf            # flat app.Model — pipes anywhere
-django-orm-lens er > schema.mmd       # Mermaid ER diagram
+django-orm-lens scan -f json                # every app, every model, every field
+django-orm-lens describe blog.Post          # one model in Markdown
+django-orm-lens hover blog.Post             # compact hover card
+django-orm-lens list | fzf                  # flat app.Model — pipes anywhere
+django-orm-lens er > schema.mmd             # Mermaid ER diagram
+django-orm-lens diff before.json after.json # what a PR changes structurally
+django-orm-lens nplusone --path .           # static N+1 detector (v0.6+)
+django-orm-lens migration-risk --path .     # flag risky migration ops (v0.6+)
 ```
 
-Every command accepts `--path <dir>` and `--exclude <glob>`.
+Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
 
 ### MCP server
 
@@ -476,16 +487,22 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.3.0** — Named color themes (`auto` / `default` / `dark` / `forest` / `neutral`)
 - [x] **v0.3.1** — `through_model` on M2M edges (contributed by [@kingrubic](https://github.com/kingrubic))
 - [x] **v0.3.1** — Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/) + [Glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+- [x] **v0.6.0** — CLI `nplusone` — static N+1 detector (FK/M2M access inside loops without `select_related`/`prefetch_related`)
+- [x] **v0.6.0** — CLI `migration-risk` — flags 7 classes of production hazards in `migrations/*.py`
+- [x] **v0.6.0** — CLI `diff` — compare two schema JSON dumps for PR review
+- [x] **v0.6.0** — ER-diagram minimap color-codes nodes by Django app
+- [x] **v0.6.0** — README translations: 🇷🇺 Russian, 🇪🇸 Spanish, 🇨🇳 Chinese
+- [x] **v0.6.0** — Docker image on GHCR: `docker run ghcr.io/frowningdev/django-orm-lens`
 
 **Next**
 
-- [ ] Zoom + minimap + auto-layout inside the webview ([#4](https://github.com/FROWNINGdev/django-orm-lens/issues/4))
 - [ ] ORM query autocomplete inside `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
 - [ ] App / model toggle checkboxes to declutter huge schemas
+- [ ] Migration dependency graph
+- [ ] pre-commit hook wrapping `migration-risk` + `nplusone`
 
 **Later**
 
-- [ ] Migration dependency graph
 - [ ] Third-party field support (`django-mptt`, `django-taggit`, `django-model-utils`)
 - [ ] JetBrains / PyCharm plugin (if there is demand)
 
