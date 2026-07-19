@@ -27,6 +27,7 @@ import ast
 import os
 import re
 from collections import defaultdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -483,3 +484,650 @@ def _sites_to_summary(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         {"field": f, "sites": c, "example": example[f]}
         for f, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
     ]
+
+
+# ---------------------------------------------------------------------------
+# N+1 detector
+# ---------------------------------------------------------------------------
+#
+# The detector walks every ``.py`` file in the workspace (skipping the same
+# directories the index analyzer skips), finds ``for ... in <queryset>:``
+# loops, and flags attribute-chain accesses against the loop target that
+# hit a related object (ForeignKey / OneToOne / ManyToMany / reverse FK)
+# without a corresponding ``select_related`` / ``prefetch_related`` clause
+# on the source queryset.
+#
+# Heuristic: if the schema is provided, only known relation attributes on
+# the loop-target's model trigger high-confidence findings. Without a
+# schema (or when the source model can't be resolved) the detector falls
+# back to structural cues (``.all()`` / ``_set`` suffix / long attribute
+# chains) at medium confidence.
+
+# QuerySet source methods that (a) commonly return a lazily-evaluated
+# queryset iterated in a for-loop, and (b) accept ``select_related`` /
+# ``prefetch_related`` chains after them.
+_QS_SOURCE_METHODS = frozenset({
+    "all", "filter", "exclude", "annotate", "distinct", "order_by",
+    "values", "values_list", "reverse", "none", "iterator",
+    "only", "defer", "using",
+})
+
+# When the attribute name matches this suffix pattern we treat it as a
+# reverse FK / M2M reverse manager (``post.comment_set.all()`` etc.) so
+# even without a schema we can confidently flag it.
+_REVERSE_MANAGER_SUFFIX = re.compile(r"_set$")
+
+
+@dataclass
+class NPlusOneFinding:
+    """A single N+1 anti-pattern finding.
+
+    All paths are project-root relative (POSIX separators) so tools can
+    render clickable ``path:line`` links irrespective of the host OS.
+    """
+
+    file: str
+    line: int
+    loop_var: str
+    queryset_var: str
+    accessed: List[str]
+    suggested_fix: str
+    confidence: str  # "high" | "medium"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+def _rel_posix(root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _iter_py_files_broad(root: Path) -> Iterable[Path]:
+    """Like :func:`_iter_py_files` but also skips ``site-packages`` and any
+    directory named after a common vendored-dep root. Used by the N+1
+    scanner which walks every ``.py`` file, not just ``models.py``.
+    """
+    skip = _SKIP_DIRS | {"site-packages", "dist", "build", "eggs"}
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [
+            d for d in dirnames
+            if not d.startswith(".") and d not in skip
+        ]
+        for name in filenames:
+            if name.endswith(".py"):
+                yield Path(dirpath) / name
+
+
+def _attr_chain(node: ast.AST) -> Optional[List[str]]:
+    """Flatten an ``ast.Attribute`` chain rooted at an ``ast.Name`` into a
+    ``[name, attr1, attr2, ...]`` list. Returns ``None`` when the root
+    isn't a plain ``ast.Name``.
+    """
+    parts: List[str] = []
+    cursor: ast.AST = node
+    while isinstance(cursor, ast.Attribute):
+        parts.append(cursor.attr)
+        cursor = cursor.value
+    if not isinstance(cursor, ast.Name):
+        return None
+    parts.append(cursor.id)
+    parts.reverse()
+    return parts
+
+
+def _call_method_name(node: ast.Call) -> Optional[str]:
+    """Return the method name of a method-call ``x.y(...)`` — i.e. the
+    ``y``. Returns ``None`` for bare-function calls (``f(...)``).
+    """
+    func = node.func
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def _collect_call_chain_methods(node: ast.AST) -> List[Tuple[str, ast.Call]]:
+    """Walk backwards through a method-chain ``a.b().c().d()`` and yield
+    ``(method_name, call_node)`` tuples in call order (innermost first).
+
+    This is a superset of :func:`_unwrap_call_chain` — it handles chains
+    where the root isn't a ``Call`` (e.g. ``qs.filter(x=1).all()`` where
+    ``qs`` is a bare Name). Used by the N+1 scanner to walk any chain
+    hanging off a queryset variable.
+    """
+    out: List[Tuple[str, ast.Call]] = []
+    cursor: ast.AST = node
+    while isinstance(cursor, ast.Call):
+        method = _call_method_name(cursor)
+        if method is None:
+            break
+        out.append((method, cursor))
+        func = cursor.func
+        if isinstance(func, ast.Attribute):
+            cursor = func.value
+        else:
+            break
+    out.reverse()
+    return out
+
+
+def _chain_prefetch_args(
+    chain: List[Tuple[str, ast.Call]],
+) -> Tuple[Set[str], Set[str]]:
+    """Collect all string literal args passed to ``select_related`` /
+    ``prefetch_related`` calls in ``chain``. Returns ``(select, prefetch)``.
+
+    ``.select_related()`` with no args is a "follow every FK" spanner —
+    represented by the wildcard token ``"*"``. Same for ``.prefetch_related()``
+    which is uncommon but valid.
+    """
+    select_set: Set[str] = set()
+    prefetch_set: Set[str] = set()
+    for method, call in chain:
+        if method == "select_related":
+            if not call.args and not call.keywords:
+                select_set.add("*")
+            for arg in call.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    select_set.add(arg.value.split("__", 1)[0])
+        elif method == "prefetch_related":
+            if not call.args and not call.keywords:
+                prefetch_set.add("*")
+            for arg in call.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    prefetch_set.add(arg.value.split("__", 1)[0])
+                # Prefetch("comments", queryset=...) → first positional arg is the lookup
+                elif isinstance(arg, ast.Call):
+                    for inner in arg.args:
+                        if isinstance(inner, ast.Constant) and isinstance(inner.value, str):
+                            prefetch_set.add(inner.value.split("__", 1)[0])
+                            break
+    return select_set, prefetch_set
+
+
+def _chain_model_root(chain: List[Tuple[str, ast.Call]]) -> Optional[str]:
+    """If the chain begins at ``<Model>.objects.<method>(...)`` return
+    ``Model``, else ``None``.
+    """
+    if not chain:
+        return None
+    _method, first_call = chain[0]
+    func = first_call.func
+    if not isinstance(func, ast.Attribute):
+        return None
+    inner = func.value
+    if (
+        isinstance(inner, ast.Attribute)
+        and inner.attr == "objects"
+        and isinstance(inner.value, ast.Name)
+    ):
+        return inner.value.id
+    return None
+
+
+def _chain_source_method(chain: List[Tuple[str, ast.Call]]) -> Optional[str]:
+    """First method name in the chain (``all`` / ``filter`` / ...)."""
+    if not chain:
+        return None
+    return chain[0][0]
+
+
+class _QuerySetTracker(ast.NodeVisitor):
+    """Collects assignments of the form ``qs = <Model>.objects.<chain>``
+    within a single AST. Later loops that iterate ``qs`` are cross-checked
+    against the captured chain to see if it already has select/prefetch.
+
+    Only the most recent binding of each name is kept — a simple
+    approximation, but adequate for the common patterns this detector
+    targets (view functions where each qs variable is a fresh assignment).
+    """
+
+    def __init__(self) -> None:
+        # name -> (chain, model_root_name_or_None)
+        self.bindings: Dict[str, Tuple[List[Tuple[str, ast.Call]], Optional[str]]] = {}
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        chain = _collect_call_chain_methods(node.value)
+        if chain:
+            model_root = _chain_model_root(chain)
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self.bindings[target.id] = (chain, model_root)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if node.value is not None:
+            chain = _collect_call_chain_methods(node.value)
+            if chain and isinstance(node.target, ast.Name):
+                model_root = _chain_model_root(chain)
+                self.bindings[node.target.id] = (chain, model_root)
+        self.generic_visit(node)
+
+
+class NPlusOneScanner(ast.NodeVisitor):
+    """AST scanner that emits :class:`NPlusOneFinding` records for a file.
+
+    Usage::
+
+        scanner = NPlusOneScanner(file_path, project_root, models_schema)
+        scanner.visit(tree)
+        findings = scanner.findings
+
+    ``models_schema``, when provided, is a mapping ``{ModelName: {attr: kind}}``
+    where ``kind`` is one of ``"fk"``, ``"o2o"``, ``"m2m"``, ``"reverse"``,
+    ``"scalar"``. Used to promote medium -> high confidence and to filter out
+    scalar-attribute false positives.
+    """
+
+    def __init__(
+        self,
+        file_path: Path,
+        project_root: Path,
+        models_schema: Optional[Dict[str, Dict[str, str]]] = None,
+    ) -> None:
+        self.file_path = file_path
+        self.project_root = project_root
+        self.models_schema = models_schema or {}
+        self.findings: List[NPlusOneFinding] = []
+        # QuerySet name bindings from the module scope. We refresh this at
+        # every function/class boundary for a mild scope-awareness.
+        self._tracker = _QuerySetTracker()
+
+    # -- entry points ------------------------------------------------------
+
+    def visit_Module(self, node: ast.Module) -> None:
+        self._tracker.visit(node)
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        # Track bindings that appear inside this function BEFORE we start
+        # walking loops — otherwise a loop that precedes its ``qs = ...``
+        # binding textually would miss the chain (rare, but the analysis
+        # is cheap enough to do twice).
+        local_tracker = _QuerySetTracker()
+        local_tracker.bindings = dict(self._tracker.bindings)
+        local_tracker.visit(node)
+        prev = self._tracker
+        self._tracker = local_tracker
+        try:
+            self.generic_visit(node)
+        finally:
+            self._tracker = prev
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self.visit_FunctionDef(node)  # type: ignore[arg-type]
+
+    def visit_For(self, node: ast.For) -> None:
+        self._process_loop(node)
+        self.generic_visit(node)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self._process_loop(node)
+        self.generic_visit(node)
+
+    # -- core --------------------------------------------------------------
+
+    def _process_loop(self, loop: ast.AST) -> None:
+        target = getattr(loop, "target", None)
+        iter_node = getattr(loop, "iter", None)
+        body = getattr(loop, "body", [])
+        if not isinstance(target, ast.Name) or iter_node is None:
+            return
+        loop_var = target.id
+
+        # 1. Resolve the queryset source: either a bare Name (look up in
+        #    tracker) or an inline chain (``for x in Foo.objects.all():``).
+        chain: List[Tuple[str, ast.Call]] = []
+        qs_var = "<inline>"
+        model_root: Optional[str] = None
+        if isinstance(iter_node, ast.Name):
+            binding = self._tracker.bindings.get(iter_node.id)
+            if binding is None:
+                return
+            chain, model_root = binding
+            qs_var = iter_node.id
+        elif isinstance(iter_node, ast.Call):
+            chain = _collect_call_chain_methods(iter_node)
+            model_root = _chain_model_root(chain)
+        else:
+            return
+
+        source_method = _chain_source_method(chain)
+        # Only flag chains that actually root at ``<Model>.objects.<method>``
+        # OR that begin with a queryset-producing method. Anything else
+        # (dicts, lists, ranges) isn't in scope.
+        if source_method is None:
+            return
+        if model_root is None and source_method not in _QS_SOURCE_METHODS:
+            return
+
+        select_set, prefetch_set = _chain_prefetch_args(chain)
+
+        # 2. Collect attribute-chain accesses against ``loop_var`` in body.
+        accesses = _collect_target_accesses(body, loop_var)
+        if not accesses:
+            return
+
+        # 3. Classify each access: is it a relation? Is it already covered?
+        uncovered_fk: List[str] = []
+        uncovered_m2m: List[str] = []
+        confidence = "medium"
+        for attr, kind_hint in accesses:
+            kind = self._classify(model_root, attr, kind_hint)
+            if kind == "scalar":
+                continue
+            if kind in ("fk", "o2o"):
+                if "*" in select_set or attr in select_set:
+                    continue
+                uncovered_fk.append(attr)
+                if model_root is not None:
+                    confidence = "high"
+            elif kind in ("m2m", "reverse"):
+                if "*" in prefetch_set or attr in prefetch_set:
+                    continue
+                uncovered_m2m.append(attr)
+                if model_root is not None or kind_hint == "reverse":
+                    confidence = "high"
+            else:
+                # unknown — treat as medium-confidence FK guess when the
+                # access was ``target.attr.something`` (chain of length>=2)
+                # or the ``.all()`` reverse-manager idiom.
+                if kind_hint == "reverse":
+                    if "*" not in prefetch_set and attr not in prefetch_set:
+                        uncovered_m2m.append(attr)
+                        confidence = "high"
+                elif kind_hint == "chain":
+                    if "*" not in select_set and attr not in select_set:
+                        uncovered_fk.append(attr)
+
+        if not uncovered_fk and not uncovered_m2m:
+            return
+
+        fix_parts: List[str] = []
+        if uncovered_fk:
+            fix_parts.append(
+                ".select_related("
+                + ", ".join(f'"{a}"' for a in _dedup_preserve(uncovered_fk))
+                + ")"
+            )
+        if uncovered_m2m:
+            fix_parts.append(
+                ".prefetch_related("
+                + ", ".join(f'"{a}"' for a in _dedup_preserve(uncovered_m2m))
+                + ")"
+            )
+        suggested_fix = "".join(fix_parts)
+
+        self.findings.append(
+            NPlusOneFinding(
+                file=_rel_posix(self.project_root, self.file_path),
+                line=loop.lineno,
+                loop_var=loop_var,
+                queryset_var=qs_var,
+                accessed=_dedup_preserve(uncovered_fk + uncovered_m2m),
+                suggested_fix=suggested_fix,
+                confidence=confidence,
+            )
+        )
+
+    def _classify(
+        self,
+        model_root: Optional[str],
+        attr: str,
+        kind_hint: Optional[str],
+    ) -> Optional[str]:
+        """Return ``"fk" | "o2o" | "m2m" | "reverse" | "scalar" | None``.
+
+        Uses the parsed schema when the source model is known; falls back
+        to ``kind_hint`` (from the access pattern) otherwise.
+        """
+        if model_root and model_root in self.models_schema:
+            attrs = self.models_schema[model_root]
+            if attr in attrs:
+                return attrs[attr]
+            # Attribute isn't declared on the model. Might still be a
+            # reverse manager (``comment_set``, or an explicit
+            # ``related_name`` we should have populated already). Fall
+            # back to hint.
+            if _REVERSE_MANAGER_SUFFIX.search(attr):
+                return "reverse"
+            # Unknown attribute on a known model — likely scalar (or a
+            # property). Bail to avoid false positives.
+            return "scalar"
+        # No schema — hint drives the classification.
+        return kind_hint
+
+
+def _dedup_preserve(seq: Sequence[str]) -> List[str]:
+    seen: Set[str] = set()
+    out: List[str] = []
+    for s in seq:
+        if s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
+
+
+def _collect_target_accesses(
+    body: Sequence[ast.stmt],
+    loop_var: str,
+) -> List[Tuple[str, Optional[str]]]:
+    """Walk ``body`` and find every attribute-chain access rooted at the
+    loop target ``loop_var``. Returns a list of ``(root_attr, kind_hint)``.
+
+    * ``target.author.name`` -> ``("author", "chain")`` — chain of length >= 2
+      strongly suggests FK traversal.
+    * ``target.tags.all()`` -> ``("tags", "m2m")`` — reverse-manager idiom.
+    * ``target.comment_set`` (or ``.all()``) -> ``("comment_set", "reverse")``.
+    * ``target.author`` (single-attr access, no follow-up) -> ``("author", None)``.
+
+    Nested for-loops are NOT descended into — a nested ``for tag in
+    post.tags.all():`` is handled by a separate call from :meth:`visit_For`.
+    """
+    hits: List[Tuple[str, Optional[str]]] = []
+    for stmt in body:
+        _walk_for_accesses(stmt, loop_var, hits)
+    return hits
+
+
+def _walk_for_accesses(
+    node: ast.AST,
+    loop_var: str,
+    hits: List[Tuple[str, Optional[str]]],
+) -> None:
+    # Don't recurse into nested for-loops — the outer walker handles them
+    # as their own top-level loop. Nested functions and class defs are
+    # also skipped to avoid crossing scopes.
+    if isinstance(node, (ast.For, ast.AsyncFor, ast.FunctionDef,
+                          ast.AsyncFunctionDef, ast.ClassDef)):
+        # Still inspect the iter of a nested for — a nested
+        # ``for tag in post.tags.all():`` counts as accessing ``tags``
+        # on the outer loop_var.
+        if isinstance(node, (ast.For, ast.AsyncFor)):
+            _walk_for_accesses(node.iter, loop_var, hits)
+        return
+
+    if isinstance(node, ast.Call):
+        # Method call: check if it's target.<attr>.<method>(...)
+        method_name = _call_method_name(node)
+        if method_name is not None and isinstance(node.func, ast.Attribute):
+            chain = _attr_chain(node.func.value)
+            if chain and chain[0] == loop_var and len(chain) >= 2:
+                first_attr = chain[1]
+                if method_name == "all" and _REVERSE_MANAGER_SUFFIX.search(first_attr):
+                    hits.append((first_attr, "reverse"))
+                elif method_name == "all":
+                    hits.append((first_attr, "m2m"))
+                elif method_name in ("filter", "exclude", "count", "exists"):
+                    # target.related.filter(...) — related-manager idiom
+                    if _REVERSE_MANAGER_SUFFIX.search(first_attr):
+                        hits.append((first_attr, "reverse"))
+                    else:
+                        hits.append((first_attr, "m2m"))
+        for child in ast.iter_child_nodes(node):
+            _walk_for_accesses(child, loop_var, hits)
+        return
+
+    if isinstance(node, ast.Attribute):
+        chain = _attr_chain(node)
+        if chain and chain[0] == loop_var and len(chain) >= 2:
+            first_attr = chain[1]
+            if _REVERSE_MANAGER_SUFFIX.search(first_attr):
+                hits.append((first_attr, "reverse"))
+            elif len(chain) >= 3:
+                # target.author.name — chain of length >=3 → FK traversal
+                hits.append((first_attr, "chain"))
+            else:
+                # target.author — single attr, no follow-up. Ambiguous.
+                hits.append((first_attr, None))
+            # Don't descend further — we've captured the outermost chain.
+            return
+
+    for child in ast.iter_child_nodes(node):
+        _walk_for_accesses(child, loop_var, hits)
+
+
+def _build_schema_from_index(index: WorkspaceIndex) -> Dict[str, Dict[str, str]]:
+    """Flatten a ``WorkspaceIndex`` into ``{ModelName: {attr: kind}}``.
+
+    ``kind`` in ``{"fk", "o2o", "m2m", "reverse", "scalar"}``. Reverse
+    relations (``<related_name>`` or default ``<model_lower>_set``) are
+    computed by walking every FK/O2O/M2M in the workspace.
+    """
+    schema: Dict[str, Dict[str, str]] = {}
+    for app in index.apps:
+        for model in app.models:
+            attrs = schema.setdefault(model.name, {})
+            for f in model.fields:
+                if not f.is_relation:
+                    attrs[f.name] = "scalar"
+                    continue
+                kind = f.relation_kind
+                if kind == "ForeignKey":
+                    attrs[f.name] = "fk"
+                elif kind == "OneToOneField":
+                    attrs[f.name] = "o2o"
+                elif kind == "ManyToManyField":
+                    attrs[f.name] = "m2m"
+                else:  # pragma: no cover
+                    attrs[f.name] = "fk"
+    for app in index.apps:
+        for model in app.models:
+            for f in model.fields:
+                if not f.is_relation or not f.related_model:
+                    continue
+                target = f.related_model.split(".")[-1]
+                if target == "self":
+                    target = model.name
+                if target not in schema:
+                    continue
+                reverse_name = f.related_name or f"{model.name.lower()}_set"
+                schema[target].setdefault(reverse_name, "reverse")
+    return schema
+
+
+def scan_for_nplusone(
+    project_root: str,
+    models_schema: Optional[Any] = None,
+) -> List[NPlusOneFinding]:
+    """Public entry point — walks ``project_root`` and returns findings.
+
+    ``models_schema`` accepts either the flat ``{ModelName: {attr: kind}}``
+    dict this module uses internally, OR the ``WorkspaceIndex.to_dict()``
+    shape emitted by :func:`django_orm_lens.parser.scan_workspace`, OR a
+    :class:`~django_orm_lens.models.WorkspaceIndex` instance. When
+    ``None``, the scanner runs in schema-less heuristic mode.
+    """
+    root = Path(project_root).resolve()
+    if not root.is_dir():
+        return []
+
+    flat_schema: Optional[Dict[str, Dict[str, str]]] = None
+    if models_schema is not None:
+        flat_schema = _normalise_schema(models_schema)
+
+    findings: List[NPlusOneFinding] = []
+    for py in _iter_py_files_broad(root):
+        try:
+            source = py.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        # Cheap textual pre-filter — skip files with no ``for`` keyword.
+        if "for " not in source and "for\t" not in source:
+            continue
+        try:
+            tree = ast.parse(source, filename=str(py))
+        except SyntaxError:
+            continue
+        scanner = NPlusOneScanner(py, root, flat_schema)
+        try:
+            scanner.visit(tree)
+        except Exception:  # pragma: no cover
+            continue
+        findings.extend(scanner.findings)
+    return findings
+
+
+def _normalise_schema(schema: Any) -> Dict[str, Dict[str, str]]:
+    """Accept multiple schema shapes and return the flat internal shape."""
+    if isinstance(schema, WorkspaceIndex):
+        return _build_schema_from_index(schema)
+    if isinstance(schema, dict) and "apps" in schema and isinstance(schema["apps"], list):
+        return _build_schema_from_index_dict(schema)
+    if isinstance(schema, dict):
+        out: Dict[str, Dict[str, str]] = {}
+        for model, attrs in schema.items():
+            if isinstance(model, str) and isinstance(attrs, dict):
+                out[model] = {
+                    k: v for k, v in attrs.items()
+                    if isinstance(k, str) and isinstance(v, str)
+                }
+        return out
+    return {}
+
+
+def _build_schema_from_index_dict(payload: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+    """Same as :func:`_build_schema_from_index` but for a raw dict payload
+    (as emitted by ``WorkspaceIndex.to_dict()`` or ``scan --format json``).
+    """
+    schema: Dict[str, Dict[str, str]] = {}
+    all_models: List[Dict[str, Any]] = []
+    for app in payload.get("apps", []):
+        for model in app.get("models", []):
+            all_models.append(model)
+            attrs = schema.setdefault(model.get("name", ""), {})
+            for f in model.get("fields", []):
+                fname = f.get("name")
+                if not fname:
+                    continue
+                if not f.get("isRelation"):
+                    attrs[fname] = "scalar"
+                    continue
+                kind = f.get("relationKind")
+                if kind == "ForeignKey":
+                    attrs[fname] = "fk"
+                elif kind == "OneToOneField":
+                    attrs[fname] = "o2o"
+                elif kind == "ManyToManyField":
+                    attrs[fname] = "m2m"
+                else:
+                    attrs[fname] = "fk"
+    for model in all_models:
+        model_name = model.get("name", "")
+        for f in model.get("fields", []):
+            if not f.get("isRelation"):
+                continue
+            related = f.get("relatedModel")
+            if not related:
+                continue
+            target = related.split(".")[-1]
+            if target == "self":
+                target = model_name
+            if target not in schema:
+                continue
+            reverse_name = f.get("relatedName") or f"{model_name.lower()}_set"
+            schema[target].setdefault(reverse_name, "reverse")
+    return schema
