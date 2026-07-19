@@ -226,6 +226,22 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
     (2) resolve transitive inheritance via fixed-point so ``Profile(TimeStamped)``
     where ``TimeStamped(models.Model)`` sits in the same file is correctly
     identified as a model. Classes with ``Meta.abstract = True`` are dropped.
+
+    Resolution here is scoped to this single file's definitions. Use
+    ``scan_workspace`` when bases may live in another parsed module (a
+    shared abstract base imported from elsewhere in the project) — it
+    collects definitions across every file first and resolves the union
+    once, so a base defined outside this file is still found.
+    """
+    return _resolve_and_filter(_collect_defs(file_path, content))
+
+
+def _collect_defs(file_path: str, content: str) -> List[ParsedModel]:
+    """Pass 1 only: collect every class def (name, bases, fields, Meta).
+
+    No transitive resolution or abstract filtering — callers combine the
+    result with definitions from other files before calling
+    ``_resolve_and_filter``.
     """
     lines = content.splitlines()
     all_defs: List[ParsedModel] = []
@@ -327,7 +343,17 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
         all_defs.append(model)
         i = j
 
-    # 2-pass filter: transitive model resolution + abstract drop.
+    return all_defs
+
+
+def _resolve_and_filter(all_defs: List[ParsedModel]) -> List[ParsedModel]:
+    """Pass 2: transitive model resolution + abstract drop over ``all_defs``.
+
+    ``all_defs`` may come from a single file (``parse_models_file``) or the
+    union of every file in a scan (``scan_workspace``) — resolution matches
+    each base's tail name against whatever definitions are present, so a
+    base class defined in another file is found when the union is passed.
+    """
     is_model_name = {m.name for m in all_defs if _looks_like_model(m.base_classes)}
     changed = True
     while changed:
@@ -390,30 +416,38 @@ DEFAULT_EXCLUDES = (
 def scan_workspace(
     root: str, exclude_globs: Sequence[str] = DEFAULT_EXCLUDES
 ) -> WorkspaceIndex:
-    """Walk ``root``, parse every ``models.py`` (or ``models/*.py``), return an index."""
+    """Walk ``root``, parse every ``models.py`` (or ``models/*.py``), return an index.
+
+    Collects class definitions from every file first, then resolves
+    transitive model inheritance once over that union — so a model whose
+    base class is defined in a *different* scanned file (e.g. a shared
+    abstract base in ``common/models.py``) is still recognized, instead of
+    only bases found within the same file (see issue #20).
+    """
     root_path = Path(root).resolve()
-    apps: dict = {}
+    all_defs: List[ParsedModel] = []
     for py in _iter_python_files(root_path, exclude_globs):
         try:
             content = py.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
         try:
-            models = parse_models_file(str(py), content)
+            all_defs.extend(_collect_defs(str(py), content))
         except Exception as exc:
             print(
                 f"warning: skipping {py}: {type(exc).__name__}: {exc}",
                 file=sys.stderr,
             )
             continue
-        if not models:
-            continue
-        app_dir, app_name = _app_dir_for(str(py))
+
+    apps: dict = {}
+    for model in _resolve_and_filter(all_defs):
+        app_dir, app_name = _app_dir_for(model.file_path)
         app = apps.get(app_dir)
         if app is None:
             app = ParsedApp(name=app_name, path=app_dir)
             apps[app_dir] = app
-        app.models.extend(models)
+        app.models.append(model)
 
     sorted_apps = sorted(apps.values(), key=lambda a: a.name)
     return WorkspaceIndex(apps=sorted_apps, scanned_at=int(time.time() * 1000))
