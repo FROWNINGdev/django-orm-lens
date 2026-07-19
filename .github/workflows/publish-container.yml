@@ -46,9 +46,9 @@ jobs:
           fi
           echo "PKG_VERSION=${VER}" >> $GITHUB_OUTPUT
           if [ -n "$VER" ]; then
-            echo "TAGS=ghcr.io/${{ github.repository_owner }}/django-orm-lens:${VER},ghcr.io/${{ github.repository_owner }}/django-orm-lens:latest" >> $GITHUB_OUTPUT
+            echo "TAGS=ghcr.io/frowningdev/django-orm-lens:${VER},ghcr.io/frowningdev/django-orm-lens:latest" >> $GITHUB_OUTPUT
           else
-            echo "TAGS=ghcr.io/${{ github.repository_owner }}/django-orm-lens:latest" >> $GITHUB_OUTPUT
+            echo "TAGS=ghcr.io/frowningdev/django-orm-lens:latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
