@@ -1,3 +1,5 @@
+**English** · [Русский](docs/i18n/README.ru.md) · [Español](docs/i18n/README.es.md) · [中文](docs/i18n/README.zh.md)
+
 <div align="center">
 
 <img src="media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
