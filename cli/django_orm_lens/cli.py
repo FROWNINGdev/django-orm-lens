@@ -7,6 +7,7 @@ Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
   django-orm-lens er         — Mermaid ER diagram (stdout or file)
   django-orm-lens hover      — compact hover card for one model
   django-orm-lens list       — flat list ``app.Model`` for shell piping
+  django-orm-lens diff       — compare two schema JSON dumps
   django-orm-lens mcp        — start the MCP stdio server (extras required)
 """
 
@@ -20,6 +21,7 @@ from pathlib import Path
 from typing import List, Optional, Sequence
 
 from . import __version__
+from .diff import diff_schemas, format_diff
 from .formatters import format_hover, format_index, format_model
 from .models import ParsedModel, WorkspaceIndex
 from .parser import DEFAULT_EXCLUDES, _iter_python_files, scan_workspace
@@ -169,6 +171,39 @@ def _cmd_er(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_diff(args: argparse.Namespace) -> int:
+    """Compare two schema JSON dumps and print the delta.
+
+    Exit code: 0 when there is no diff (or ``--exit-zero`` was passed),
+    1 when the schemas differ. This mirrors ``git diff --exit-code`` /
+    ``diff -q`` conventions so it slots into CI without extra wiring.
+    """
+    try:
+        with open(args.old, "r", encoding="utf-8") as fh:
+            old_schema = json.load(fh)
+    except FileNotFoundError:
+        print(f"error: {args.old!r} not found", file=sys.stderr)
+        return 2
+    except json.JSONDecodeError as e:
+        print(f"error: {args.old!r} is not valid JSON: {e}", file=sys.stderr)
+        return 2
+    try:
+        with open(args.new, "r", encoding="utf-8") as fh:
+            new_schema = json.load(fh)
+    except FileNotFoundError:
+        print(f"error: {args.new!r} not found", file=sys.stderr)
+        return 2
+    except json.JSONDecodeError as e:
+        print(f"error: {args.new!r} is not valid JSON: {e}", file=sys.stderr)
+        return 2
+
+    result = diff_schemas(old_schema, new_schema)
+    print(format_diff(result, args.format))
+    if result.is_empty() or args.exit_zero:
+        return 0
+    return 1
+
+
 def _build_mermaid(index: WorkspaceIndex) -> str:
     lines: List[str] = ["erDiagram"]
     model_names = {m.name for app in index.apps for m in app.models}
@@ -273,6 +308,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     er.set_defaults(func=_cmd_er)
 
+    diff = sub.add_parser(
+        "diff",
+        help="Compare two schema JSON dumps (list/scan --format=json) and print the delta",
+    )
+    diff.add_argument("old", help="Path to the baseline JSON schema dump")
+    diff.add_argument("new", help="Path to the updated JSON schema dump")
+    diff.add_argument(
+        "--format", "-f", choices=("text", "json"), default="text"
+    )
+    diff.add_argument(
+        "--exit-zero",
+        action="store_true",
+        help="Always exit 0 even when the schemas differ (default exits 1 on any diff)",
+    )
+    diff.set_defaults(func=_cmd_diff)
+
     mcp = sub.add_parser(
         "mcp",
         help="Run the MCP stdio server (requires 'pip install django-orm-lens[mcp]')",
@@ -291,6 +342,7 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  describe <model>   Full field/relation/Meta detail for one model")
     print("  hover <model>      Compact hover-card markdown for a model")
     print("  er                 Emit Mermaid ER diagram (stdout or file)")
+    print("  diff <old> <new>   Compare two schema JSON dumps and print the delta")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
     print("run `django-orm-lens <command> --help` for options.")
