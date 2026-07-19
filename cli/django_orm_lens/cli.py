@@ -15,12 +15,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
+from pathlib import Path
 from typing import List, Optional, Sequence
 
 from . import __version__
 from .formatters import format_hover, format_index, format_model
 from .models import ParsedModel, WorkspaceIndex
-from .parser import DEFAULT_EXCLUDES, scan_workspace
+from .parser import DEFAULT_EXCLUDES, _iter_python_files, scan_workspace
 
 
 def _add_scan_flags(p: argparse.ArgumentParser) -> None:
@@ -36,6 +38,12 @@ def _add_scan_flags(p: argparse.ArgumentParser) -> None:
         action="append",
         default=None,
         help="Glob to exclude, repeatable (default: migrations/, venv/, node_modules/)",
+    )
+    p.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Print scan timing + file/app/model counts to stderr",
     )
 
 
@@ -54,7 +62,20 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
             file=sys.stderr,
         )
         raise SystemExit(2)
-    return scan_workspace(args.path, _resolve_excludes(args.exclude))
+    excludes = _resolve_excludes(args.exclude)
+    if not getattr(args, "verbose", False):
+        return scan_workspace(args.path, excludes)
+
+    start = time.perf_counter()
+    index = scan_workspace(args.path, excludes)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    file_count = sum(1 for _ in _iter_python_files(Path(args.path).resolve(), excludes))
+    print(
+        f"scanned {file_count} files in {elapsed_ms:.0f}ms, "
+        f"found {len(index.apps)} apps / {index.total_models()} models",
+        file=sys.stderr,
+    )
+    return index
 
 
 def _find_model(index: WorkspaceIndex, ref: str) -> Optional[ParsedModel]:
