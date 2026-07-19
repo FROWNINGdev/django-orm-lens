@@ -38,6 +38,22 @@ if (typeof document !== 'undefined' && !document.getElementById('dol-inline-styl
 
 const NODE_TYPES: NodeTypes = { model: ModelNode };
 
+// Deterministic HSL color per app name — used to tint minimap nodes so users
+// can eyeball which cluster belongs to which app at a glance.
+function hashString(input: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function colorForApp(app: string): string {
+  const hue = hashString(app) % 360;
+  return `hsl(${hue}, 55%, 55%)`;
+}
+
 interface EdgeStyleSpec {
   color: string;
   dashed?: boolean;
@@ -360,15 +376,26 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
             proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="rgba(148,163,184,0.15)" />
-            <Controls showInteractive={false} />
+            <Controls
+              showInteractive={false}
+              showZoom
+              showFitView
+            />
             <MiniMap
               pannable
               zoomable
-              style={{ width: 150, height: 100 }}
+              position="bottom-right"
+              style={{ width: 160, height: 110 }}
               nodeColor={(n) => {
                 const d = n.data as ModelNodeData | undefined;
-                return d?.highlighted ? 'var(--dol-accent)' : 'var(--dol-node-border)';
+                if (d?.highlighted) return 'var(--dol-accent)';
+                return d?.app ? colorForApp(d.app) : 'var(--dol-node-border)';
               }}
+              nodeStrokeColor={(n) => {
+                const d = n.data as ModelNodeData | undefined;
+                return d?.app ? colorForApp(d.app) : 'var(--dol-node-border)';
+              }}
+              nodeStrokeWidth={2}
               maskColor="rgba(15, 23, 42, 0.55)"
             />
             <div className="dol-legend">
