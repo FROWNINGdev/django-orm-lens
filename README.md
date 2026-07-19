@@ -149,48 +149,6 @@ Multi-arch (amd64 + arm64). No Python required on the host. Good for CI and one-
 
 <br/>
 
-## 📷 Screenshots
-
-Three surfaces, one parser. Here is what each looks like in practice.
-
-### VS Code extension
-
-<!-- TODO capture: VS Code window showing the Django ORM Lens activity-bar icon selected, sidebar panel expanded with the tree "apps > models > fields", one Zulip-style app fully expanded (e.g. `zerver`) and one model expanded so field icons for CharField / ForeignKey / ManyToManyField are visible. Editor pane on the right showing the corresponding models.py file. Window size ~1600x1000, dark theme, no personal file paths in the title bar. Save as media/screenshots/vscode-sidebar.png -->
-![Sidebar tree view of apps, models, and fields](media/screenshots/vscode-sidebar.png)
-
-*Sidebar tree view: every app, every model, every field — grouped by app, sorted alphabetically, with field-type icons. Click any field to jump to the exact line in `models.py`.*
-
-<!-- TODO capture: VS Code with the Mermaid ER diagram webview open beside a models.py file. The diagram should show ~8-15 entities with cardinality arrows (||--o{, }o--o{) and at least one edge label visible (e.g. `CASCADE`, `related_name`, `through Membership`). Use the `default` or `forest` named theme. Window size ~1600x1000. Save as media/screenshots/vscode-er-diagram.png -->
-![Live ER diagram rendered in a VS Code webview](media/screenshots/vscode-er-diagram.png)
-
-*Live ER diagram: one command renders the whole schema as a Mermaid `erDiagram`, with `ForeignKey`, `OneToOneField`, and `ManyToManyField` as proper cardinality arrows. Edge labels show `CASCADE` / `SET_NULL` / `related_name` / `through Model`. Redraws as you edit. Exports to SVG.*
-
-<!-- TODO capture: VS Code editor showing a Django `models.py` file with the cursor hovering over a `ForeignKey('otherapp.SomeModel')` string, so the hover card popup is visible. The card should show the target model's fields, relation summary, and the "Jump to definition" link. Ideally also include the CodeLens line ("N fields · N relations · Open ER diagram") above the `class` line. Window size ~1400x900. Save as media/screenshots/vscode-hover-card.png -->
-![Hover card over a ForeignKey with jump-to-definition link](media/screenshots/vscode-hover-card.png)
-
-*Hover cards + CodeLens: hover over any `ForeignKey('app.Model')` for the target model's fields, relations, and a one-click jump link. CodeLens above every `class Model` shows field / relation counts and an "Open ER diagram" action.*
-
-### CLI
-
-<!-- TODO capture: terminal window running `django-orm-lens list` inside a real Django project (Zulip, Saleor, or Sentry work well). Show at least 15 lines of `app.Model` output so the reader sees the shape. Use a clean prompt (no personal username in the prompt if possible), monospace font, dark background, terminal width ~120 chars. Save as media/screenshots/cli-list.png -->
-![Terminal running django-orm-lens list](media/screenshots/cli-list.png)
-
-*`django-orm-lens list`: flat `app.Model` output — pipe it into `fzf`, `grep`, or any other Unix tool. Every command also accepts `--path <dir>` and `--exclude <glob>`.*
-
-<!-- TODO capture: terminal window running `django-orm-lens signal_graph` (or `django-orm-lens er` if signal_graph is not a real subcommand — verify against `cli/` before capturing) inside a Django project, showing the resulting Mermaid / textual graph output. Include the command line at the top so the reader sees what was typed. Terminal width ~120 chars, dark background. Save as media/screenshots/cli-signal-graph.png -->
-![Terminal running django-orm-lens signal_graph](media/screenshots/cli-signal-graph.png)
-
-*`django-orm-lens signal_graph`: emit the relationship graph as Mermaid to stdout — pipe to a file, commit alongside your code, or paste into any Markdown renderer. Zero-dep, works in CI.*
-
-### MCP server
-
-<!-- TODO capture: a Cursor (or Claude Desktop) chat panel showing a real conversation where the agent calls the django-orm-lens MCP tools. Ideal shot: user asks something like "Which app owns the Order model, and how is it connected to User?", the agent's response shows one or more tool calls to `describe_model` / `find_relations` / `list_models` (with the tool-call UI expanded so tool names are visible), followed by the agent's natural-language answer. Window size ~1200x900. Save as media/screenshots/mcp-cursor-conversation.png -->
-![Cursor chat using django-orm-lens MCP tools](media/screenshots/mcp-cursor-conversation.png)
-
-*MCP server in Cursor: the agent calls `list_models`, `describe_model`, and `find_relations` as read-only tools — no database credentials, no `runserver`, no guessing from source. Works in any MCP-compatible client (Cursor, Aider, Continue.dev, Zed, Claude Desktop, …).*
-
-<br/>
-
 ## 🎯 The problem
 
 > **Works offline. Works on a broken venv. Works on someone else's laptop. Works in CI.**
