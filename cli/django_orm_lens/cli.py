@@ -204,6 +204,66 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     return 1
 
 
+def _cmd_nplusone(args: argparse.Namespace) -> int:
+    """Static N+1 detector — flag FK/M2M access inside loops without select/prefetch."""
+    idx = _load_index(args)
+    schema = _build_schema_from_index(idx)
+    findings = scan_for_nplusone(args.path, schema)
+    if args.confidence == "high":
+        findings = [f for f in findings if f.confidence == "high"]
+    elif args.confidence == "medium":
+        findings = [f for f in findings if f.confidence in ("high", "medium")]
+    if args.format == "json":
+        print(json.dumps([f.to_dict() for f in findings], indent=2, ensure_ascii=False))
+    else:
+        if not findings:
+            print("No N+1 anti-patterns detected.")
+        for f in findings:
+            print(f"{f.file}:{f.line}  [{f.confidence}]  loop={f.loop_var} qs={f.queryset_var}")
+            print(f"  accessed: {', '.join(f.accessed)}")
+            print(f"  fix:      {f.suggested_fix}")
+    if not findings or args.exit_zero:
+        return 0
+    return 1
+
+
+_SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
+
+
+def _cmd_migration_risk(args: argparse.Namespace) -> int:
+    """Analyze <app>/migrations/*.py for operations dangerous in production."""
+    findings = analyze_migration_risks(args.path)
+    threshold = _SEVERITY_ORDER.get(args.severity, 99)
+    if args.severity != "all":
+        findings = [
+            f for f in findings
+            if _SEVERITY_ORDER.get(f.severity, 99) <= threshold
+        ]
+    if args.format == "json":
+        print(json.dumps(
+            {"findings": [f.to_dict() for f in findings]},
+            indent=2,
+            ensure_ascii=False,
+        ))
+    else:
+        if not findings:
+            print("No risky migration operations found.")
+        for f in findings:
+            print(
+                f"{f.filePath}:{f.lineNumber}  [{f.severity}/{f.confidence}]  "
+                f"{f.operation} {f.app}.{f.model}"
+                + (f".{f.field}" if f.field else "")
+            )
+            print(f"  rule:      {f.rule}")
+            print(f"  risk:      {f.description}")
+            print(f"  mitigate:  {f.mitigation}")
+    # Exit 1 only when critical findings remain (matches severity=critical default)
+    has_critical = any(f.severity == "critical" for f in findings)
+    if not has_critical or args.exit_zero:
+        return 0
+    return 1
+
+
 def _build_mermaid(index: WorkspaceIndex) -> str:
     lines: List[str] = ["erDiagram"]
     model_names = {m.name for app in index.apps for m in app.models}
@@ -324,6 +384,49 @@ def build_parser() -> argparse.ArgumentParser:
     )
     diff.set_defaults(func=_cmd_diff)
 
+    npo = sub.add_parser(
+        "nplusone",
+        aliases=["n-plus-one"],
+        help="Detect N+1 anti-patterns in views/tasks (FK/M2M access without select/prefetch)",
+    )
+    _add_scan_flags(npo)
+    npo.add_argument(
+        "--format", "-f", choices=("text", "json"), default="text",
+    )
+    npo.add_argument(
+        "--confidence",
+        choices=("high", "medium", "all"),
+        default="all",
+        help="Filter findings by minimum confidence (default: all)",
+    )
+    npo.add_argument(
+        "--exit-zero",
+        action="store_true",
+        help="Always exit 0 even when findings are present",
+    )
+    npo.set_defaults(func=_cmd_nplusone)
+
+    mrisk = sub.add_parser(
+        "migration-risk",
+        help="Flag risky migration operations (NOT NULL without default, missing CONCURRENTLY, etc.)",
+    )
+    _add_scan_flags(mrisk)
+    mrisk.add_argument(
+        "--format", "-f", choices=("text", "json"), default="text",
+    )
+    mrisk.add_argument(
+        "--severity",
+        choices=("critical", "warning", "info", "all"),
+        default="critical",
+        help="Minimum severity to report (default: critical)",
+    )
+    mrisk.add_argument(
+        "--exit-zero",
+        action="store_true",
+        help="Always exit 0 even when critical findings are present",
+    )
+    mrisk.set_defaults(func=_cmd_migration_risk)
+
     mcp = sub.add_parser(
         "mcp",
         help="Run the MCP stdio server (requires 'pip install django-orm-lens[mcp]')",
@@ -343,6 +446,8 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  hover <model>      Compact hover-card markdown for a model")
     print("  er                 Emit Mermaid ER diagram (stdout or file)")
     print("  diff <old> <new>   Compare two schema JSON dumps and print the delta")
+    print("  nplusone           Detect N+1 anti-patterns in views/tasks")
+    print("  migration-risk     Flag risky migration operations")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
     print("run `django-orm-lens <command> --help` for options.")
