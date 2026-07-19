@@ -78,10 +78,11 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <!-- Cross-platform reach snapshot -->
 
-[![VS Code downloads](https://img.shields.io/badge/VS_Code_downloads-113-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![VS Code downloads](https://img.shields.io/badge/VS_Code_downloads-216-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![GitHub views](https://img.shields.io/badge/GitHub_views_14d-381-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
-[![LinkedIn posts](https://img.shields.io/badge/LinkedIn_posts_live-6-0a66c2?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1e293b)](https://linkedin.com/company/django-orm-lens)
-[![Awesome-list PRs](https://img.shields.io/badge/awesome--list_PRs-3_pending-16a34a?style=for-the-badge&logo=awesomelists&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev)
+[![LinkedIn posts](https://img.shields.io/badge/LinkedIn_posts_live-7-0a66c2?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1e293b)](https://linkedin.com/company/django-orm-lens)
+[![Awesome-list PRs](https://img.shields.io/badge/awesome--list_PRs-4_pending-16a34a?style=for-the-badge&logo=awesomelists&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev)
+[![Community PRs merged](https://img.shields.io/badge/community_PRs_merged-5-8b5cf6?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/pulls?q=is%3Apr+is%3Amerged+-author%3AFROWNINGdev)
 
 <br/>
 
