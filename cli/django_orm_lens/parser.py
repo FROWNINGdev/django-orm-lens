@@ -398,6 +398,11 @@ def _collect_defs(file_path: str, content: str) -> List[ParsedModel]:
     result with definitions from other files before calling
     ``_resolve_and_filter``.
     """
+    # Strip leading BOM (U+FEFF) — Windows editors (Notepad, VS Code with
+    # certain settings) save UTF-8 files with a byte-order mark. Without this
+    # the first line becomes "﻿class Foo..." and CLASS_RE fails to match.
+    if content.startswith("﻿"):
+        content = content[1:]
     # Expand tab characters to 4 spaces so the ``\s{indent}`` prefix used in
     # FIELD_RE / BARE_FIELD_RE / META_ITEM_RE matches tab-indented code too.
     # A single ``\t`` character otherwise contributes 1 to ``\s`` even though
