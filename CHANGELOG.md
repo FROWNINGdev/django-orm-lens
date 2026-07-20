@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] + [py-1.2.3] - 2026-07-20
+
+Bugfix release for [#25](https://github.com/FROWNINGdev/django-orm-lens/issues/25) — thanks to [@jsabater](https://github.com/jsabater) for the reproducible report against a Django Ninja 1.6 codebase.
+
+### Fixed
+
+- **Fields with PEP-526 type annotations (typed Django / Django Ninja style) no longer disappear from the parser output.** When code uses the modern typed pattern:
+
+  ```python
+  jti: CharField[str] = models.CharField(max_length=32, unique=True)
+  ```
+
+  the field regex expected `name = models.X(` and had no allowance for a `: <type>` group between the name and the `=`. Result: fields silently vanished from the sidebar tree, the ER diagram entity, and every downstream tool (n+1 detector, MCP `describe_model`, `find_relations`). Adding fields one-by-one made the whole model progressively empty — the exact reproduction jsabater observed.
+
+  Fixed in both parsers (`parser.py::_build_body_regexes`, `src/parser.ts::buildBodyRegexes`) by adding an optional `(?:\s*:[^=]+)?` group after the field name and before `=`. `[^=]+` is safe because `=` never appears inside a Python type expression (subscripts, unions, dotted refs, and generics all use other punctuation). Applied consistently to `FIELD_RE`, `BARE_FIELD_RE`, and `META_ITEM_RE`.
+
+### Added
+
+- **`test_pep526_type_hints.py`** — 6 Python regression tests covering the exact snippet from the bug report, the bare-import form (`IntegerField` without `models.` prefix), simple non-generic annotations (`label: str = ...`), untyped backward-compat, and a Meta block with an annotated attribute (`ordering: list[str] = ["title"]`).
+- **`test/pep526.test.js`** — matching TS regression so the VS Code extension stays behaviour-compatible with the CLI.
+
 ## [py-1.2.2] - 2026-07-20
 
 CLI welcome UX — bidirectional discoverability between PyPI and the editor extensions. Data motivation: PyPI is doing ~1,663 installs/week while the VS Code Marketplace sits at ~10 installs total. Users who install the CLI don't know the extension exists (and vice-versa in the extension welcome view). This closes the gap.

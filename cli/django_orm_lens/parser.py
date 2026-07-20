@@ -121,16 +121,21 @@ def _build_body_regexes(indent: int):
         return cached
     w = r"\s{" + str(indent) + r"}"
     w2 = r"\s{" + str(indent * 2) + r"}"
+    # ``(?:\s*:[^=]+)?`` — optional PEP-526 type annotation between the field
+    # name and ``=``, e.g. ``jti: CharField[str] = models.CharField(...)``.
+    # ``[^=]+`` is safe because ``=`` never appears inside a type expression
+    # (subscripts, unions, dotted refs, and generics all use other punctuation).
+    ann = r"(?:\s*:[^=]+)?"
     result = {
         "FIELD_RE": re.compile(
-            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\("
+            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\("
         ),
         "BARE_FIELD_RE": re.compile(
-            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*({BARE_FIELD_TYPES})\s*\("
+            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*({BARE_FIELD_TYPES})\s*\("
         ),
         "META_START_RE": re.compile(rf"^{w}class\s+Meta\s*(?:\([^)]*\))?\s*:"),
         "META_ITEM_RE": re.compile(
-            rf"^{w2}([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+?)\s*(#.*)?$"
+            rf"^{w2}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*(.+?)\s*(#.*)?$"
         ),
         "META_BODY_RE": re.compile(r"^\s{" + str(indent * 2) + r",}"),
     }

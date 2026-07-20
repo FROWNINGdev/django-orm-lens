@@ -111,16 +111,21 @@ const BARE_FIELD_TYPES = [
 function buildBodyRegexes(indent: number) {
   const w = `\\s{${indent}}`;
   const w2 = `\\s{${indent * 2}}`;
+  // `(?:\\s*:[^=]+)?` — optional PEP-526 type annotation between the field
+  // name and `=`, e.g. `jti: CharField[str] = models.CharField(...)`.
+  // `[^=]+` is safe because `=` never appears inside a type expression
+  // (subscripts, unions, dotted refs, and generics all use other punctuation).
+  const ann = `(?:\\s*:[^=]+)?`;
   return {
     FIELD_RE: new RegExp(
-      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*models\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(`
+      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*models\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(`
     ),
     BARE_FIELD_RE: new RegExp(
-      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*(${BARE_FIELD_TYPES})\\s*\\(`
+      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*(${BARE_FIELD_TYPES})\\s*\\(`
     ),
     META_START_RE: new RegExp(`^${w}class\\s+Meta\\s*(?:\\([^)]*\\))?\\s*:`),
     META_ITEM_RE: new RegExp(
-      `^${w2}([a-zA-Z_][a-zA-Z0-9_]*)\\s*=\\s*(.+?)\\s*(#.*)?$`
+      `^${w2}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*(.+?)\\s*(#.*)?$`
     ),
     META_BODY_RE: new RegExp(`^\\s{${indent * 2},}`),
   };
