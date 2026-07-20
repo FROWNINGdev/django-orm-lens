@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] + [py-1.2.4] - 2026-07-21
+
+Follow-up to the modern-Python audit that produced 0.7.3 — another shape of typed code that used to silently vanish, surfaced by a targeted fuzz of the class-header regex.
+
+### Fixed
+
+- **PEP-695 generic class headers (Python 3.12+) now parse.** The class-header regex was:
+
+  ```
+  ^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:
+  ```
+
+  which had no allowance for a `[T]` group between the class name and the opening `(`. Any model declared as `class Container[T](models.Model):` failed to match — the parser walked past the whole class, no models reported, empty sidebar / ER diagram / n+1 output. Applies to all four common PEP-695 shapes: single-param `[T]`, multi-param `[K, V]`, bounded `[T: str]`, and variadic + paramspec `[*Ts, **P]`.
+
+  Fixed by inserting an optional `(?:\s*\[[^\]]*\])?` group in both `CLASS_RE` and `CLASS_START_RE`, in both parsers (Python + TypeScript). Non-generic classes match identically as before.
+
+### Added
+
+- **`test_pep695_generic_classes.py`** — 5 Python regression tests covering the four PEP-695 shapes plus a backward-compat guard for plain class headers.
+
 ## [0.7.3] + [py-1.2.3] - 2026-07-20
 
 Bugfix release for [#25](https://github.com/FROWNINGdev/django-orm-lens/issues/25) — thanks to [@jsabater](https://github.com/jsabater) for the reproducible report against a Django Ninja 1.6 codebase.

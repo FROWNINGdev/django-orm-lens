@@ -37,8 +37,17 @@ from .models import (
 
 RELATION_TYPES: Tuple[str, ...] = ("ForeignKey", "ManyToManyField", "OneToOneField")
 
-CLASS_RE = re.compile(r"^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:")
-CLASS_START_RE = re.compile(r"^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+# ``(?:\s*\[[^\]]*\])?`` — optional PEP-695 generic type parameter list
+# introduced in Python 3.12, e.g. ``class Container[T](models.Model):``.
+# Only handles a single-line, non-nested bracket group — nested brackets in
+# class-header generics are vanishingly rare and don't warrant a full
+# bracket matcher.
+CLASS_RE = re.compile(
+    r"^class\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]*\])?\s*\(([^)]*)\)\s*:"
+)
+CLASS_START_RE = re.compile(
+    r"^class\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]*\])?\s*\("
+)
 
 NON_MODEL_TAIL = re.compile(
     r"^(ModelAdmin|ModelForm|ModelSerializer|ModelChoiceField|"

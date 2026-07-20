@@ -58,8 +58,13 @@ export function resolveRelatedTail(
   return tail;
 }
 
-const CLASS_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:/;
-const CLASS_START_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/;
+// `(?:\s*\[[^\]]*\])?` — optional PEP-695 generic type parameter list
+// introduced in Python 3.12, e.g. `class Container[T](models.Model):`.
+// Only handles a single-line, non-nested bracket group.
+const CLASS_RE =
+  /^class\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]*\])?\s*\(([^)]*)\)\s*:/;
+const CLASS_START_RE =
+  /^class\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]*\])?\s*\(/;
 
 function readMultilineClass(
   lines: string[],
