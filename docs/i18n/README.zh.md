@@ -136,7 +136,7 @@ code --install-extension frowningdev.django-orm-lens
 
 ```bash
 pip install django-orm-lens              # 仅 CLI
-pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP server
+pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP 服务器
 ```
 
 需要 Python 3.9+。CLI 运行时零依赖。
@@ -233,7 +233,7 @@ pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP server
 
 ## 🤖 面向终端与 AI agent
 
-驱动 VS Code 扩展的解析器同时作为独立的 Python 包发布 —— 并可选配 **MCP（Model Context Protocol）服务器**，让任意兼容 MCP 的 AI agent在无需导入 Django、也无需启动你的应用的情况下浏览 Django 数据结构。
+驱动 VS Code 扩展的解析器同时作为独立的 Python 包发布 —— 并可选配 **MCP（Model Context Protocol）服务器**，让任意兼容 MCP 的 AI agent 在无需导入 Django、也无需启动你的应用的情况下浏览 Django 数据结构。
 
 ### CLI
 
@@ -318,7 +318,7 @@ cd my-django-project
 django-orm-lens scan -f table
 ```
 
-**作为 AI agent工具：**
+**作为 AI agent 工具：**
 
 ```bash
 pip install "django-orm-lens[mcp]"
@@ -343,15 +343,15 @@ pip install "django-orm-lens[mcp]"
 
 ## 🗺️ 市场定位
 
-Django ORM Lens 处在 **编辑器工具** 与 **AI agent工具** 的交叉地带 —— 一个此前没有现成方案覆盖的位置：
+Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地带 —— 一个此前没有现成方案覆盖的位置：
 
 | 细分 | 现有方案 | 代价 |
 |---|---|---|
 | 启动后生成图 | `django-extensions graph_models` | 需要 Graphviz + Django settings + 可用的 DB URL |
 | Web 查看器 | `django-schema-graph` | 需要运行中的 Django 服务器；又多一个可能出故障的东西 |
 | 管理面板 | Django Admin | 需要 runserver + 认证 + 数据库 —— 适合看数据，不适合看架构 |
-| 编辑器插件 | PyCharm 的 Django Structure | 锁定 PyCharm；没有 CLI，没有 AI agent入口 |
-| MCP 服务器 | （此前没有） | AI agent只能从源码里靠猜来理解你的数据结构，不完美 |
+| 编辑器插件 | PyCharm 的 Django Structure | 锁定 PyCharm；没有 CLI，没有 AI agent 入口 |
+| MCP 服务器 | （此前没有） | AI agent 只能从源码里靠猜来理解你的数据结构，不完美 |
 
 **Django ORM Lens 是唯一一个基于同一个解析器同时提供三种形态的工具：** 一个 VS Code 扩展（任意 Code 派生版）、一个零依赖 CLI（终端 + CI），以及一个 MCP 服务器（AI agent）。全部静态。全部免费。全部 MIT。
 
@@ -370,7 +370,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent工具** 的交叉地�
 | 模型类上的 CodeLens | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 拆分的 `models/` 包支持 | ✅ | ⚠️ | ⚠️ | ✅ | ✅ |
 | 面向终端 / CI 的 CLI | ✅ | ⚠️ | ❌ | ❌ | ❌ |
-| 面向 AI agent的 MCP 服务器 | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 面向 AI agent 的 MCP 服务器 | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 可在 [MCP Registry](https://registry.modelcontextprotocol.io/) 中发现 | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 免费开源（MIT） | ✅ | ✅ | ✅ | ✅ | ❌（付费 IDE） |
 | Django 版本支持 | **4.0 – 5.2** | latest | 3.2 – 4.1（自 2023 起停更） | latest | latest |
@@ -428,7 +428,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent工具** 的交叉地�
 - [x] 按名称过滤树形视图
 - [x] 拆分的 `models/` 包支持
 - [x] 将 ER 图导出为 SVG
-- [x] 面向终端与 AI agent的 Python CLI + MCP 服务器
+- [x] 面向终端与 AI agent 的 Python CLI + MCP 服务器
 - [x] 空工作区的欢迎视图
 - [x] 路径安全的跳转到定义与经过净化的悬停 markdown
 - [x] **v0.3.0** —— 每个模型类上方的 CodeLens（`N fields · N relations · Open ER diagram`）
@@ -480,7 +480,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent工具** 的交叉地�
 </details>
 
 <details>
-<summary><b>哪些 AI agent可以使用 MCP 服务器？</b></summary>
+<summary><b>哪些 AI agent 可以使用 MCP 服务器？</b></summary>
 <br/>
 任何兼容 MCP 的客户端 —— Cursor、Aider、Continue.dev、Zed，以及任何其他支持该协议的工具。只需将 <code>command</code> 指向已安装的 <code>django-orm-lens-mcp</code> 可执行文件即可。详见 <a href="#-integrations">Integrations</a> 章节。
 </details>
