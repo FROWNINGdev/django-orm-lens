@@ -23,6 +23,8 @@ from typing import List, Optional, Sequence
 from . import __version__
 from .diff import diff_schemas, format_diff
 from .formatters import format_hover, format_index, format_model
+from .migrations_parser import analyze_migration_risks
+from .query_analyzer import scan_for_nplusone
 from .models import (
     ParsedModel,
     WorkspaceIndex,
@@ -205,8 +207,10 @@ def _cmd_diff(args: argparse.Namespace) -> int:
 def _cmd_nplusone(args: argparse.Namespace) -> int:
     """Static N+1 detector — flag FK/M2M access inside loops without select/prefetch."""
     idx = _load_index(args)
-    schema = _build_schema_from_index(idx)
-    findings = scan_for_nplusone(args.path, schema)
+    # scan_for_nplusone accepts a WorkspaceIndex directly (see
+    # query_analyzer._normalise_schema) — no need to pre-flatten. Passing idx
+    # avoids importing the private _build_schema_from_index helper here.
+    findings = scan_for_nplusone(args.path, idx)
     if args.confidence == "high":
         findings = [f for f in findings if f.confidence == "high"]
     elif args.confidence == "medium":
@@ -248,7 +252,7 @@ def _cmd_migration_risk(args: argparse.Namespace) -> int:
             print("No risky migration operations found.")
         for f in findings:
             print(
-                f"{f.filePath}:{f.lineNumber}  [{f.severity}/{f.confidence}]  "
+                f"{f.file_path}:{f.line_number}  [{f.severity}/{f.confidence}]  "
                 f"{f.operation} {f.app}.{f.model}"
                 + (f".{f.field}" if f.field else "")
             )

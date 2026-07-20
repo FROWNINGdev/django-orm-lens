@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.2.1] - 2026-07-20
+
+Patch release — two crash bugs in the CLI wrapper that unit tests missed because they exercised the underlying helpers directly instead of going through argparse dispatch. Both surfaced during an end-to-end smoke run against a real Django codebase.
+
+### Fixed
+
+- **`django-orm-lens nplusone` crashed with `NameError`** — `_cmd_nplusone` called `_build_schema_from_index` and `scan_for_nplusone` without importing either at module scope. `scan_for_nplusone` now imported at the top of `cli.py`; the intermediate schema flattening is dropped (the underlying function already accepts a `WorkspaceIndex` and normalises internally via `_normalise_schema`).
+- **`django-orm-lens migration-risk` (text format) crashed with `AttributeError: 'MigrationRisk' object has no attribute 'filePath'`** — the print statement used camelCase attrs (`filePath` / `lineNumber`) but the dataclass fields are snake_case (`file_path` / `line_number`). The camelCase form only exists inside `to_dict()` (JSON path); text output now reads the snake_case fields directly.
+- **`analyze_migration_risks` was not imported at module scope** — same pattern as the nplusone bug, fixed at the same time to prevent a latent `NameError` on the next code path change.
+
+### Added
+
+- **`test_cli_subcommands_smoke.py`** — 8 tests that dispatch every subcommand (`scan`, `list`, `er`, `describe`, `hover`, `nplusone`, `migration-risk` text + JSON) through `main([...])` against fixture data. Any `NameError` / `ImportError` / `AttributeError` in a subcommand body now surfaces as a test failure rather than a crash the next user sees. This closes the coverage gap that let both v0.7.0 bugs ship.
+
 ## [0.7.0] + [py-1.2.0] - 2026-07-20
 
 Correctness release focused on `settings.AUTH_USER_MODEL` resolution across every layer (parser / signals / query analyzer / ER diagram / MCP server / VS Code webview) and kwarg-order-independent field parsing. 10 bugs closed + 4 DRY/perf refactors + 36 new regression tests. All 157 Python tests + 3 TypeScript tests green.
