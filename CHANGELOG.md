@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] + [py-1.2.5] - 2026-07-21
+
+Two more field-detection gaps closed via targeted fuzz of realistic Django user code.
+
+### Fixed
+
+- **Aliased `models` module.** `from django.db import models as m` followed by `class X(m.Model): x = m.CharField(...)` used to lose every field because `FIELD_RE` hardcoded the `models\.` prefix and `BARE_FIELD_RE` had no prefix allowance. Both parsers now accept any single-identifier prefix on the RHS in `BARE_FIELD_RE`.
+- **Third-party field packages.** Fields declared via a namespaced third-party import (`x = jsonfield.JSONField(...)`, `x = timezonefield.TimeZoneField(...)`, `x = arrayfield.ArrayField(...)`) fell through the same gap. Same fix covers both cases in one edit — the type name is still restricted to Django's known field whitelist, so random non-Django calls like `foo.CharField(...)` in an unrelated module don't leak in.
+
+### Added
+
+- **`test_aliased_module_and_third_party_fields.py`** — 4 Python regression tests (aliased-only, mixed aliased+plain+bare interleaved, jsonfield-style third-party, and backward-compat bare imports).
+
 ## [0.7.4] + [py-1.2.4] - 2026-07-21
 
 Follow-up to the modern-Python audit that produced 0.7.3 — another shape of typed code that used to silently vanish, surfaced by a targeted fuzz of the class-header regex.

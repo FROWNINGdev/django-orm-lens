@@ -135,12 +135,20 @@ def _build_body_regexes(indent: int):
     # ``[^=]+`` is safe because ``=`` never appears inside a type expression
     # (subscripts, unions, dotted refs, and generics all use other punctuation).
     ann = r"(?:\s*:[^=]+)?"
+    # ``(?:[A-Za-z_][A-Za-z0-9_]*\.)?`` — optional single-identifier prefix on
+    # the RHS. Covers:
+    #   * aliased models module — ``from django.db import models as m; x = m.CharField(...)``
+    #   * third-party field packages — ``x = jsonfield.JSONField(default=dict)``
+    #   * standard bare imports — ``from django.db.models import CharField; x = CharField(...)``
+    # Safe against false positives because the type name is still restricted
+    # to Django's known field whitelist (BARE_FIELD_TYPES).
+    prefix_opt = r"(?:[A-Za-z_][A-Za-z0-9_]*\.)?"
     result = {
         "FIELD_RE": re.compile(
             rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\("
         ),
         "BARE_FIELD_RE": re.compile(
-            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*({BARE_FIELD_TYPES})\s*\("
+            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*{prefix_opt}({BARE_FIELD_TYPES})\s*\("
         ),
         "META_START_RE": re.compile(rf"^{w}class\s+Meta\s*(?:\([^)]*\))?\s*:"),
         "META_ITEM_RE": re.compile(

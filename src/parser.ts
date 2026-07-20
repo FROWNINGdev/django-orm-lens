@@ -121,12 +121,18 @@ function buildBodyRegexes(indent: number) {
   // `[^=]+` is safe because `=` never appears inside a type expression
   // (subscripts, unions, dotted refs, and generics all use other punctuation).
   const ann = `(?:\\s*:[^=]+)?`;
+  // `(?:[A-Za-z_][A-Za-z0-9_]*\\.)?` — optional single-identifier prefix on
+  // the RHS. Covers aliased models module (`m.CharField`) and third-party
+  // field packages (`jsonfield.JSONField`). Safe against false positives
+  // because the type name is still restricted to the BARE_FIELD_TYPES
+  // whitelist.
+  const prefixOpt = `(?:[A-Za-z_][A-Za-z0-9_]*\\.)?`;
   return {
     FIELD_RE: new RegExp(
       `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*models\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(`
     ),
     BARE_FIELD_RE: new RegExp(
-      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*(${BARE_FIELD_TYPES})\\s*\\(`
+      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*${prefixOpt}(${BARE_FIELD_TYPES})\\s*\\(`
     ),
     META_START_RE: new RegExp(`^${w}class\\s+Meta\\s*(?:\\([^)]*\\))?\\s*:`),
     META_ITEM_RE: new RegExp(
