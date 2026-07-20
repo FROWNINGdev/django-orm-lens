@@ -52,6 +52,15 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce publish --no-dependencies --packagePath "${{ env.VSIX_PATH }}"
 
+      - name: Publish to Open VSX (VSCodium / Cursor / OSS builds)
+        # Skips gracefully when OVSX_PAT isn't set — lets the rest of the
+        # release pipeline succeed while the maintainer registers the
+        # namespace at https://open-vsx.org and adds the token secret.
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        if: env.OVSX_PAT != ''
+        run: npx --yes ovsx publish "${{ env.VSIX_PATH }}" -p "$OVSX_PAT"
+
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v6
         with:
