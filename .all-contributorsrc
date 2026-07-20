@@ -15,7 +15,7 @@
   "contributors": [
     {
       "login": "FROWNINGdev",
-      "name": "frowningdev",
+      "name": "Shoamir Shorustamov",
       "avatar_url": "https://avatars.githubusercontent.com/u/218313741?v=4",
       "profile": "https://github.com/FROWNINGdev",
       "contributions": [
@@ -26,7 +26,8 @@
         "maintenance",
         "review",
         "test",
-        "infra"
+        "infra",
+        "projectManagement"
       ]
     },
     {
