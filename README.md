@@ -524,32 +524,6 @@ Not yet. PyCharm's Django Structure tool window is already good, so the value de
 
 <br/>
 
-## ✨ Contributors
-
-Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)) — all contribution types count, not just code. Translations, docs, screenshots, bug reports, and answered questions are all first-class.
-
-New here? See [CONTRIBUTING.md → "How to become a contributor"](.github/CONTRIBUTING.md#how-to-become-a-contributor-all-skill-levels-welcome) and browse [`good first issue`](https://github.com/FROWNINGdev/django-orm-lens/labels/good%20first%20issue).
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/FROWNINGdev"><img src="https://avatars.githubusercontent.com/u/218313741?v=4?s=80" width="80px;" alt="Shoamir Shorustamov"/><br /><sub><b>Shoamir Shorustamov</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=FROWNINGdev" title="Code">💻</a> <a href="#doc-FROWNINGdev" title="Documentation">📖</a> <a href="#design-FROWNINGdev" title="Design">🎨</a> <a href="#ideas-FROWNINGdev" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-FROWNINGdev" title="Maintenance">🚧</a> <a href="#review-FROWNINGdev" title="Reviewed Pull Requests">👀</a> <a href="#test-FROWNINGdev" title="Tests">⚠️</a> <a href="#infra-FROWNINGdev" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#projectManagement-FROWNINGdev" title="Project Management">📆</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kingrubic"><img src="https://avatars.githubusercontent.com/u/116256161?v=4?s=80" width="80px;" alt="Bao"/><br /><sub><b>Bao</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=kingrubic" title="Code">💻</a> <a href="#test-kingrubic" title="Tests">⚠️</a></td>
-    </tr>
-  </tbody>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors](https://allcontributors.org) specification. To be added, comment `@all-contributors please add @your-username for docs` (or `code`, `translation`, `design`, `ideas`, `question`, `bug`, `test`, `tutorial`, `example`, ...) on any issue or PR.
-
-<br/>
-
 ## 📜 License
 
 MIT © [FROWNINGdev](https://github.com/FROWNINGdev)
