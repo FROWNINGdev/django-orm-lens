@@ -218,6 +218,12 @@ function readBalancedArgs(lines: string[], startIdx: number): {
 }
 
 export function parseModelsFile(filePath: string, content: string): ParsedModel[] {
+  // Strip leading BOM (U+FEFF) — Windows editors (Notepad, VS Code with
+  // certain settings) save UTF-8 files with a byte-order mark. Without this
+  // the first line becomes "﻿class Foo..." and CLASS_RE fails to match.
+  if (content.charCodeAt(0) === 0xfeff) {
+    content = content.slice(1);
+  }
   // Expand tab characters to 4 spaces so the `\s{indent}` prefix in
   // FIELD_RE / BARE_FIELD_RE / META_ITEM_RE matches tab-indented code too.
   // A single `\t` is 1 char but visually 4 columns — without expansion,

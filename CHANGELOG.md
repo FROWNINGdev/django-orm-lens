@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7] + [py-1.2.7] - 2026-07-21
+
+### Fixed
+
+- **UTF-8 BOM (`U+FEFF`) at the start of a models.py file no longer eats the whole class.** Windows editors — Notepad, older Sublime, VS Code with certain encoding settings — save files with a byte-order mark. Without this fix the first line becomes `"﻿class Foo..."` and `CLASS_RE` fails to match, so every model in the file silently disappears. Both parsers now strip the leading BOM in the content-read step.
+
+### Added
+
+- **`test_bom_prefix.py`** — 2 Python regression tests (BOM-prefixed file parses; no-BOM backward-compat).
+
 ## [0.7.6] + [py-1.2.6] - 2026-07-21
 
 ### Fixed
