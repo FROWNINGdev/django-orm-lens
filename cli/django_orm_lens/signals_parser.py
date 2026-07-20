@@ -22,15 +22,10 @@ Directories skipped: ``migrations/``, ``node_modules/``, ``venv/``, ``env/``,
 from __future__ import annotations
 
 import ast
-import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from .models import WorkspaceIndex
-
-_SKIP_DIRS = frozenset(
-    {"migrations", "node_modules", "venv", ".venv", "env", ".git", "__pycache__"}
-)
+from .models import WorkspaceIndex, find_user_model
 
 # Django built-in signals we know about — used for tagging edges as "django-native".
 _BUILTIN_SIGNALS = frozenset(
@@ -45,17 +40,6 @@ _BUILTIN_SIGNALS = frozenset(
         "user_logged_in", "user_logged_out", "user_login_failed",
     }
 )
-
-
-def _iter_py_files(root: Path) -> Iterable[Path]:
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [
-            d for d in dirnames
-            if not d.startswith(".") and d not in _SKIP_DIRS
-        ]
-        for name in filenames:
-            if name.endswith(".py"):
-                yield Path(dirpath) / name
 
 
 def _rel(root: Path, path: Path, line: int) -> str:
@@ -145,7 +129,9 @@ def _iter_signal_definitions(tree: ast.Module) -> List[Tuple[str, int]]:
 
 
 def _resolve_sender(
-    raw: Optional[str], model_index: Dict[str, str]
+    raw: Optional[str],
+    model_index: Dict[str, str],
+    user_model_name: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
     """Turn a raw sender token into (canonical, note).
 
@@ -154,10 +140,19 @@ def _resolve_sender(
       or (raw, "sender model not found in workspace") on miss.
     * dotted / string forms (``"orders.Order"``, ``"MyApp.Model"``) →
       normalise via model_index tail lookup.
+    * ``"settings.AUTH_USER_MODEL"`` / bare ``"AUTH_USER_MODEL"`` →
+      resolve to the workspace's User model when known; otherwise
+      surface as an orphan (helps flag misconfigured signal receivers).
     """
     if raw is None:
         return None, None
     tail = raw.rsplit(".", 1)[-1]
+    if tail == "AUTH_USER_MODEL":
+        if user_model_name:
+            canonical = model_index.get(user_model_name)
+            if canonical:
+                return canonical, None
+        return raw, "sender model not found in workspace"
     canonical = model_index.get(tail)
     if canonical:
         return canonical, None
@@ -187,6 +182,8 @@ def signal_graph(
     if index is None:
         index = scan_workspace(root, DEFAULT_EXCLUDES)
     model_index = _build_model_index(index)
+    user_model = find_user_model(index)
+    user_model_name = user_model.name if user_model else None
 
     root_path = Path(root).resolve()
 
@@ -197,7 +194,8 @@ def signal_graph(
     # short var name → FQN, per module (populated pass 1, consumed pass 2)
     signal_defs_by_module: Dict[str, Dict[str, str]] = {}
 
-    py_files: List[Path] = list(_iter_py_files(root_path))
+    from .parser import iter_workspace_py_files  # local to avoid cycles
+    py_files: List[Path] = list(iter_workspace_py_files(root_path))
     parsed: List[Tuple[Path, ast.Module, str]] = []
 
     # Pass 1 — collect Signal() definitions so pass 2 can resolve .send()
@@ -242,7 +240,9 @@ def signal_graph(
                         continue
                     signal_name = _signal_arg_name(rcall) or "<unknown>"
                     sender_raw = _sender_kwarg(rcall)
-                    sender, note = _resolve_sender(sender_raw, model_index)
+                    sender, note = _resolve_sender(
+                        sender_raw, model_index, user_model_name
+                    )
 
                     handler_fqn = (
                         f"{module_path}.{node.name}" if module_path else node.name

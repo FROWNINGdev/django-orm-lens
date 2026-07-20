@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] + [py-1.2.0] - 2026-07-20
+
+Correctness release focused on `settings.AUTH_USER_MODEL` resolution across every layer (parser / signals / query analyzer / ER diagram / MCP server / VS Code webview) and kwarg-order-independent field parsing. 10 bugs closed + 4 DRY/perf refactors + 36 new regression tests. All 157 Python tests + 3 TypeScript tests green.
+
+### Fixed
+
+- **`ForeignKey(on_delete=CASCADE, to='User')` now resolves correctly regardless of kwarg order.** Both the Python (`_extract_related` in `parser.py`) and TypeScript (`extractRelated` in `src/parser.ts`) parsers previously used a positional-first regex that either returned `undefined` or misread `on_delete` as the target when `to=` wasn't the first kwarg. Python side now uses `ast.parse` on the wrapped arg block; TypeScript side prefers `\bto=` anywhere and falls back to positional-first with a negative lookahead against kwargs. Similar order-independence applied to `_extract_on_delete` / `_extract_related_name` / `_extract_through_model`.
+- **`settings.AUTH_USER_MODEL` resolves to the workspace User model in every consumer, not just the MCP layer.** Previously, `.split('.')[-1]` produced `"AUTH_USER_MODEL"` — a name no workspace model carries — dropping User-model edges from: reverse-relation schema used by the n+1 detector (`query_analyzer._build_schema_from_index` + `_build_schema_from_index_dict`), signal receiver resolution (`signals_parser._resolve_sender`), Mermaid ER diagram (`cli._build_mermaid`), VS Code Mermaid webview (`src/graphWebview.ts`), VS Code inbound-relation panel (`src/extension.ts`), and the React ER webview (`src/webview/graph.tsx`). All six paths now delegate to shared `resolve_related_tail` (Python) / `resolveRelatedTail` (TypeScript). The webview additionally receives the pre-resolved User name via the wire payload so it doesn't need `baseClasses` shipped over.
+- **`--verbose` no longer walks the workspace twice.** The scan summary previously called `_iter_python_files` a second time just to count files. `WorkspaceIndex` now carries `scanned_files` (populated by `scan_workspace`), so verbose mode reads the count instead of re-iterating — noticeable on large monorepos.
+- **`formatters._render_table` no longer crashes on short rows.** A row shorter than the header triggered `IndexError` inside the width-computation genexpr. Rows are now padded with `""` to header width before rendering.
+
+### Added
+
+- **Shared Python helpers under `django_orm_lens` package root:** `find_user_model`, `find_user_model_from_dict`, `resolve_related_tail`, `find_model`, `iter_workspace_py_files`, `BROAD_SKIP_DIRS`. Downstream tools that build on the parser can import these without duplicating the User-model detection heuristic or the walk-skip-list.
+- **Shared TypeScript helpers in `src/parser.ts`:** `findUserModel(index)`, `resolveRelatedTail(related, userName)`. Same shape as the Python side so the VS Code extension and the CLI stay in sync.
+- **`WorkspaceIndex.scanned_files: int`** — number of `models.py`-style files inspected during the scan. Surfaced in `to_dict()` as `scannedFiles`. Backward-compatible (default 0, extra JSON key).
+- **`WireIndex.userModelName?: string`** in `src/webview/types.ts` — resolved User model name shipped to the React webview so it can rewrite `settings.AUTH_USER_MODEL` edges to point at the right node.
+- **36 regression tests:** `test_kwarg_order_and_auth_user.py` (35 unit tests covering kwarg-order-independent extractors, User-model discovery, tail resolution, schema-building with AUTH_USER_MODEL, `_resolve_sender` cases) + `test_signals_parser::test_receiver_settings_auth_user_sender_resolves` (E2E `signal_graph`) + `test/kwarg-order.test.js` (TS regression).
+
+### Changed
+
+- **`_iter_py_files` consolidated across three modules.** `signals_parser`, `query_analyzer._iter_py_files`, and `query_analyzer._iter_py_files_broad` were three near-identical copies of the same directory walk with slightly different skip-lists. All three now delegate to `parser.iter_workspace_py_files(root, extra_skip=frozenset())`.
+- **`_find_model` / `_find` consolidated.** `cli._find_model` and `mcp_server._find` were near-identical `WorkspaceIndex` lookups by `"app.Model"` or bare `"Model"`. Both now delegate to `models.find_model` so lookup semantics stay in sync.
+- **`mcp_server._workspace_user_model` and `_rel_matches_target`** are now thin wrappers over the shared `find_user_model` + `resolve_related_tail`. Semantics unchanged; the tuple-returning signature of `_workspace_user_model` is preserved for existing callers.
+
 ## [0.6.0] + [py-1.1.0] - 2026-07-19
 
 Feature release — three new CLI subcommands (`nplusone`, `migration-risk`, `diff`), webview polish, and three README translations. 127 tests passing.

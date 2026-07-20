@@ -15,6 +15,49 @@ const RELATION_TYPES: RelationKind[] = [
   'OneToOneField',
 ];
 
+const USER_BASE_MARKERS = new Set(['AbstractUser', 'AbstractBaseUser']);
+
+/**
+ * Return the workspace's Django User model, or ``undefined``.
+ *
+ * Heuristic mirrors the Python CLI's ``models.find_user_model``:
+ * (1) first model whose bases include ``AbstractUser`` / ``AbstractBaseUser``,
+ * (2) fall back to any model named ``User``, (3) otherwise ``undefined``.
+ * Used to resolve ``settings.AUTH_USER_MODEL`` references so hover, ER
+ * diagram, and inbound-relation lookups all land on the same target.
+ */
+export function findUserModel(index: WorkspaceIndex): ParsedModel | undefined {
+  for (const app of index.apps) {
+    for (const m of app.models) {
+      for (const b of m.baseClasses) {
+        const tail = b.split('.').pop() ?? '';
+        if (USER_BASE_MARKERS.has(tail)) return m;
+      }
+    }
+  }
+  for (const app of index.apps) {
+    for (const m of app.models) {
+      if (m.name === 'User') return m;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Substitute ``settings.AUTH_USER_MODEL`` / bare ``AUTH_USER_MODEL`` with
+ * the workspace's actual User model name; otherwise return the last dotted
+ * segment (``"orders.Order"`` → ``"Order"``). Passes through ``undefined``.
+ */
+export function resolveRelatedTail(
+  related: string | undefined,
+  userModelName: string | undefined
+): string | undefined {
+  if (!related) return related;
+  const tail = related.split('.').pop() ?? '';
+  if (tail === 'AUTH_USER_MODEL' && userModelName) return userModelName;
+  return tail;
+}
+
 const CLASS_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*:/;
 const CLASS_START_RE = /^class\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/;
 
@@ -85,15 +128,30 @@ function buildBodyRegexes(indent: number) {
 
 function extractRelated(argsBlock: string): string | undefined {
   const stripped = argsBlock.trim();
+  // (1) Look for an explicit `to=<value>` anywhere in the arg list so that
+  // reordered kwargs like `ForeignKey(on_delete=CASCADE, to='User')` still
+  // resolve. The legacy positional-first regex read `on_delete` as the target.
+  const toKwarg = stripped.match(
+    /\bto\s*=\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_.]*))/
+  );
+  if (toKwarg) {
+    const raw = toKwarg[1] || toKwarg[2] || toKwarg[3];
+    if (raw) {
+      if (raw === 'self') return 'self';
+      return raw.replace(/^['"]|['"]$/g, '');
+    }
+  }
+  // (2) Fallback: first positional arg. Negative lookahead `(?!\s*=)` on the
+  // bare-name branch rejects kwargs — otherwise `on_delete=CASCADE, 'User'`
+  // would return "on_delete".
   const firstArgMatch = stripped.match(
-    /^(?:to\s*=\s*)?(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_.]*))/
+    /^(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_.]*)(?!\s*=))/
   );
   if (!firstArgMatch) return undefined;
   const raw = firstArgMatch[1] || firstArgMatch[2] || firstArgMatch[3];
   if (!raw) return undefined;
   if (raw === 'self') return 'self';
-  const clean = raw.replace(/^['"]|['"]$/g, '');
-  return clean;
+  return raw.replace(/^['"]|['"]$/g, '');
 }
 
 function extractOnDelete(argsBlock: string): string | undefined {

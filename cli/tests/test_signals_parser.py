@@ -139,6 +139,34 @@ class SignalGraphTest(unittest.TestCase):
             result = signal_graph(str(root))
             self.assertEqual(result["edges"][0]["sender"], "orders.Order")
 
+    def test_receiver_settings_auth_user_sender_resolves(self) -> None:
+        """End-to-end regression: ``sender=settings.AUTH_USER_MODEL`` must
+        resolve to the workspace's User model rather than orphan out.
+
+        The miniapp fixture ships a ``users.User`` model that falls under
+        the "model literally named User" branch of :func:`find_user_model`,
+        so this exercises the whole ``signal_graph`` pipeline.
+        """
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _copy_miniapp(root)
+            _write(
+                root / "notifications" / "signals.py",
+                "from django.conf import settings\n"
+                "from django.db.models.signals import post_save\n"
+                "from django.dispatch import receiver\n\n"
+                "@receiver(post_save, sender=settings.AUTH_USER_MODEL)\n"
+                "def on_user_saved(sender, instance, **kwargs):\n"
+                "    pass\n",
+            )
+            result = signal_graph(str(root))
+
+            self.assertEqual(len(result["edges"]), 1)
+            edge = result["edges"][0]
+            self.assertEqual(edge["sender"], "users.User")
+            self.assertNotIn("note", edge)
+            self.assertEqual(result["orphan_handlers"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

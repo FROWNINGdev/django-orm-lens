@@ -24,32 +24,25 @@ callers can dedupe suggestions the user has already covered.
 from __future__ import annotations
 
 import ast
-import os
 import re
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
-from .models import WorkspaceIndex
+from .models import (
+    WorkspaceIndex,
+    find_user_model,
+    find_user_model_from_dict,
+    resolve_related_tail,
+)
 
 QS_METHODS = frozenset({"filter", "exclude", "get", "order_by", "aggregate"})
 
-# Directories that are never source-under-test.
-_SKIP_DIRS = frozenset(
-    {"migrations", "node_modules", "venv", ".venv", "env", ".git", "__pycache__"}
-)
-
 
 def _iter_py_files(root: Path) -> Iterable[Path]:
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [
-            d for d in dirnames
-            if not d.startswith(".") and d not in _SKIP_DIRS
-        ]
-        for name in filenames:
-            if name.endswith(".py"):
-                yield Path(dirpath) / name
+    from .parser import iter_workspace_py_files  # local to avoid cycles
+    return iter_workspace_py_files(root)
 
 
 def _root_field(kwarg: str) -> str:
@@ -550,15 +543,10 @@ def _iter_py_files_broad(root: Path) -> Iterable[Path]:
     directory named after a common vendored-dep root. Used by the N+1
     scanner which walks every ``.py`` file, not just ``models.py``.
     """
-    skip = _SKIP_DIRS | {"site-packages", "dist", "build", "eggs"}
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [
-            d for d in dirnames
-            if not d.startswith(".") and d not in skip
-        ]
-        for name in filenames:
-            if name.endswith(".py"):
-                yield Path(dirpath) / name
+    from .parser import iter_workspace_py_files  # local to avoid cycles
+    return iter_workspace_py_files(
+        root, extra_skip=frozenset({"site-packages", "dist", "build", "eggs"})
+    )
 
 
 def _attr_chain(node: ast.AST) -> Optional[List[str]]:
@@ -1014,12 +1002,14 @@ def _build_schema_from_index(index: WorkspaceIndex) -> Dict[str, Dict[str, str]]
                     attrs[f.name] = "m2m"
                 else:  # pragma: no cover
                     attrs[f.name] = "fk"
+    user_model = find_user_model(index)
+    user_model_name = user_model.name if user_model else None
     for app in index.apps:
         for model in app.models:
             for f in model.fields:
                 if not f.is_relation or not f.related_model:
                     continue
-                target = f.related_model.split(".")[-1]
+                target = resolve_related_tail(f.related_model, user_model_name)
                 if target == "self":
                     target = model.name
                 if target not in schema:
@@ -1115,6 +1105,8 @@ def _build_schema_from_index_dict(payload: Dict[str, Any]) -> Dict[str, Dict[str
                     attrs[fname] = "m2m"
                 else:
                     attrs[fname] = "fk"
+    user_model_dict = find_user_model_from_dict(payload)
+    user_model_name = user_model_dict.get("name") if user_model_dict else None
     for model in all_models:
         model_name = model.get("name", "")
         for f in model.get("fields", []):
@@ -1123,7 +1115,7 @@ def _build_schema_from_index_dict(payload: Dict[str, Any]) -> Dict[str, Dict[str
             related = f.get("relatedModel")
             if not related:
                 continue
-            target = related.split(".")[-1]
+            target = resolve_related_tail(related, user_model_name)
             if target == "self":
                 target = model_name
             if target not in schema:

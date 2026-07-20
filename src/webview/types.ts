@@ -35,6 +35,9 @@ export interface WireIndex {
   scannedAt: number;
   workspaceName?: string;
   theme: 'dark' | 'light';
+  // Resolved workspace User model name — used to normalise
+  // settings.AUTH_USER_MODEL edges without shipping baseClasses over the wire.
+  userModelName?: string;
 }
 
 export type ExtensionMessage =

@@ -23,7 +23,13 @@ from typing import List, Optional, Sequence
 from . import __version__
 from .diff import diff_schemas, format_diff
 from .formatters import format_hover, format_index, format_model
-from .models import ParsedModel, WorkspaceIndex
+from .models import (
+    ParsedModel,
+    WorkspaceIndex,
+    find_model,
+    find_user_model,
+    resolve_related_tail,
+)
 from .parser import DEFAULT_EXCLUDES, _iter_python_files, scan_workspace
 
 
@@ -85,9 +91,10 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
     index = scan_workspace(args.path, excludes)
     if verbose:
         elapsed_ms = (time.perf_counter() - start) * 1000
-        file_count = sum(1 for _ in _iter_python_files(root, excludes))
+        # Read the count that scan_workspace already computed rather than
+        # walking the tree a second time (matters on large monorepos).
         print(
-            f"scanned {file_count} files in {elapsed_ms:.0f}ms, "
+            f"scanned {index.scanned_files} files in {elapsed_ms:.0f}ms, "
             f"found {len(index.apps)} apps / {index.total_models()} models",
             file=sys.stderr,
         )
@@ -104,18 +111,9 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
 
 
 def _find_model(index: WorkspaceIndex, ref: str) -> Optional[ParsedModel]:
-    if "." in ref:
-        app_name, model_name = ref.split(".", 1)
-        for app in index.apps:
-            if app.name == app_name:
-                for m in app.models:
-                    if m.name == model_name:
-                        return m
-    for app in index.apps:
-        for m in app.models:
-            if m.name == ref:
-                return m
-    return None
+    # Thin wrapper kept for local call sites; delegates to the shared helper
+    # so lookup semantics match the MCP server.
+    return find_model(index, ref)
 
 
 def _cmd_scan(args: argparse.Namespace) -> int:
@@ -267,6 +265,8 @@ def _cmd_migration_risk(args: argparse.Namespace) -> int:
 def _build_mermaid(index: WorkspaceIndex) -> str:
     lines: List[str] = ["erDiagram"]
     model_names = {m.name for app in index.apps for m in app.models}
+    user_model = find_user_model(index)
+    user_model_name = user_model.name if user_model else None
 
     def safe(s: str) -> str:
         return "".join(ch if (ch.isalnum() or ch == "_") else "_" for ch in s)
@@ -293,7 +293,7 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
                 target = (
                     model.name
                     if f.related_model == "self"
-                    else f.related_model.split(".")[-1]
+                    else resolve_related_tail(f.related_model, user_model_name)
                 )
                 if target not in model_names:
                     continue

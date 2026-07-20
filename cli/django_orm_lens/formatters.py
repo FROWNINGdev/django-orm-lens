@@ -140,15 +140,19 @@ def _model_table(model: ParsedModel) -> str:
 
 
 def _render_table(header: tuple, rows: List[tuple]) -> str:
-    all_rows = [header] + rows
-    widths = [max(len(str(r[i])) for r in all_rows) for i in range(len(header))]
+    # Pad short rows with "" so callers that build partial tuples don't
+    # trigger IndexError inside the width-computation genexpr.
+    ncols = len(header)
+    padded_rows = [tuple(r) + ("",) * max(0, ncols - len(r)) for r in rows]
+    all_rows = [header] + padded_rows
+    widths = [max(len(str(r[i])) for r in all_rows) for i in range(ncols)]
     sep = "  "
 
     def fmt(r):
-        return sep.join(str(v).ljust(widths[i]) for i, v in enumerate(r))
+        return sep.join(str(v).ljust(widths[i]) for i, v in enumerate(r[:ncols]))
 
     lines = [fmt(header), sep.join("-" * w for w in widths)]
-    for r in rows:
+    for r in padded_rows:
         lines.append(fmt(r))
     return "\n".join(lines)
 

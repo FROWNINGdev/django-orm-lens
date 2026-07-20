@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Tuple
 
 from .cli import _build_mermaid
 from .migrations_parser import describe_migration_dependency
-from .models import WorkspaceIndex
+from .models import WorkspaceIndex, find_model, find_user_model, resolve_related_tail
 from .parser import DEFAULT_EXCLUDES, scan_workspace
 from .query_analyzer import suggest_indexes as _suggest_indexes
 from .signals_parser import signal_graph as _signal_graph
@@ -90,54 +90,34 @@ def _tool_list_models(args: Dict[str, Any]) -> str:
 
 
 def _find(idx, ref: str):
-    if "." in ref:
-        an, mn = ref.split(".", 1)
-        for app in idx.apps:
-            if app.name == an:
-                for m in app.models:
-                    if m.name == mn:
-                        return m
-    for app in idx.apps:
-        for m in app.models:
-            if m.name == ref:
-                return m
-    return None
-
-
-_USER_BASE_MARKERS = ("AbstractUser", "AbstractBaseUser")
+    # Delegates to shared find_model so MCP and CLI lookup semantics stay
+    # in sync (they previously drifted — hence the shared helper).
+    return find_model(idx, ref)
 
 
 def _workspace_user_model(idx):
-    """Return (app_name, model) for the workspace's Django User model.
+    """Return ``(app_name, model)`` for the workspace's Django User model.
 
-    Used to resolve ``settings.AUTH_USER_MODEL`` references. Heuristic:
-    1) first model whose bases include ``AbstractUser`` / ``AbstractBaseUser``,
-    2) else first model literally named ``User``, 3) else ``(None, None)``.
+    Thin wrapper around :func:`models.find_user_model` that preserves the
+    ``(app_name, model)`` tuple this MCP layer historically returned. New
+    callers should prefer ``find_user_model`` directly.
     """
+    user_model = find_user_model(idx)
+    if user_model is None:
+        return None, None
     for app in idx.apps:
-        for m in app.models:
-            for b in m.base_classes:
-                tail = b.split(".")[-1]
-                if tail in _USER_BASE_MARKERS:
-                    return app.name, m
-    for app in idx.apps:
-        for m in app.models:
-            if m.name == "User":
-                return app.name, m
-    return None, None
+        if user_model in app.models:
+            return app.name, user_model
+    return None, user_model
 
 
 def _rel_matches_target(related_model, target_name, user_model):
     """True iff ``related_model`` string points at ``target_name``. Handles
-    ``settings.AUTH_USER_MODEL`` by resolving to the workspace user model."""
+    ``settings.AUTH_USER_MODEL`` via :func:`models.resolve_related_tail`."""
     if not related_model:
         return False
-    tail = related_model.split(".")[-1]
-    if tail == target_name:
-        return True
-    if tail == "AUTH_USER_MODEL" and user_model is not None:
-        return user_model.name == target_name
-    return False
+    user_name = user_model.name if user_model is not None else None
+    return resolve_related_tail(related_model, user_name) == target_name
 
 
 def _tool_describe_model(args: Dict[str, Any]) -> str:

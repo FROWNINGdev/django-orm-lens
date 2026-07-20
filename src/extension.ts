@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { scanWorkspace } from './parser';
+import { findUserModel, resolveRelatedTail, scanWorkspace } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
 import { showGraph } from './graphWebview';
 import { DjangoHoverProvider } from './hoverProvider';
@@ -245,9 +245,12 @@ export async function activate(context: vscode.ExtensionContext) {
             ) {
               continue;
             }
+            const userModelName = findUserModel(currentIndex)?.name;
             for (const f of other.fields) {
               if (!f.isRelation || !f.relatedModel) continue;
-              const tail = f.relatedModel.split('.').pop();
+              // Resolve settings.AUTH_USER_MODEL so inbound edges to the
+              // User model don't disappear from the reference panel.
+              const tail = resolveRelatedTail(f.relatedModel, userModelName);
               if (tail === modelName) {
                 inbound.push({
                   from: `${app.name}.${other.name}`,

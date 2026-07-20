@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import { WorkspaceIndex } from './types';
+import { findUserModel, resolveRelatedTail } from './parser';
 
 // Kept exported for CLI parity — the Python side still emits Mermaid, and
 // downstream tests import this symbol.
@@ -32,12 +33,16 @@ export function buildMermaid(index: WorkspaceIndex): string {
     }
   }
 
+  const userModel = findUserModel(index);
+  const userModelName = userModel?.name;
   for (const app of index.apps) {
     for (const model of app.models) {
       for (const f of model.fields) {
         if (!f.isRelation || !f.relatedModel) continue;
         const target =
-          f.relatedModel === 'self' ? model.name : f.relatedModel.split('.').pop()!;
+          f.relatedModel === 'self'
+            ? model.name
+            : resolveRelatedTail(f.relatedModel, userModelName)!;
         if (!modelNames.has(target)) continue;
         const arrow =
           f.relationKind === 'ManyToManyField'
@@ -79,6 +84,7 @@ function buildIndexPayload(index: WorkspaceIndex): Record<string, unknown> {
   const workspaceName =
     vscode.workspace.workspaceFolders?.[0]?.name ??
     (vscode.workspace.name ? vscode.workspace.name : 'workspace');
+  const userModelName = findUserModel(index)?.name;
   return {
     apps: index.apps.map((app) => ({
       name: app.name,
@@ -104,6 +110,7 @@ function buildIndexPayload(index: WorkspaceIndex): Record<string, unknown> {
     scannedAt: index.scannedAt,
     workspaceName,
     theme: resolveTheme(),
+    userModelName,
   };
 }
 

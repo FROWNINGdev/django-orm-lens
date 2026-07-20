@@ -13,8 +13,22 @@ try:
 except ImportError:
     __version__ = "0.0.0+local"
 
-from .models import ParsedApp, ParsedField, ParsedModel, WorkspaceIndex
-from .parser import parse_models_file, scan_workspace
+from .models import (
+    ParsedApp,
+    ParsedField,
+    ParsedModel,
+    WorkspaceIndex,
+    find_model,
+    find_user_model,
+    find_user_model_from_dict,
+    resolve_related_tail,
+)
+from .parser import (
+    BROAD_SKIP_DIRS,
+    iter_workspace_py_files,
+    parse_models_file,
+    scan_workspace,
+)
 
 __all__ = [
     "ParsedApp",
@@ -23,5 +37,12 @@ __all__ = [
     "WorkspaceIndex",
     "parse_models_file",
     "scan_workspace",
+    # v1.2.0 — shared helpers for downstream tools that build on the parser.
+    "BROAD_SKIP_DIRS",
+    "find_model",
+    "find_user_model",
+    "find_user_model_from_dict",
+    "iter_workspace_py_files",
+    "resolve_related_tail",
     "__version__",
 ]

@@ -124,7 +124,15 @@ function buildGraph(index: WireIndex): BuiltGraph {
       const sourceId = nodeIdFor(app.name, model.name);
       for (const f of model.fields) {
         if (!f.isRelation || !f.relatedModel) continue;
-        const targetShort = f.relatedModel === 'self' ? model.name : f.relatedModel.split('.').pop() ?? '';
+        // Resolve settings.AUTH_USER_MODEL → workspace User model name so
+        // edges land on the real User node instead of vanishing.
+        const rawTail = f.relatedModel.split('.').pop() ?? '';
+        const targetShort =
+          f.relatedModel === 'self'
+            ? model.name
+            : rawTail === 'AUTH_USER_MODEL' && index.userModelName
+              ? index.userModelName
+              : rawTail;
         const targetInfo = modelByName.get(targetShort);
         if (!targetInfo) continue;
         const targetId = nodeIdFor(targetInfo.app, targetInfo.model.name);

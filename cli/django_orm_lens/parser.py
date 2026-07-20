@@ -19,13 +19,14 @@ Key semantics preserved from the TS parser:
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 import sys
 import time
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .models import (
     ParsedApp,
@@ -137,7 +138,139 @@ def _build_body_regexes(indent: int):
     return result
 
 
-def _extract_related(args_block: str):
+def _dotted_name(node: ast.AST) -> Optional[str]:
+    """Best-effort textual dotted name of a Name/Attribute AST node.
+
+    Returns e.g. ``"models.CASCADE"`` for ``ast.Attribute(value=Name("models"),
+    attr="CASCADE")``. Returns ``None`` for anything else (Call, Constant,
+    Subscript, ...).
+    """
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _dotted_name(node.value)
+        if base is None:
+            return None
+        return f"{base}.{node.attr}"
+    return None
+
+
+def _parse_call_args(args_block: str) -> Tuple[Optional[List[ast.AST]], Optional[Dict[str, ast.AST]]]:
+    """Parse a Django field's raw arg text via ``ast.parse``.
+
+    ``args_block`` is the content returned by :func:`_read_balanced_args` —
+    the substring between the opening ``(`` (already stripped) and the
+    balanced closing ``)`` (still trailing). Wraps as ``_(<content>)`` and
+    parses as an expression to extract positional args and keywords in a
+    kwarg-order-independent way.
+
+    Returns ``(posargs, kwargs)`` on success or ``(None, None)`` on
+    :class:`SyntaxError`, so callers can fall back to the legacy regex path.
+    """
+    s = args_block.strip()
+    # _read_balanced_args returns content ending in exactly one balanced ")".
+    # Some call sites (e.g. line 331 `inner = args_block.rstrip(")")`) strip
+    # it. Normalise: drop up to two trailing ")" then re-close for parsing.
+    stripped_paren = False
+    while s.endswith(")") and not stripped_paren:
+        s = s[:-1].rstrip()
+        stripped_paren = True
+    if not s:
+        return [], {}
+    try:
+        tree = ast.parse(f"_({s})", mode="eval")
+    except SyntaxError:
+        return None, None
+    call = tree.body
+    if not isinstance(call, ast.Call):
+        return None, None
+    posargs = [a for a in call.args if not isinstance(a, ast.Starred)]
+    kwargs = {kw.arg: kw.value for kw in call.keywords if kw.arg is not None}
+    return posargs, kwargs
+
+
+def _node_to_str(node: ast.AST) -> Optional[str]:
+    """String-constant or dotted-name value of ``node``, else ``None``."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return _dotted_name(node)
+
+
+def _extract_related(args_block: str) -> Optional[str]:
+    """Model reference from a FK/O2O/M2M field call.
+
+    Recognises both positional (``ForeignKey('User', ...)``) and keyword
+    (``ForeignKey(on_delete=..., to='User')``) forms — kwarg order does not
+    matter. ``settings.AUTH_USER_MODEL``-style dotted refs are preserved
+    as-is; downstream :func:`resolve_related_tail` normalises them.
+    """
+    posargs, kwargs = _parse_call_args(args_block)
+    if posargs is None:
+        return _extract_related_regex(args_block)
+    val = kwargs.get("to")
+    if val is None and posargs:
+        val = posargs[0]
+    if val is None:
+        return None
+    raw = _node_to_str(val)
+    if not raw:
+        return None
+    if raw == "self":
+        return "self"
+    return raw
+
+
+def _extract_on_delete(args_block: str) -> Optional[str]:
+    """``on_delete`` policy tail (``CASCADE`` / ``SET_NULL`` / ...).
+
+    Handles bare identifiers, ``models.`` prefixed forms, and the callable
+    ``SET(default)`` form — all return the last dotted segment.
+    """
+    posargs, kwargs = _parse_call_args(args_block)
+    if posargs is None:
+        return _extract_on_delete_regex(args_block)
+    od = kwargs.get("on_delete")
+    if od is None:
+        return None
+    if isinstance(od, ast.Call):
+        callee = _dotted_name(od.func)
+        if callee:
+            return callee.rsplit(".", 1)[-1]
+        return None
+    name = _dotted_name(od)
+    if name:
+        return name.rsplit(".", 1)[-1]
+    return None
+
+
+def _extract_related_name(args_block: str) -> Optional[str]:
+    posargs, kwargs = _parse_call_args(args_block)
+    if posargs is None:
+        return _extract_related_name_regex(args_block)
+    val = kwargs.get("related_name")
+    if isinstance(val, ast.Constant) and isinstance(val.value, str):
+        return val.value
+    return None
+
+
+def _extract_through_model(args_block: str) -> Optional[str]:
+    posargs, kwargs = _parse_call_args(args_block)
+    if posargs is None:
+        return _extract_through_model_regex(args_block)
+    val = kwargs.get("through")
+    if val is None:
+        return None
+    return _node_to_str(val)
+
+
+# ---------------------------------------------------------------------------
+# Regex fallbacks — used when ast.parse rejects the args block (rare: comments
+# mid-expression, unbalanced quotes in string literals, etc.). Kept behaviour-
+# compatible with pre-AST versions.
+# ---------------------------------------------------------------------------
+
+
+def _extract_related_regex(args_block: str) -> Optional[str]:
     stripped = args_block.strip()
     m = re.match(
         r"^(?:to\s*=\s*)?(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_.]*))",
@@ -153,7 +286,7 @@ def _extract_related(args_block: str):
     return raw.strip("'\"")
 
 
-def _extract_on_delete(args_block: str):
+def _extract_on_delete_regex(args_block: str) -> Optional[str]:
     m = re.search(r"on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)", args_block)
     if m:
         return m.group(1)
@@ -162,14 +295,14 @@ def _extract_on_delete(args_block: str):
     return None
 
 
-def _extract_related_name(args_block: str):
+def _extract_related_name_regex(args_block: str) -> Optional[str]:
     m = re.search(r"related_name\s*=\s*(?:'([^']+)'|\"([^\"]+)\")", args_block)
     if not m:
         return None
     return m.group(1) or m.group(2)
 
 
-def _extract_through_model(args_block: str):
+def _extract_through_model_regex(args_block: str) -> Optional[str]:
     m = re.search(
         r"\bthrough\s*=\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_.]*))",
         args_block,
@@ -412,6 +545,34 @@ DEFAULT_EXCLUDES = (
     "**/env/**",
 )
 
+# Directory names skipped when walking a workspace for arbitrary ``.py`` files
+# (n+1 scanner, signal graph). Kept broader than ``DEFAULT_EXCLUDES`` on purpose:
+# those are glob patterns for the models.py walk, this is a dirname-based
+# denylist for the whole-tree walk.
+BROAD_SKIP_DIRS: frozenset = frozenset(
+    {"migrations", "node_modules", "venv", ".venv", "env", ".git", "__pycache__"}
+)
+
+
+def iter_workspace_py_files(
+    root: Path, extra_skip: frozenset = frozenset()
+) -> Iterable[Path]:
+    """Yield every ``.py`` file under ``root`` except vendored / VCS junk.
+
+    Uses :data:`BROAD_SKIP_DIRS` plus ``extra_skip`` (e.g.
+    ``{"site-packages", "dist"}`` for the n+1 scanner). Dot-prefixed
+    directories are always skipped. Consolidates three earlier per-module
+    copies of the same walk so a change to the skip list stays in one place.
+    """
+    skip = BROAD_SKIP_DIRS | extra_skip
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [
+            d for d in dirnames if not d.startswith(".") and d not in skip
+        ]
+        for name in filenames:
+            if name.endswith(".py"):
+                yield Path(dirpath) / name
+
 
 def scan_workspace(
     root: str, exclude_globs: Sequence[str] = DEFAULT_EXCLUDES
@@ -426,7 +587,9 @@ def scan_workspace(
     """
     root_path = Path(root).resolve()
     all_defs: List[ParsedModel] = []
+    scanned_files = 0
     for py in _iter_python_files(root_path, exclude_globs):
+        scanned_files += 1
         try:
             content = py.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -450,4 +613,8 @@ def scan_workspace(
         app.models.append(model)
 
     sorted_apps = sorted(apps.values(), key=lambda a: a.name)
-    return WorkspaceIndex(apps=sorted_apps, scanned_at=int(time.time() * 1000))
+    return WorkspaceIndex(
+        apps=sorted_apps,
+        scanned_at=int(time.time() * 1000),
+        scanned_files=scanned_files,
+    )
