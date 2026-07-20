@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6] + [py-1.2.6] - 2026-07-21
+
+### Fixed
+
+- **Tab-indented model bodies now parse.** Editors that default to tabs (or projects that use PEP-8 exceptions with tabs) had every field silently dropped. `FIELD_RE` uses `\s{indent}` as its column prefix and `_detect_class_indent` correctly returns width 4 for tabs, but a single `\t` character is only one `\s` match, not four. Fixed by pre-expanding tabs to 4 spaces in the line buffer before regex matching. Applies to both parsers. Line numbers preserved (per-line expansion only).
+
+### Added
+
+- **`test_tab_indented_models.py`** — 3 Python regression tests (pure-tab body, mixed tab+space, and space-indent backward-compat).
+
 ## [0.7.5] + [py-1.2.5] - 2026-07-21
 
 Two more field-detection gaps closed via targeted fuzz of realistic Django user code.

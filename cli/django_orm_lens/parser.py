@@ -398,7 +398,12 @@ def _collect_defs(file_path: str, content: str) -> List[ParsedModel]:
     result with definitions from other files before calling
     ``_resolve_and_filter``.
     """
-    lines = content.splitlines()
+    # Expand tab characters to 4 spaces so the ``\s{indent}`` prefix used in
+    # FIELD_RE / BARE_FIELD_RE / META_ITEM_RE matches tab-indented code too.
+    # A single ``\t`` character otherwise contributes 1 to ``\s`` even though
+    # it's visually 4 columns — tab-indented models used to have zero fields
+    # detected. Line numbers are preserved (per-line expansion only).
+    lines = [line.expandtabs(4) for line in content.splitlines()]
     all_defs: List[ParsedModel] = []
     parent = os.path.basename(os.path.dirname(file_path))
     if parent == "models":

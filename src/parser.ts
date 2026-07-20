@@ -218,7 +218,13 @@ function readBalancedArgs(lines: string[], startIdx: number): {
 }
 
 export function parseModelsFile(filePath: string, content: string): ParsedModel[] {
-  const lines = content.split(/\r?\n/);
+  // Expand tab characters to 4 spaces so the `\s{indent}` prefix in
+  // FIELD_RE / BARE_FIELD_RE / META_ITEM_RE matches tab-indented code too.
+  // A single `\t` is 1 char but visually 4 columns — without expansion,
+  // tab-indented models used to have zero fields detected.
+  const lines = content
+    .split(/\r?\n/)
+    .map((l) => l.replace(/\t/g, '    '));
   const models: ParsedModel[] = [];
   const parent = path.basename(path.dirname(filePath));
   const appName =
