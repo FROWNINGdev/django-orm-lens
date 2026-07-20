@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.2.2] - 2026-07-20
+
+CLI welcome UX — bidirectional discoverability between PyPI and the editor extensions. Data motivation: PyPI is doing ~1,663 installs/week while the VS Code Marketplace sits at ~10 installs total. Users who install the CLI don't know the extension exists (and vice-versa in the extension welcome view). This closes the gap.
+
+### Changed
+
+- **`django-orm-lens` welcome (no-arg run)** now prints a "prefer a visual sidebar + ER diagram in your editor?" block after the docs link, with copy-paste install commands for both marketplace paths:
+  - `code --install-extension frowningdev.django-orm-lens` — VS Code / Cursor / Windsurf
+  - `codium --install-extension frowningdev.django-orm-lens` — VSCodium / code-server / Gitpod / any OSS Code fork (via Open VSX)
+
+  Rest of the welcome (commands table + star CTA) is unchanged.
+
 ## [py-1.2.1] - 2026-07-20
 
 Patch release — two crash bugs in the CLI wrapper that unit tests missed because they exercised the underlying helpers directly instead of going through argparse dispatch. Both surfaced during an end-to-end smoke run against a real Django codebase.

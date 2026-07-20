@@ -457,6 +457,10 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("run `django-orm-lens <command> --help` for options.")
     print("docs: https://github.com/FROWNINGdev/django-orm-lens")
     print()
+    print("prefer a visual sidebar + ER diagram in your editor?")
+    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.django-orm-lens")
+    print("  VSCodium / code-server:       codium --install-extension frowningdev.django-orm-lens")
+    print()
     print("if this saves you a search, star helps others find it:")
     print("  https://github.com/FROWNINGdev/django-orm-lens")
     return 0
