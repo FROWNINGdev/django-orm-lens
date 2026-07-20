@@ -108,7 +108,7 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <!-- Tech stack + license -->
 
-[![VS Code v0.6.0](https://img.shields.io/badge/VS_Code-v0.6.0-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![VS Code v0.7.0](https://img.shields.io/badge/VS_Code-v0.7.0-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&label=Python&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Django](https://img.shields.io/badge/Django-4.0_%E2%80%93_5.1-092e20?style=for-the-badge&logo=django&logoColor=white&labelColor=1e293b)](https://www.djangoproject.com/)
@@ -116,7 +116,7 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 </div>
 
-<sub><i>Updated 2026-07-19. GitHub stars / forks + total downloads (via pepy.tech) auto-refresh live; weekly count and VS Code / PyPI versions update on release.</i></sub>
+<sub><i>Updated 2026-07-20. GitHub stars / forks + total downloads (via pepy.tech) auto-refresh live; weekly count and VS Code / PyPI versions update on release.</i></sub>
 
 > If the tool saves you a `grep` next time you touch a strange Django project — **[star helps others find it](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**.
 
@@ -453,6 +453,10 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.6.0** — ER-diagram minimap color-codes nodes by Django app
 - [x] **v0.6.0** — README translations: 🇷🇺 Russian, 🇪🇸 Spanish, 🇨🇳 Chinese
 - [x] **v0.6.0** — Docker image on GHCR: `docker run ghcr.io/frowningdev/django-orm-lens`
+- [x] **v0.7.0** — `settings.AUTH_USER_MODEL` resolves everywhere: n+1 reverse-relations, signal senders, Mermaid ER, VS Code webview, inbound-relation panel, React ER
+- [x] **v0.7.0** — AST-based field parser: `ForeignKey(on_delete=CASCADE, to='User')` resolves regardless of kwarg order (Python + TS parity)
+- [x] **v0.7.0** — Public shared helpers: `find_user_model`, `resolve_related_tail`, `find_model`, `iter_workspace_py_files` (Python) + `findUserModel`, `resolveRelatedTail` (TS)
+- [x] **v0.7.0** — `--verbose` no longer walks the tree twice; `WorkspaceIndex.scanned_files` carries the count
 
 **Next**
 
@@ -532,7 +536,7 @@ New here? See [CONTRIBUTING.md → "How to become a contributor"](.github/CONTRI
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/FROWNINGdev"><img src="https://avatars.githubusercontent.com/u/218313741?v=4?s=80" width="80px;" alt="frowningdev"/><br /><sub><b>frowningdev</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=FROWNINGdev" title="Code">💻</a> <a href="#doc-FROWNINGdev" title="Documentation">📖</a> <a href="#design-FROWNINGdev" title="Design">🎨</a> <a href="#ideas-FROWNINGdev" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-FROWNINGdev" title="Maintenance">🚧</a> <a href="#review-FROWNINGdev" title="Reviewed Pull Requests">👀</a> <a href="#test-FROWNINGdev" title="Tests">⚠️</a> <a href="#infra-FROWNINGdev" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/FROWNINGdev"><img src="https://avatars.githubusercontent.com/u/218313741?v=4?s=80" width="80px;" alt="Shoamir Shorustamov"/><br /><sub><b>Shoamir Shorustamov</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=FROWNINGdev" title="Code">💻</a> <a href="#doc-FROWNINGdev" title="Documentation">📖</a> <a href="#design-FROWNINGdev" title="Design">🎨</a> <a href="#ideas-FROWNINGdev" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-FROWNINGdev" title="Maintenance">🚧</a> <a href="#review-FROWNINGdev" title="Reviewed Pull Requests">👀</a> <a href="#test-FROWNINGdev" title="Tests">⚠️</a> <a href="#infra-FROWNINGdev" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#projectManagement-FROWNINGdev" title="Project Management">📆</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/kingrubic"><img src="https://avatars.githubusercontent.com/u/116256161?v=4?s=80" width="80px;" alt="Bao"/><br /><sub><b>Bao</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=kingrubic" title="Code">💻</a> <a href="#test-kingrubic" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
