@@ -16,6 +16,7 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 <br/>
 
 [![Install from Marketplace](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Open VSX](https://img.shields.io/badge/Open_VSX-Install-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
 [![PyPI](https://img.shields.io/badge/PyPI-pip_install-3775a9?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6f42c1?style=for-the-badge)](https://registry.modelcontextprotocol.io/)
 [![Glama](https://img.shields.io/badge/Glama-listed-0f172a?style=for-the-badge)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
@@ -41,10 +42,11 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 
 Django ORM Lens ships as **three distributions on one core** — pick the one that matches your workflow. Each takes under 60 seconds.
 
-**Editor user (VS Code / Cursor / Windsurf):** install the extension → open any Django project → sidebar tree + ER diagram appear.
+**Editor user (VS Code / Cursor / Windsurf / VSCodium / code-server / Gitpod):** install the extension → open any Django project → sidebar tree + ER diagram appear.
 
 ```bash
-code --install-extension frowningdev.django-orm-lens
+code --install-extension frowningdev.django-orm-lens          # VS Code, Cursor, Windsurf
+codium --install-extension frowningdev.django-orm-lens        # VSCodium, code-server (via Open VSX)
 ```
 
 **Terminal / CI user:** install from PyPI → run `django-orm-lens` in any directory that contains Django apps.
@@ -108,7 +110,8 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <!-- Tech stack + license -->
 
-[![VS Code v0.7.0](https://img.shields.io/badge/VS_Code-v0.7.0-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![VS Code v0.7.2](https://img.shields.io/badge/VS_Code-v0.7.2-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Open VSX v0.7.2](https://img.shields.io/badge/Open_VSX-v0.7.2-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white&labelColor=1e293b)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
 [![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&label=Python&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
 [![Django](https://img.shields.io/badge/Django-4.0_%E2%80%93_5.1-092e20?style=for-the-badge&logo=django&logoColor=white&labelColor=1e293b)](https://www.djangoproject.com/)
@@ -124,13 +127,19 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 ## ⚡ Install
 
-**VS Code / Cursor / Windsurf / any Code fork:**
+**VS Code / Cursor / Windsurf** (VS Code Marketplace):
 
 ```bash
 code --install-extension frowningdev.django-orm-lens
 ```
 
-Or search **`Django ORM Lens`** in the Extensions view.
+**VSCodium / code-server / Gitpod / any OSS Code fork** (Open VSX):
+
+```bash
+codium --install-extension frowningdev.django-orm-lens
+```
+
+Or search **`Django ORM Lens`** in the Extensions view — same publisher `frowningdev` on both registries.
 
 **Terminal & AI coding agents:**
 
