@@ -466,6 +466,10 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.7.0** — AST-based field parser: `ForeignKey(on_delete=CASCADE, to='User')` resolves regardless of kwarg order (Python + TS parity)
 - [x] **v0.7.0** — Public shared helpers: `find_user_model`, `resolve_related_tail`, `find_model`, `iter_workspace_py_files` (Python) + `findUserModel`, `resolveRelatedTail` (TS)
 - [x] **v0.7.0** — `--verbose` no longer walks the tree twice; `WorkspaceIndex.scanned_files` carries the count
+- [x] **v0.7.3** — PEP-526 type annotations on fields (`jti: CharField[str] = models.CharField(...)`) now parse — reported by [@jsabater](https://github.com/jsabater) ([#25](https://github.com/FROWNINGdev/django-orm-lens/issues/25)) with a clean Django Ninja 1.6 repro
+- [x] **v0.7.4** — PEP-695 generic class headers (Python 3.12+): `class Container[T](models.Model):` now parses
+- [x] **v0.7.5** — Aliased models module (`from django.db import models as m`) and third-party field packages (`jsonfield.JSONField`) now detected
+- [x] **v0.7.6** — Tab-indented model bodies now parse (editors defaulting to tabs no longer show empty models)
 
 **Next**
 
