@@ -56,22 +56,23 @@ jobs:
         # tag push often races: GHCR starts before PyPI has indexed the new
         # version and `pip install django-orm-lens==X` errors with
         # "No matching distribution found". Poll the JSON API until the
-        # version appears (or give up after ~5 min, in which case Build
+        # version appears (or give up after ~15 min, in which case Build
         # will fail loudly with the pip error rather than silently baking
-        # a stale image).
+        # a stale image). 5 min proved too tight during py-v1.2.7 — PyPI's
+        # CDN occasionally takes longer to propagate a new release.
         if: steps.ver.outputs.PKG_VERSION != ''
         run: |
           VER="${{ steps.ver.outputs.PKG_VERSION }}"
           echo "Waiting for django-orm-lens==$VER to appear on PyPI..."
-          for i in $(seq 1 30); do
+          for i in $(seq 1 90); do
             if curl -fsS "https://pypi.org/pypi/django-orm-lens/${VER}/json" >/dev/null 2>&1; then
               echo "django-orm-lens==$VER is on PyPI (attempt $i)"
               exit 0
             fi
-            echo "Not yet indexed (attempt $i/30), sleeping 10s..."
+            echo "Not yet indexed (attempt $i/90), sleeping 10s..."
             sleep 10
           done
-          echo "PyPI never indexed $VER after 5 minutes — proceeding anyway (Build step will show the pip error)"
+          echo "PyPI never indexed $VER after 15 minutes — proceeding anyway (Build step will show the pip error)"
 
       - name: Build and push
         uses: docker/build-push-action@v6
