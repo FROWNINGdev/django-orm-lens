@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.8] - 2026-07-21
+
+Marketplace SEO polish — no runtime changes, no behaviour changes. VS Code extension only (CLI/MCP unchanged, still on py-1.2.7).
+
+### Changed
+
+- **VS Code Marketplace metadata refreshed** for better discoverability.
+  - `description` rewritten to lead with the value ("See your entire Django schema in your editor") instead of the feature list.
+  - `categories` expanded from `[Visualization, Other]` → `[Visualization, Programming Languages, AI, Other]` to surface in more Marketplace filters.
+  - `keywords` expanded from 7 → 29 with real search terms users type: `erd`, `entity relationship`, `schema visualizer`, `model explorer`, `foreign key`, `n+1`, `query optimization`, `mcp`, `ai agent`, `cursor`, `vscodium`, `postgresql`, `django-rest-framework`, and more.
+  - Added `galleryBanner` (`#0c4b33` Django-green) — the extension page now has a themed header instead of default grey.
+  - Added `qna: "marketplace"` (enable built-in Q&A) and `sponsor.url` (GitHub Sponsors link surfaced in the sidebar).
+- **CI:** GHCR `Wait for PyPI` step widened 5 min → 15 min. The `py-v1.2.7` publish raced the PyPI CDN and the container step failed at the pip install; wider window makes future releases robust to slow PyPI propagation.
+
 ## [0.7.7] + [py-1.2.7] - 2026-07-21
 
 ### Fixed

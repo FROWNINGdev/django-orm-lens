@@ -1,8 +1,17 @@
 {
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
-  "description": "Live sidebar + ER diagram for your Django models. Navigate apps, models, fields and relationships without leaving the editor.",
-  "version": "0.7.7",
+  "description": "See your entire Django schema in your editor. Live sidebar of every app, model, field and relationship, one keystroke to an interactive ER diagram. Static analysis — no DB, no Django boot.",
+  "version": "0.7.8",
+  "preview": false,
+  "galleryBanner": {
+    "color": "#0c4b33",
+    "theme": "dark"
+  },
+  "qna": "marketplace",
+  "sponsor": {
+    "url": "https://github.com/sponsors/FROWNINGdev"
+  },
   "publisher": "frowningdev",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -19,6 +28,8 @@
   },
   "categories": [
     "Visualization",
+    "Programming Languages",
+    "AI",
     "Other"
   ],
   "keywords": [
@@ -27,8 +38,30 @@
     "orm",
     "models",
     "er diagram",
+    "erd",
+    "entity relationship",
     "database",
-    "schema"
+    "database schema",
+    "schema",
+    "schema visualizer",
+    "model explorer",
+    "foreign key",
+    "relations",
+    "relationships",
+    "django-rest-framework",
+    "drf",
+    "postgres",
+    "postgresql",
+    "static analysis",
+    "n+1",
+    "query optimization",
+    "mcp",
+    "ai agent",
+    "cursor",
+    "vscodium",
+    "sidebar",
+    "navigation",
+    "migration"
   ],
   "activationEvents": [
     "onStartupFinished",
