@@ -85,9 +85,10 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 [![VS Code installs](https://img.shields.io/badge/VS_Code_installs-11-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![Open VSX verified](https://img.shields.io/badge/Open_VSX-verified_%E2%9C%93_836_dl-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white&labelColor=1e293b)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
 [![GitHub views](https://img.shields.io/badge/GitHub_views_14d-745-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
-[![LinkedIn posts](https://img.shields.io/badge/LinkedIn_posts_live-8-0a66c2?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1e293b)](https://linkedin.com/company/django-orm-lens)
-[![Awesome-list PRs](https://img.shields.io/badge/awesome--list_PRs-3_active-16a34a?style=for-the-badge&logo=awesomelists&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev)
-[![Community PRs merged](https://img.shields.io/badge/community_PRs_merged-7-8b5cf6?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/pulls?q=is%3Apr+is%3Amerged+-author%3AFROWNINGdev)
+[![LinkedIn posts](https://img.shields.io/badge/LinkedIn_posts_live-9-0a66c2?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1e293b)](https://linkedin.com/company/django-orm-lens)
+[![awesome-mcp-servers](https://img.shields.io/badge/awesome--mcp--servers-merged_%E2%9C%93-16a34a?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/punkpeye/awesome-mcp-servers)
+[![Awesome-list PRs](https://img.shields.io/badge/awesome--list_PRs-1_merged_%2B_2_open-16a34a?style=for-the-badge&logo=awesomelists&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev)
+[![Community PRs merged](https://img.shields.io/badge/community_PRs_merged-8-8b5cf6?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/pulls?q=is%3Apr+is%3Amerged+-author%3AFROWNINGdev)
 
 <br/>
 
