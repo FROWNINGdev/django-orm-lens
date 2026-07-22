@@ -199,6 +199,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show a CodeLens above each Django model class with field/relation counts and an 'Open ER diagram' action"
+        },
+        "djangoOrmLens.codeFixes.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline QuickFix diagnostics for common Django ORM anti-patterns (.count() > 0, .first() is None, attribute access in for-loop). Disable if noisy on your codebase."
         }
       }
     }

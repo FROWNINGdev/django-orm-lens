@@ -4,6 +4,7 @@ import { DjangoTreeProvider } from './treeProvider';
 import { showGraph } from './graphWebview';
 import { DjangoHoverProvider } from './hoverProvider';
 import { DjangoCodeLensProvider } from './codeLensProvider';
+import { registerCodeFixes } from './codeActionProvider';
 import { TreeNode, WorkspaceIndex } from './types';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
@@ -153,6 +154,14 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
   );
+
+  // v0.8 · WOW-feature #3 from Discussion #27 — static-analysis QuickFixes:
+  // `.count() > 0` -> `.exists()`, `.first() is None` -> `not .exists()`,
+  // and N+1 attribute-access-in-loop diagnostics. Feature-flagged via
+  // djangoOrmLens.codeFixes.enabled (default true).
+  for (const d of registerCodeFixes(context)) {
+    context.subscriptions.push(d);
+  }
 
   context.subscriptions.push(
     vscode.commands.registerCommand('djangoOrmLens.refresh', async () => {
