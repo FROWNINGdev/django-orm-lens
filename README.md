@@ -15,10 +15,19 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 
 <br/>
 
+<!-- 🏆 TROPHY ROW · third-party validation ────────────────────── -->
+
+[![Merged into awesome-mcp-servers](https://img.shields.io/badge/%F0%9F%8F%86_Merged_into-awesome--mcp--servers_%C2%B7_91k_%E2%98%85-eab308?style=for-the-badge&labelColor=1e293b)](https://github.com/punkpeye/awesome-mcp-servers)
+[![Open VSX verified](https://img.shields.io/badge/%E2%9C%93_Open_VSX-verified_by_Eclipse_Foundation-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white&labelColor=1e293b)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
+[![MCP Registry official](https://img.shields.io/badge/%F0%9F%94%97_MCP_Registry-official_listing-6f42c1?style=for-the-badge&labelColor=1e293b)](https://registry.modelcontextprotocol.io/)
+
+<br/>
+
+<!-- Install channels ─────────────────────────────────────────── -->
+
 [![Install from Marketplace](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![Open VSX](https://img.shields.io/badge/Open_VSX-Install-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
 [![PyPI](https://img.shields.io/badge/PyPI-pip_install-3775a9?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6f42c1?style=for-the-badge)](https://registry.modelcontextprotocol.io/)
 [![Glama](https://img.shields.io/badge/Glama-listed-0f172a?style=for-the-badge)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
 [![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge)](https://mcp.so/servers/django-orm-lens)
 [![Star on GitHub](https://img.shields.io/badge/★-Star_on_GitHub-24292f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/FROWNINGdev/django-orm-lens)
