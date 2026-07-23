@@ -432,6 +432,66 @@ The defaults are opinionated and sensible. If you need to tweak:
 |---|---|---|---|
 | `djangoOrmLens.excludeGlobs` | `string[]` | See above | Glob patterns to skip when scanning |
 | `djangoOrmLens.autoRefresh` | `boolean` | `true` | Rescan on `models.py` changes |
+| `djangoOrmLens.codeFixes.enabled` | `boolean` | `true` | Master switch for the DOL### diagnostics + QuickFixes |
+| `djangoOrmLens.rules` | `object` | `{}` | Per-rule severity: `{ "DOL007": "off", "DOL013": "error" }` |
+| `djangoOrmLens.rulesSelect` | `string[]` | `[]` | Ruff-style select. `["DOL0"]` runs only queryset+model rules |
+| `djangoOrmLens.rulesIgnore` | `string[]` | `[]` | Ruff-style ignore. `["DOL03"]` silences form/view rules |
+
+<br/>
+
+## 🔬 Rule catalogue (v0.8)
+
+Sixteen static-analysis checks over `.py` files. All are line-oriented (no Python process required), grouped into four categories, and individually toggle-able. Every rule has a stable `DOL###` code that appears in the Problems panel and links to its docs.
+
+### Queryset
+
+| Code | Rule | Default | Applicability |
+|---|---|---|---|
+| `DOL001` | `.count() > 0` → `.exists()` | info | safe |
+| `DOL002` | `.count() == 0` → `not .exists()` | info | safe |
+| `DOL003` | `.first() is None` → `not .exists()` | info | safe |
+| `DOL004` | `.first() is not None` → `.exists()` | info | safe |
+| `DOL005` | `.filter().exclude()` → `Q(...) & ~Q(...)` | hint | suggestion |
+| `DOL006` | `for x in list(qs):` → `for x in qs:` | info | safe |
+| `DOL007` | FK attribute access inside for-loop (N+1) | warning | unsafe |
+
+### Model definition
+
+| Code | Rule | Default | Applicability |
+|---|---|---|---|
+| `DOL011` | `CharField / TextField(null=True)` → `blank=True` | warning | suggestion |
+| `DOL012` | Model without `__str__` method | info | suggestion |
+| `DOL013` | `ForeignKey` without `on_delete` | error | suggestion |
+| `DOL014` | `CharField` without `max_length` | error | suggestion |
+| `DOL015` | `TextField(max_length=...)` has no DB effect | hint | suggestion |
+
+### Datetime
+
+| Code | Rule | Default | Applicability |
+|---|---|---|---|
+| `DOL021` | `datetime.now()` → `timezone.now()` | warning | suggestion |
+| `DOL022` | `datetime.utcnow()` (deprecated 3.12) | warning | suggestion |
+
+### Forms / views
+
+| Code | Rule | Default | Applicability |
+|---|---|---|---|
+| `DOL031` | `render(request, tpl, locals())` — explicit dict | warning | suggestion |
+| `DOL032` | `Meta.fields = '__all__'` — audit surface | warning | unsafe |
+
+### Suppress inline
+
+```python
+# django-orm-lens-disable-next-line DOL007
+for user in User.objects.all():
+    print(user.profile)  # not flagged
+
+qs.count() > 0  # django-orm-lens-disable-line DOL001
+
+# django-orm-lens-disable DOL011  ← on its own line, kills DOL011 for the rest of the file
+```
+
+Applicability follows Rust's Clippy: **safe** fixes can be applied automatically ("Fix All"), **suggestion** fixes are offered as a QuickFix but reviewed, **unsafe** findings never auto-apply. Fixes are separated from analyzers (Roslyn-style), so one rule can grow multiple fixers over time without touching detection logic.
 
 <br/>
 

@@ -1,172 +1,54 @@
 import * as vscode from 'vscode';
+import {
+  DIAGNOSTIC_SOURCE,
+  findFixersForCode,
+  getRuleByCode,
+  scanDocument,
+  toDiagnosticSeverity,
+} from './rules';
+import { FixEdit, makeRuleContext } from './rules/types';
 
 /**
- * Django ORM Lens — static-analysis QuickFix / CodeAction provider.
+ * Django ORM Lens — code-action / diagnostics orchestrator.
  *
- * Detects common Django ORM anti-patterns in Python source and suggests
- * idiomatic replacements as VS Code CodeActions. Zero runtime, zero DB —
- * pure regex + line-context inspection, feature-flagged via
- * `djangoOrmLens.codeFixes.enabled` (default true).
+ * Historically this file owned regex, findings, message templates, and
+ * severity mapping all in one. v0.8 splits those concerns into
+ * `src/rules/*` and this module becomes a thin adapter:
  *
- * Ships v0.8 as WOW-feature #3 from the community roadmap in Discussion #27.
- * Complements the sidebar / ER diagram / CLI without replacing existing
- * runtime tools like django-debug-toolbar or nplusone.
+ *   scanDocument(doc) → ResolvedFinding[]  (in ./rules/index.ts)
+ *   ResolvedFinding    → vscode.Diagnostic
+ *   diag.code (DOL###) → findFixersForCode(...) → vscode.CodeAction[]
  *
- * Coverage on release:
- *   1. `.filter(...).count() > 0`   → `.filter(...).exists()`
- *   2. `.filter(...).count() == 0`  → `not .filter(...).exists()`
- *   3. `.first() is None`           → `not ...exists()`
- *   4. `.first() is not None`       → `...exists()`
- *   5. bare `.all()` inside a for-loop over a QuerySet — flag missing
- *      `select_related` when a `.` field access on the loop var appears.
+ * The public wire format is: `Diagnostic.source = "Django ORM Lens"` and
+ * `Diagnostic.code` is a `{ value, target }` pair with the Ruff-style
+ * short code and a clickable link to the rule docs on hover.
  *
- * Each finding surfaces two artefacts:
- *   - a Diagnostic (squiggle, Information/Warning severity)
- *   - a CodeAction (yellow lightbulb) that applies the fix on click.
+ * Feature flag: `djangoOrmLens.codeFixes.enabled` (default true).
+ * Per-rule opt-out: `djangoOrmLens.rules.<CODE> = "off"` (see rules/index.ts).
  */
-export const DIAGNOSTIC_SOURCE = 'Django ORM Lens';
-export const DOL_RULE_PREFIX = 'dol/';
 
-/** Rule identifiers used both in Diagnostic.code and in messages. */
-export const RULES = {
-  countGtZero: `${DOL_RULE_PREFIX}count-gt-zero`,
-  countEqZero: `${DOL_RULE_PREFIX}count-eq-zero`,
-  firstIsNone: `${DOL_RULE_PREFIX}first-is-none`,
-  firstIsNotNone: `${DOL_RULE_PREFIX}first-is-not-none`,
-  fkAccessInLoop: `${DOL_RULE_PREFIX}fk-access-in-loop`,
-} as const;
-
-const RE_COUNT_GT_ZERO =
-  /(\b[A-Za-z_][\w.]*(?:\([^()]*\))*)\.count\(\)\s*(?:>\s*0|>=\s*1)\b/g;
-
-const RE_COUNT_EQ_ZERO =
-  /(\b[A-Za-z_][\w.]*(?:\([^()]*\))*)\.count\(\)\s*==\s*0\b/g;
-
-const RE_FIRST_IS_NONE =
-  /(\b[A-Za-z_][\w.]*(?:\([^()]*\))*)\.first\(\)\s+is\s+None\b/g;
-
-const RE_FIRST_IS_NOT_NONE =
-  /(\b[A-Za-z_][\w.]*(?:\([^()]*\))*)\.first\(\)\s+is\s+not\s+None\b/g;
-
-const RE_FOR_LOOP_HEAD =
-  /^\s*for\s+([A-Za-z_]\w*)\s+in\s+([A-Za-z_][\w.]*(?:\([^()]*\))*(?:\.all\(\))?)\s*:/;
-
-interface RawFinding {
-  rule: string;
-  message: string;
-  range: vscode.Range;
-  replacement: string;
-  actionTitle: string;
-}
-
-function scanLine(
-  doc: vscode.TextDocument,
-  lineIndex: number,
-): RawFinding[] {
-  const findings: RawFinding[] = [];
-  const text = doc.lineAt(lineIndex).text;
-
-  const stripped = text.trimStart();
-  if (stripped.startsWith('#')) return findings;
-
-  const singleShotRules: Array<[RegExp, (m: RegExpExecArray) => Omit<RawFinding, 'range'>]> = [
-    [
-      RE_COUNT_GT_ZERO,
-      (m) => ({
-        rule: RULES.countGtZero,
-        message: `Prefer .exists() over .count() > 0 — cheaper and clearer.`,
-        replacement: `${m[1]}.exists()`,
-        actionTitle: `Use .exists() instead of .count() > 0`,
-      }),
-    ],
-    [
-      RE_COUNT_EQ_ZERO,
-      (m) => ({
-        rule: RULES.countEqZero,
-        message: `Prefer not .exists() over .count() == 0 — cheaper and clearer.`,
-        replacement: `not ${m[1]}.exists()`,
-        actionTitle: `Use not .exists() instead of .count() == 0`,
-      }),
-    ],
-    [
-      RE_FIRST_IS_NONE,
-      (m) => ({
-        rule: RULES.firstIsNone,
-        message: `Prefer not .exists() over .first() is None — no row fetch needed.`,
-        replacement: `not ${m[1]}.exists()`,
-        actionTitle: `Use not .exists() instead of .first() is None`,
-      }),
-    ],
-    [
-      RE_FIRST_IS_NOT_NONE,
-      (m) => ({
-        rule: RULES.firstIsNotNone,
-        message: `Prefer .exists() over .first() is not None — no row fetch needed.`,
-        replacement: `${m[1]}.exists()`,
-        actionTitle: `Use .exists() instead of .first() is not None`,
-      }),
-    ],
-  ];
-
-  for (const [regex, mkFinding] of singleShotRules) {
-    regex.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(text)) !== null) {
-      const start = match.index;
-      const end = start + match[0].length;
-      const range = new vscode.Range(lineIndex, start, lineIndex, end);
-      findings.push({ ...mkFinding(match), range });
-    }
+/** Materialise our line/col FixEdits into a vscode.WorkspaceEdit. */
+function applyEdits(
+  uri: vscode.Uri,
+  edits: FixEdit[],
+): vscode.WorkspaceEdit {
+  const wsEdit = new vscode.WorkspaceEdit();
+  for (const e of edits) {
+    wsEdit.replace(
+      uri,
+      new vscode.Range(e.line, e.startCol, e.line, e.endCol),
+      e.newText,
+    );
   }
-  return findings;
+  return wsEdit;
 }
 
 /**
- * Detect a possible N+1 pattern by scanning up to `MAX_LOOP_LINES` lines
- * after a `for <var> in <qs>:` header. If we see `<var>.<name>` where
- * `<name>` looks like a relation, flag it. Regex-only; no ast module.
+ * CodeActionProvider. For each diagnostic in the current range that
+ * carries a `DOL###` code, look up matching fixers and materialise
+ * a CodeAction per fixer. Fixers whose `build()` returns null are
+ * dropped silently — that's how a fixer opts out for edge cases.
  */
-const MAX_LOOP_LINES = 15;
-const LOOP_VAR_ATTR_RE = /\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\b/g;
-
-function scanForLoops(doc: vscode.TextDocument): RawFinding[] {
-  const out: RawFinding[] = [];
-  const total = doc.lineCount;
-  for (let i = 0; i < total; i++) {
-    const headText = doc.lineAt(i).text;
-    const head = RE_FOR_LOOP_HEAD.exec(headText);
-    if (!head) continue;
-    const loopVar = head[1];
-    const qsExpr = head[2];
-
-    const end = Math.min(total, i + 1 + MAX_LOOP_LINES);
-    for (let j = i + 1; j < end; j++) {
-      const line = doc.lineAt(j).text;
-      if (line.length > 0 && !/^\s/.test(line)) break;
-      LOOP_VAR_ATTR_RE.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = LOOP_VAR_ATTR_RE.exec(line)) !== null) {
-        if (m[1] !== loopVar) continue;
-        const attr = m[2];
-        if (attr.startsWith('_')) continue;
-        if (attr === 'id' || attr === 'pk' || attr === 'save') continue;
-        const startCol = m.index;
-        const range = new vscode.Range(j, startCol, j, startCol + m[0].length);
-        out.push({
-          rule: RULES.fkAccessInLoop,
-          message: `Attribute access '${m[0]}' inside a loop over '${qsExpr}' — consider .select_related() or .prefetch_related() to avoid an N+1.`,
-          range,
-          replacement: '',
-          actionTitle: `Add .select_related('${attr}') hint to the QuerySet header`,
-        });
-        break;
-      }
-    }
-  }
-  return out;
-}
-
-/** CodeActionProvider — thin wrapper that reuses scanLine. */
 export class DjangoCodeFixesProvider implements vscode.CodeActionProvider {
   static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
@@ -176,37 +58,56 @@ export class DjangoCodeFixesProvider implements vscode.CodeActionProvider {
     document: vscode.TextDocument,
     range: vscode.Range | vscode.Selection,
   ): vscode.CodeAction[] {
-    const relevantDiags = this.diagnostics
+    const relevant = this.diagnostics
       .get(document.uri)
       ?.filter(
         (d) =>
-          typeof d.code === 'string' &&
-          d.code.startsWith(DOL_RULE_PREFIX) &&
+          typeof d.code === 'object' &&
+          d.code !== null &&
+          typeof (d.code as { value: unknown }).value === 'string' &&
+          (d.code as { value: string }).value.startsWith('DOL') &&
           d.range.intersection(range) !== undefined,
       );
-    if (!relevantDiags?.length) return [];
+    if (!relevant?.length) return [];
 
     const actions: vscode.CodeAction[] = [];
-    for (const diag of relevantDiags) {
-      const findings = scanLine(document, diag.range.start.line);
-      const hit = findings.find(
-        (f) => f.rule === diag.code && f.range.isEqual(diag.range),
-      );
-      if (!hit || !hit.replacement) continue;
-
-      const edit = new vscode.WorkspaceEdit();
-      edit.replace(document.uri, diag.range, hit.replacement);
-      const action = new vscode.CodeAction(hit.actionTitle, vscode.CodeActionKind.QuickFix);
-      action.diagnostics = [diag];
-      action.edit = edit;
-      action.isPreferred = true;
-      actions.push(action);
+    for (const diag of relevant) {
+      const code = (diag.code as { value: string }).value;
+      const rule = getRuleByCode(code);
+      if (!rule) continue;
+      // Re-run just this one rule to recover the finding's `fixHint` and
+      // `applicability` (both are not preserved on the vscode.Diagnostic).
+      // Cheap — one regex pass over an already-open document.
+      const findings = rule
+        .check(makeRuleContext(document))
+        .filter(
+          (f) =>
+            f.range.line === diag.range.start.line &&
+            f.range.startCol === diag.range.start.character &&
+            f.range.endCol === diag.range.end.character,
+        );
+      if (findings.length === 0) continue;
+      const finding = findings[0];
+      const fixers = findFixersForCode(code, finding.fixHint);
+      for (const fixer of fixers) {
+        const edits = fixer.build({ finding, document });
+        if (!edits || edits.length === 0) continue;
+        const action = new vscode.CodeAction(
+          fixer.title,
+          vscode.CodeActionKind.QuickFix,
+        );
+        action.diagnostics = [diag];
+        action.edit = applyEdits(document.uri, edits);
+        action.isPreferred =
+          finding.applicability === 'safe' && fixers.length === 1;
+        actions.push(action);
+      }
     }
     return actions;
   }
 }
 
-/** Lint pass for a single document — safe to call on every save. */
+/** Turn ResolvedFinding[] into vscode.Diagnostic[] and publish them. */
 export function refreshDiagnosticsForDoc(
   doc: vscode.TextDocument,
   collection: vscode.DiagnosticCollection,
@@ -221,28 +122,41 @@ export function refreshDiagnosticsForDoc(
     return;
   }
 
-  const findings: RawFinding[] = [];
-  for (let i = 0; i < doc.lineCount; i++) {
-    findings.push(...scanLine(doc, i));
-  }
-  findings.push(...scanForLoops(doc));
+  const findings = scanDocument(doc);
 
-  const diags: vscode.Diagnostic[] = findings.map((f) => {
-    const severity =
-      f.rule === RULES.fkAccessInLoop
-        ? vscode.DiagnosticSeverity.Warning
-        : vscode.DiagnosticSeverity.Information;
-    const diag = new vscode.Diagnostic(f.range, f.message, severity);
-    diag.code = f.rule;
-    diag.source = DIAGNOSTIC_SOURCE;
-    return diag;
-  });
+  const diags: vscode.Diagnostic[] = findings.map(
+    ({ finding, rule, severity, renderedMessage }) => {
+      const range = new vscode.Range(
+        finding.range.line,
+        finding.range.startCol,
+        finding.range.line,
+        finding.range.endCol,
+      );
+      const diag = new vscode.Diagnostic(
+        range,
+        renderedMessage,
+        toDiagnosticSeverity(severity),
+      );
+      diag.source = DIAGNOSTIC_SOURCE;
+      diag.code = {
+        value: finding.code,
+        target: vscode.Uri.parse(rule.meta.docsUrl),
+      };
+      if (
+        rule.meta.category === 'style' &&
+        finding.applicability === 'safe'
+      ) {
+        diag.tags = [vscode.DiagnosticTag.Unnecessary];
+      }
+      return diag;
+    },
+  );
 
   collection.set(doc.uri, diags);
 }
 
 /**
- * Register the provider + wire diagnostics to active-editor / save / open
+ * Register the provider + wire diagnostics to open / change / save / close
  * events. Returns disposables to push into ExtensionContext.subscriptions.
  */
 export function registerCodeFixes(
@@ -264,6 +178,18 @@ export function registerCodeFixes(
     ),
     vscode.workspace.onDidSaveTextDocument((d) => refreshDiagnosticsForDoc(d, collection)),
     vscode.workspace.onDidCloseTextDocument((d) => collection.delete(d.uri)),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (
+        e.affectsConfiguration('djangoOrmLens.codeFixes.enabled') ||
+        e.affectsConfiguration('djangoOrmLens.rules') ||
+        e.affectsConfiguration('djangoOrmLens.rulesSelect') ||
+        e.affectsConfiguration('djangoOrmLens.rulesIgnore')
+      ) {
+        for (const doc of vscode.workspace.textDocuments) {
+          refreshDiagnosticsForDoc(doc, collection);
+        }
+      }
+    }),
   ];
 
   for (const doc of vscode.workspace.textDocuments) {
@@ -271,4 +197,25 @@ export function registerCodeFixes(
   }
 
   return disposables;
+}
+
+/** Public export for the tree-badge feature: total Django-ORM-Lens issue count. */
+export function getIssueCount(
+  collection: vscode.DiagnosticCollection,
+): number {
+  let n = 0;
+  collection.forEach((_uri, diags) => {
+    for (const d of diags) {
+      if (
+        d.source === DIAGNOSTIC_SOURCE &&
+        typeof d.code === 'object' &&
+        d.code !== null &&
+        typeof (d.code as { value: unknown }).value === 'string' &&
+        (d.code as { value: string }).value.startsWith('DOL')
+      ) {
+        n++;
+      }
+    }
+  });
+  return n;
 }

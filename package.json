@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "See your entire Django schema in your editor. Live sidebar of every app, model, field and relationship, one keystroke to an interactive ER diagram. Static analysis — no DB, no Django boot.",
-  "version": "0.7.8",
+  "version": "0.8.0",
   "preview": false,
   "galleryBanner": {
     "color": "#0c4b33",
@@ -203,7 +203,41 @@
         "djangoOrmLens.codeFixes.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show inline QuickFix diagnostics for common Django ORM anti-patterns (.count() > 0, .first() is None, attribute access in for-loop). Disable if noisy on your codebase."
+          "description": "Show inline QuickFix diagnostics for Django ORM anti-patterns (DOL001-DOL032). Disable to silence the whole rule set."
+        },
+        "djangoOrmLens.rules": {
+          "type": "object",
+          "default": {},
+          "description": "Per-rule severity override. Keys are rule codes (DOL001, DOL011, ...), values are 'off' | 'hint' | 'info' | 'warning' | 'error'. Rules not listed use their default severity.",
+          "patternProperties": {
+            "^DOL[0-9]+$": {
+              "type": "string",
+              "enum": [
+                "off",
+                "hint",
+                "info",
+                "warning",
+                "error"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "djangoOrmLens.rulesSelect": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Ruff-style select. If non-empty, only rules matching one of these codes/prefixes run. Example: ['DOL0'] to run only queryset+model rules."
+        },
+        "djangoOrmLens.rulesIgnore": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Ruff-style ignore. Rules whose code matches any prefix here are skipped. Example: ['DOL007'] to silence just the N+1 heuristic."
         }
       }
     }
