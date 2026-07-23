@@ -244,6 +244,73 @@ Dark theme. Light theme. Your theme. Follows your icon theme, your font, your ke
 
 <br/>
 
+## 🚀 v0.8 — five new "wow" features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎯 Inline QuickFixes (16 rules)
+
+Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL032`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()` and a dozen more.
+
+Suppress inline with `# django-orm-lens-disable-next-line DOL007`.
+
+</td>
+<td width="50%" valign="top">
+
+### 🧪 Factory generator
+
+Right-click any model → `factory_boy` `DjangoModelFactory` scaffold with Faker providers keyed by field type. `CharField(max_length)` scales word-count buckets, `DecimalField(N,D)` computes `left_digits=N-D`, `choices=` maps to `Iterator`, M2M gets `@post_generation`. FK chains pull related factories transitively.
+
+Also available as CodeLens above each model class.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🕰 Time-Travel Schema Diff
+
+Pick a `models.py`, pick two commits, get a typed diff as PR-ready markdown. `AddModel` / `DropModel` / `RenameModel` / `ModifyModel` events with confidence-scored rename detection (Levenshtein + field-shape Jaccard).
+
+Renames are first-class events, never `Add + Drop`. Blob-SHA LRU cache — commits that don't touch `models.py` share their parsed snapshot.
+
+</td>
+<td width="50%" valign="top">
+
+### 🔎 Impact analysis
+
+"What breaks if I remove this field?" — right-click a field or model → workspace-wide scan grouped by Django layer (models, serializers, forms, admin, views, urls, templates, tests, migrations).
+
+Findings carry a **Certain / Likely / Possibly** confidence tag. Handles ORM string refs (`order_by("-author")`), kwarg lookups (`filter(author__id=1)`), `Meta.fields` tuples, and template variables.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### ⚡ Interactive query builder
+
+Right-click a field or model → pick a template → snippet inserted at cursor (with tab-stops) or in a fresh untitled buffer.
+
+`.filter(field=?)` on an FK auto-appends `.select_related(...)`, `.annotate(post_count=Count('post_set'))` honours `related_name`, `.prefetch_related` for M2M, `.values('field').distinct()`, `.only('field')`.
+
+</td>
+<td width="50%" valign="top">
+
+### 🎨 Sidebar UX overhaul
+
+Stable `TreeItem.id` — refresh no longer collapses the tree. Rich `MarkdownString` tooltips with `command:` deep-links. Activity-bar badge counts DOL### issues.
+
+`FileDecorationProvider` badges: red `!` on FK-without-`on_delete`, yellow `~` on `null=True` string fields (bubbles up to the parent Model row, Git-style).
+
+</td>
+</tr>
+</table>
+
+<br/>
+
 ## 📸 What it looks like
 
 <div align="center">
@@ -506,6 +573,11 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 | `Django ORM Lens: Filter Models` | Filter the tree by app / model / field name |
 | `Django ORM Lens: Clear Filter` | Restore the full tree |
 | `Django ORM Lens: Jump to Model` | Programmatic — triggered by tree clicks and hover cards |
+| `Django ORM Lens: Find Reverse References` | Right-click a model — QuickPick of every FK pointing at it |
+| `Django ORM Lens: Generate factory_boy Factory` | Right-click a model or use CodeLens — scaffold a `DjangoModelFactory` |
+| `Django ORM Lens: Schema Diff (Time-Travel)` | Pick two commits — get a typed diff as a markdown buffer |
+| `Django ORM Lens: Find Impact (What Uses This?)` | Right-click a field or model — workspace-wide reference scan |
+| `Django ORM Lens: Build Query (Insert Snippet)` | Right-click a field or model — pick an ORM template |
 
 <br/>
 
@@ -541,6 +613,12 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.7.4** — PEP-695 generic class headers (Python 3.12+): `class Container[T](models.Model):` now parses
 - [x] **v0.7.5** — Aliased models module (`from django.db import models as m`) and third-party field packages (`jsonfield.JSONField`) now detected
 - [x] **v0.7.6** — Tab-indented model bodies now parse (editors defaulting to tabs no longer show empty models)
+- [x] **v0.8.0** — Inline QuickFixes: 16 rules (`DOL001`..`DOL032`) with per-rule severity + Ruff-style select/ignore + inline `# django-orm-lens-disable-next-line`
+- [x] **v0.8.0** — Factory generator: `factory_boy` scaffold from any model with Faker providers keyed by field type
+- [x] **v0.8.0** — Time-Travel Schema Diff: pick two commits → typed markdown diff with first-class rename detection
+- [x] **v0.8.0** — Impact analysis: workspace-wide field-reference scan across every Django layer with Certain/Likely/Possibly confidence tags
+- [x] **v0.8.0** — Interactive Query Builder: right-click → template → snippet inserted at cursor, grammar-aware (FK gets `.select_related`, `related_name` honoured)
+- [x] **v0.8.0** — Sidebar UX overhaul: stable `TreeItem.id`, `MarkdownString` tooltips with `command:` deep-links, `FileDecorationProvider` badges, `TreeView.badge` on the activity bar, three when-gated `viewsWelcome` states
 
 **Next**
 
