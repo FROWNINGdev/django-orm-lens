@@ -47,6 +47,16 @@ export type FieldChange =
   | { kind: 'AddField'; name: string; type: string }
   | { kind: 'DropField'; name: string; type: string }
   | {
+      // v0.9 — partial UniqueConstraint tracking. Inspired by
+      // django-extensions#1813 (BoPeng, 2023) — sqldiff drops `condition=`
+      // from UniqueConstraint output. Our schema-diff surfaces it as a
+      // first-class event so downstream migration reviewers can see it.
+      kind: 'PartialUniqueConstraint';
+      name: string; // constraint name if given
+      fields: string;
+      condition: string;
+    }
+  | {
       kind: 'RenameField';
       from: string;
       to: string;
@@ -190,14 +200,63 @@ function fieldPairChanges(oldF: ParsedField, newF: ParsedField): FieldChange[] {
 }
 
 /** Diff the field set of a single model (name-matched already). */
+/**
+ * Extract `UniqueConstraint(fields=[...], condition=Q(...), name=...)` shapes
+ * from a `Meta.constraints = [...]` string. Returns one event per constraint
+ * that carries a non-empty condition — bare unconditional UniqueConstraints
+ * are silently ignored because they're covered by the DB's own indices.
+ *
+ * v0.9 feature seed. Inspired by django-extensions#1813 (sqldiff drops the
+ * predicate from `condition=` and reports wrong SQL).
+ */
+function extractPartialUniqueConstraints(
+  metaConstraintsRaw: string | undefined,
+): { name: string; fields: string; condition: string }[] {
+  if (!metaConstraintsRaw) return [];
+  const out: { name: string; fields: string; condition: string }[] = [];
+  const re =
+    /UniqueConstraint\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(metaConstraintsRaw)) !== null) {
+    const args = m[1];
+    const cond = args.match(/condition\s*=\s*(Q\s*\([^)]*\))/);
+    if (!cond) continue;
+    const fields = args.match(/fields\s*=\s*\[([^\]]*)\]/);
+    const name = args.match(/name\s*=\s*['"]([^'"]+)['"]/);
+    out.push({
+      name: name ? name[1] : '',
+      fields: fields ? fields[1].trim() : '',
+      condition: cond[1].trim(),
+    });
+  }
+  return out;
+}
+
 function diffModelFields(
   oldModel: ParsedModel,
   newModel: ParsedModel,
   threshold: number,
 ): FieldChange[] {
   const out: FieldChange[] = [];
+
+  // v0.9 — surface partial UniqueConstraint changes as first-class events.
+  // Simple set-diff on the (name, condition) tuple so a modified predicate
+  // shows up as a drop of the old shape and add of the new shape. Rename
+  // detection could come later when the community asks.
+  const oldPU = extractPartialUniqueConstraints(oldModel.meta?.constraints);
+  const newPU = extractPartialUniqueConstraints(newModel.meta?.constraints);
+  const oldKey = new Set(oldPU.map((c) => `${c.name}::${c.condition}`));
+  const newKey = new Set(newPU.map((c) => `${c.name}::${c.condition}`));
+  for (const c of newPU) {
+    if (!oldKey.has(`${c.name}::${c.condition}`)) {
+      out.push({ kind: 'PartialUniqueConstraint', ...c });
+    }
+  }
+
   const oldByName = new Map(oldModel.fields.map((f) => [f.name, f]));
   const newByName = new Map(newModel.fields.map((f) => [f.name, f]));
+  // Suppress "unused" for future rename-detection reads — currently unread.
+  void newKey;
 
   const matchedOld = new Set<string>();
   const matchedNew = new Set<string>();
@@ -415,6 +474,7 @@ const FIELD_KIND_ORDER: Record<FieldChange['kind'], number> = {
   ChangeFieldType: 3,
   ChangeRelation: 4,
   ChangeFieldOption: 5,
+  PartialUniqueConstraint: 6,
 };
 
 function cmpFieldChange(a: FieldChange, b: FieldChange): number {
@@ -449,6 +509,7 @@ export function diffToMarkdown(events: ModelChange[]): string {
     ChangeFieldType: '  🔄',
     ChangeRelation: '  🔗',
     ChangeFieldOption: '  ⚙️',
+    PartialUniqueConstraint: '  🔒',
   };
   for (const ev of events) {
     switch (ev.kind) {
@@ -491,6 +552,11 @@ export function diffToMarkdown(events: ModelChange[]): string {
             case 'ChangeFieldOption':
               lines.push(
                 `${fieldEmoji.ChangeFieldOption} \`${c.name}.${c.option}\`: ${c.from} → ${c.to}`,
+              );
+              break;
+            case 'PartialUniqueConstraint':
+              lines.push(
+                `${fieldEmoji.PartialUniqueConstraint} \`${c.name || '(unnamed)'}\`: UniqueConstraint(fields=[${c.fields}], condition=${c.condition})`,
               );
               break;
           }

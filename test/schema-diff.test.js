@@ -250,3 +250,39 @@ test('diffToMarkdown handles empty diff', () => {
   const md = diffToMarkdown([]);
   assert.match(md, /No schema changes/i);
 });
+
+// v0.9 seed — partial UniqueConstraint detection. Inspired by
+// django-extensions#1813 (sqldiff drops the condition= predicate).
+test('PartialUniqueConstraint fires when a new conditioned UniqueConstraint appears', () => {
+  const before = [
+    {
+      ...model('shop', 'Order', [field('workflow', 'ForeignKey', 'Workflow', {
+        isRelation: true,
+        relatedModel: 'Workflow',
+        relationKind: 'ForeignKey',
+      })]),
+      meta: {},
+    },
+  ];
+  const after = [
+    {
+      ...model('shop', 'Order', [field('workflow', 'ForeignKey', 'Workflow', {
+        isRelation: true,
+        relatedModel: 'Workflow',
+        relationKind: 'ForeignKey',
+      })]),
+      meta: {
+        constraints: "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='unique_primary_attachment')]",
+      },
+    },
+  ];
+  const events = diffSchemas(before, after);
+  const modify = events.find((e) => e.kind === 'ModifyModel');
+  assert.ok(modify, 'expected a ModifyModel event');
+  const pu = modify.changes.find((c) => c.kind === 'PartialUniqueConstraint');
+  assert.ok(pu, 'expected PartialUniqueConstraint');
+  assert.equal(pu.name, 'unique_primary_attachment');
+  assert.match(pu.condition, /Q\(is_primary=True\)/);
+  const md = diffToMarkdown(events);
+  assert.match(md, /UniqueConstraint\(fields=\[/);
+});
