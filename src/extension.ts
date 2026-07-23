@@ -6,6 +6,7 @@ import { DjangoHoverProvider } from './hoverProvider';
 import { DjangoCodeLensProvider } from './codeLensProvider';
 import { registerCodeFixes } from './codeActionProvider';
 import { DjangoTreeDecorationProvider } from './decorations';
+import { generateFactoryCode } from './factoryGenerator';
 import { DIAGNOSTIC_SOURCE } from './rules';
 import { TreeNode, WorkspaceIndex } from './types';
 
@@ -249,6 +250,69 @@ export async function activate(context: vscode.ExtensionContext) {
       if (currentIndex.apps.length === 0) await refresh();
       showGraph(context, currentIndex);
     })
+  );
+
+  // v0.8 · WOW-feature #4 from Discussion #27 — factory_boy scaffolding.
+  // The command accepts three shapes depending on where it's triggered:
+  //   (a) from the CodeLens above a model class: (filePath, lineNumber)
+  //   (b) from the sidebar right-click menu:    (TreeNode)
+  //   (c) from the command palette (no args):   pick model via QuickPick
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'djangoOrmLens.generateFactory',
+      async (arg1?: string | TreeNode, arg2?: number) => {
+        if (currentIndex.apps.length === 0) await refresh();
+        let target: { filePath: string; lineNumber?: number; name?: string } | undefined;
+        if (typeof arg1 === 'string' && typeof arg2 === 'number') {
+          target = { filePath: arg1, lineNumber: arg2 };
+        } else if (arg1 && typeof arg1 === 'object' && 'kind' in arg1 && arg1.kind === 'model') {
+          target = { filePath: arg1.filePath ?? '', lineNumber: arg1.lineNumber, name: arg1.label };
+        } else {
+          const picks = currentIndex.apps.flatMap((app) =>
+            app.models.map((m) => ({
+              label: `$(symbol-class) ${app.name}.${m.name}`,
+              description: `${m.fields.length} fields`,
+              model: m,
+            }))
+          );
+          const chosen = await vscode.window.showQuickPick(picks, {
+            title: 'Generate factory_boy factory',
+            placeHolder: 'Pick a Django model',
+          });
+          if (!chosen) return;
+          target = {
+            filePath: chosen.model.filePath,
+            lineNumber: chosen.model.lineNumber,
+            name: chosen.model.name,
+          };
+        }
+
+        let model = currentIndex.apps
+          .flatMap((a) => a.models)
+          .find(
+            (m) =>
+              m.filePath === target!.filePath &&
+              (target!.name ? m.name === target!.name : m.lineNumber === target!.lineNumber)
+          );
+        if (!model) {
+          model = currentIndex.apps
+            .flatMap((a) => a.models)
+            .find((m) => m.filePath === target!.filePath);
+        }
+        if (!model) {
+          vscode.window.showInformationMessage(
+            'Django ORM Lens: no model matched — try Refresh and retry.'
+          );
+          return;
+        }
+        const source = generateFactoryCode(model, currentIndex);
+        const doc = await vscode.workspace.openTextDocument({
+          content: source,
+          language: 'python',
+        });
+        await vscode.window.showTextDocument(doc, { preview: false });
+      }
+    )
   );
 
   context.subscriptions.push(

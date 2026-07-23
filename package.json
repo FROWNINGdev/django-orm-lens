@@ -135,6 +135,11 @@
         "command": "djangoOrmLens.findReverseRefs",
         "title": "Django ORM Lens: Find Reverse References",
         "icon": "$(references)"
+      },
+      {
+        "command": "djangoOrmLens.generateFactory",
+        "title": "Django ORM Lens: Generate factory_boy Factory",
+        "icon": "$(beaker)"
       }
     ],
     "menus": {
@@ -164,7 +169,12 @@
         {
           "command": "djangoOrmLens.findReverseRefs",
           "when": "view == djangoOrmLens.models && viewItem == djangoOrmLensModel",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "djangoOrmLens.generateFactory",
+          "when": "view == djangoOrmLens.models && viewItem == djangoOrmLensModel",
+          "group": "navigation@2"
         }
       ]
     },

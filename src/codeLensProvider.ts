@@ -41,6 +41,14 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
             tooltip: `${model.appName}.${model.name} — click to open the ER diagram`,
           })
         );
+        lenses.push(
+          new vscode.CodeLens(range, {
+            title: '$(beaker) Generate factory',
+            command: 'djangoOrmLens.generateFactory',
+            arguments: [model.filePath, model.lineNumber],
+            tooltip: `Scaffold a factory_boy DjangoModelFactory for ${model.name}`,
+          })
+        );
       }
     }
 
