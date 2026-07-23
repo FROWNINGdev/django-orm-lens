@@ -145,6 +145,11 @@
         "command": "djangoOrmLens.showDiff",
         "title": "Django ORM Lens: Schema Diff (Time-Travel)",
         "icon": "$(diff)"
+      },
+      {
+        "command": "djangoOrmLens.findImpact",
+        "title": "Django ORM Lens: Find Impact (What Uses This?)",
+        "icon": "$(search)"
       }
     ],
     "menus": {
@@ -180,6 +185,16 @@
           "command": "djangoOrmLens.generateFactory",
           "when": "view == djangoOrmLens.models && viewItem == djangoOrmLensModel",
           "group": "navigation@2"
+        },
+        {
+          "command": "djangoOrmLens.findImpact",
+          "when": "view == djangoOrmLens.models && viewItem == djangoOrmLensModel",
+          "group": "navigation@3"
+        },
+        {
+          "command": "djangoOrmLens.findImpact",
+          "when": "view == djangoOrmLens.models && viewItem =~ /^field/",
+          "group": "navigation@1"
         }
       ]
     },

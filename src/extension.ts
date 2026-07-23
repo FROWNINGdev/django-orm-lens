@@ -8,6 +8,7 @@ import { registerCodeFixes } from './codeActionProvider';
 import { DjangoTreeDecorationProvider } from './decorations';
 import { generateFactoryCode } from './factoryGenerator';
 import { BlobCache, blobShaFor, gitLogFollow, gitShowFile } from './git';
+import { Finding, scanImpact } from './impactAnalysis';
 import { DIAGNOSTIC_SOURCE } from './rules';
 import { diffSchemas, diffToMarkdown } from './schemaDiff';
 import { TreeNode, WorkspaceIndex } from './types';
@@ -253,6 +254,101 @@ export async function activate(context: vscode.ExtensionContext) {
       if (currentIndex.apps.length === 0) await refresh();
       showGraph(context, currentIndex);
     })
+  );
+
+  // v0.8 · WOW-feature #1 from Discussion #27 — impact analysis.
+  // Right-click a field or model in the sidebar → "What breaks if I remove
+  // this?" scan across models/serializers/forms/admin/views/urls/templates/
+  // tests/migrations. Findings surface as a QuickPick grouped by layer with
+  // Certain/Likely/Possibly confidence badges; picking one jumps there.
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'djangoOrmLens.findImpact',
+      async (arg?: TreeNode | string) => {
+        if (currentIndex.apps.length === 0) await refresh();
+        let needle: string | undefined;
+        let skipFiles: string[] = [];
+        if (typeof arg === 'string') {
+          needle = arg;
+        } else if (arg && typeof arg === 'object' && 'kind' in arg) {
+          if (arg.kind === 'model' || arg.kind === 'field') {
+            needle = arg.label;
+            if (arg.filePath) skipFiles = [arg.filePath];
+          }
+        }
+        if (!needle) {
+          const picks = currentIndex.apps.flatMap((app) =>
+            app.models.flatMap((m) => [
+              {
+                label: `$(symbol-class) ${app.name}.${m.name}`,
+                description: 'model',
+                needle: m.name,
+                filePath: m.filePath,
+              },
+              ...m.fields.map((f) => ({
+                label: `$(symbol-field) ${app.name}.${m.name}.${f.name}`,
+                description: f.type,
+                needle: f.name,
+                filePath: m.filePath,
+              })),
+            ])
+          );
+          const chosen = await vscode.window.showQuickPick(picks, {
+            title: 'Django ORM Lens — Impact Analysis',
+            placeHolder: 'Pick a field or model to trace',
+          });
+          if (!chosen) return;
+          needle = chosen.needle;
+          if (chosen.filePath) skipFiles = [chosen.filePath];
+        }
+
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: `Django ORM Lens: scanning references to '${needle}'…`,
+            cancellable: true,
+          },
+          async (_progress, token) => {
+            const findings = await scanImpact(needle!, { skipFiles, token });
+            if (findings.length === 0) {
+              vscode.window.showInformationMessage(
+                `Django ORM Lens: no references to '${needle}' found across the workspace.`,
+              );
+              return;
+            }
+            const badge: Record<Finding['confidence'], string> = {
+              certain: '$(check)',
+              likely: '$(circle-filled)',
+              possibly: '$(circle-outline)',
+            };
+            const items = findings.map((f) => ({
+              label: `${badge[f.confidence]} ${f.snippet}`,
+              description: `${f.layer} · ${f.confidence}`,
+              detail: `${vscode.workspace.asRelativePath(f.filePath)}:${f.line + 1} — ${f.reason}`,
+              finding: f,
+            }));
+            const chosen = await vscode.window.showQuickPick(items, {
+              title: `Impact of '${needle}' — ${findings.length} reference${
+                findings.length === 1 ? '' : 's'
+              }`,
+              placeHolder: 'Pick a reference to jump to',
+              matchOnDescription: true,
+              matchOnDetail: true,
+            });
+            if (!chosen) return;
+            const uri = vscode.Uri.file(chosen.finding.filePath);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const editor = await vscode.window.showTextDocument(doc);
+            const pos = new vscode.Position(chosen.finding.line, chosen.finding.column);
+            editor.selection = new vscode.Selection(pos, pos);
+            editor.revealRange(
+              new vscode.Range(pos, pos),
+              vscode.TextEditorRevealType.InCenter,
+            );
+          },
+        );
+      },
+    ),
   );
 
   // v0.8 · WOW-feature #5 from Discussion #27 — time-travel schema diff.
