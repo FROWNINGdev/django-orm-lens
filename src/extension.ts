@@ -5,6 +5,8 @@ import { showGraph } from './graphWebview';
 import { DjangoHoverProvider } from './hoverProvider';
 import { DjangoCodeLensProvider } from './codeLensProvider';
 import { registerCodeFixes } from './codeActionProvider';
+import { DjangoTreeDecorationProvider } from './decorations';
+import { DIAGNOSTIC_SOURCE } from './rules';
 import { TreeNode, WorkspaceIndex } from './types';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
@@ -44,6 +46,13 @@ async function doScan(): Promise<void> {
     statusItem.text = `$(database) ${total} model${total === 1 ? '' : 's'}`;
     statusItem.tooltip = `Django ORM Lens — scanned in ${took}ms`;
     statusItem.show();
+    // Signal viewsWelcome: the initial scan has completed. From now on the
+    // "empty state" reads "no Django models found" instead of "scanning…".
+    vscode.commands.executeCommand(
+      'setContext',
+      'djangoOrmLens.scanCompleted',
+      true,
+    );
   } catch (err) {
     outputChannel.appendLine(
       `[scan #${myGen}] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
@@ -104,7 +113,7 @@ function setupWatcher(context: vscode.ExtensionContext) {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  treeProvider = new DjangoTreeProvider();
+  treeProvider = new DjangoTreeProvider(context.workspaceState);
   outputChannel = vscode.window.createOutputChannel('Django ORM Lens');
   context.subscriptions.push(outputChannel);
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -115,6 +124,14 @@ export async function activate(context: vscode.ExtensionContext) {
     treeDataProvider: treeProvider,
   });
   context.subscriptions.push(treeView);
+
+  // File decorations — badge letters `!` / `~` on field rows whose Django
+  // kwargs trip DOL011/013/014/015 patterns. Matches how the built-in Git
+  // integration surfaces `M` / `U` / `D` on Explorer files.
+  const decorationProvider = new DjangoTreeDecorationProvider();
+  context.subscriptions.push(
+    vscode.window.registerFileDecorationProvider(decorationProvider)
+  );
 
   // Re-scan when the sidebar becomes visible. Covers the case where the
   // extension activated via `onStartupFinished` before the workspace file
@@ -129,6 +146,46 @@ export async function activate(context: vscode.ExtensionContext) {
           )
         );
       }
+    })
+  );
+
+  // Activity-bar badge: passive count of Django ORM Lens findings.
+  // GitHub PRs / Docker style — user glances at the icon and knows what's
+  // outstanding without opening the view. Dot when unknown, number when > 0.
+  const updateBadge = () => {
+    let n = 0;
+    for (const [, diags] of vscode.languages.getDiagnostics()) {
+      for (const d of diags) {
+        if (d.source === DIAGNOSTIC_SOURCE) n++;
+      }
+    }
+    treeView.badge = n === 0
+      ? undefined
+      : {
+          value: n,
+          tooltip: `${n} Django ORM Lens issue${n === 1 ? '' : 's'}`,
+        };
+  };
+  updateBadge();
+  context.subscriptions.push(
+    vscode.languages.onDidChangeDiagnostics(() => updateBadge())
+  );
+
+  // Reveal the matching model node when the user activates a models.py file.
+  // Mirrors GitLens' "sidebar follows the editor" pattern — praised by
+  // reviewers as "it always knows where I am." Guarded on visibility so we
+  // never fight the user when they've focused a different view.
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (!editor || !treeView.visible) return;
+      const path = editor.document.uri.fsPath;
+      const node = treeProvider.findModelNodeByPath(path);
+      if (!node) return;
+      treeView
+        .reveal(node, { select: false, focus: false, expand: 1 })
+        .then(undefined, () => {
+          /* reveal can reject if the node was refreshed away; ignore */
+        });
     })
   );
 

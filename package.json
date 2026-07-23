@@ -92,7 +92,18 @@
     "viewsWelcome": [
       {
         "view": "djangoOrmLens.models",
-        "contents": "No Django models found in this workspace.\n\nDjango ORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\nMake sure you have opened a folder that contains a Django project."
+        "when": "workbenchState == empty",
+        "contents": "**Open a folder to get started.**\n\nDjango ORM Lens indexes every `models.py` in your project and gives you a live schema tree, an ER diagram, hover cards, and inline QuickFixes for common ORM anti-patterns.\n\n[Open Folder](command:vscode.openFolder)\n\n[Documentation](https://github.com/FROWNINGdev/django-orm-lens#readme)"
+      },
+      {
+        "view": "djangoOrmLens.models",
+        "when": "workbenchState != empty && !djangoOrmLens.scanCompleted",
+        "contents": "**Scanning your workspace…**\n\nDjango ORM Lens is walking your project for `models.py` files. This usually takes under a second.\n\nIf the scan doesn't finish, click Refresh below.\n\n[Refresh scan](command:djangoOrmLens.refresh)"
+      },
+      {
+        "view": "djangoOrmLens.models",
+        "when": "workbenchState != empty && djangoOrmLens.scanCompleted",
+        "contents": "**No Django models found in this workspace.**\n\nDjango ORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\n[Adjust excluded paths](command:workbench.action.openSettings?%22djangoOrmLens.excludeGlobs%22)\n\n[Documentation](https://github.com/FROWNINGdev/django-orm-lens#readme)"
       }
     ],
     "commands": [
