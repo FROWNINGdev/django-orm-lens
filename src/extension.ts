@@ -9,6 +9,7 @@ import { DjangoTreeDecorationProvider } from './decorations';
 import { generateFactoryCode } from './factoryGenerator';
 import { BlobCache, blobShaFor, gitLogFollow, gitShowFile } from './git';
 import { Finding, scanImpact } from './impactAnalysis';
+import { generateQueryTemplates } from './queryGen';
 import { DIAGNOSTIC_SOURCE } from './rules';
 import { diffSchemas, diffToMarkdown } from './schemaDiff';
 import { TreeNode, WorkspaceIndex } from './types';
@@ -254,6 +255,109 @@ export async function activate(context: vscode.ExtensionContext) {
       if (currentIndex.apps.length === 0) await refresh();
       showGraph(context, currentIndex);
     })
+  );
+
+  // v0.8 · WOW-feature #2 from Discussion #27 — interactive query builder.
+  // Right-click a field/model in the sidebar → pick a template → snippet
+  // is inserted at the cursor (when an editor is active) or opened in a
+  // fresh untitled buffer. Grammar-aware: FK gets .select_related,
+  // M2M gets .prefetch_related, reverse FK gets Count() annotation.
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'djangoOrmLens.buildQuery',
+      async (arg?: TreeNode) => {
+        if (currentIndex.apps.length === 0) await refresh();
+        let target: Parameters<typeof generateQueryTemplates>[0] | undefined;
+        if (arg && typeof arg === 'object' && 'kind' in arg) {
+          if (arg.kind === 'model') {
+            const [appName, modelName] = arg.id.split('/');
+            if (appName && modelName)
+              target = { kind: 'model', appName, modelName };
+          } else if (arg.kind === 'field') {
+            const [appName, modelName, fieldName] = arg.id.split('/');
+            if (appName && modelName && fieldName)
+              target = { kind: 'field', appName, modelName, fieldName };
+          }
+        }
+        if (!target) {
+          const picks = currentIndex.apps.flatMap((app) =>
+            app.models.flatMap((m) => [
+              {
+                label: `$(symbol-class) ${app.name}.${m.name}`,
+                description: 'model',
+                target: { kind: 'model' as const, appName: app.name, modelName: m.name },
+              },
+              ...m.fields.map((f) => ({
+                label: `$(symbol-field) ${app.name}.${m.name}.${f.name}`,
+                description: f.type,
+                target: {
+                  kind: 'field' as const,
+                  appName: app.name,
+                  modelName: m.name,
+                  fieldName: f.name,
+                },
+              })),
+            ])
+          );
+          const chosen = await vscode.window.showQuickPick(picks, {
+            title: 'Django ORM Lens — Query Builder',
+            placeHolder: 'Pick a target field or model',
+          });
+          if (!chosen) return;
+          target = chosen.target;
+        }
+
+        const templates = generateQueryTemplates(target, currentIndex);
+        if (templates.length === 0) {
+          vscode.window.showInformationMessage(
+            'Django ORM Lens: no templates apply to this target.',
+          );
+          return;
+        }
+        const chosen = await vscode.window.showQuickPick(
+          templates.map((t) => ({
+            label: t.title,
+            description: t.description,
+            detail: t.category,
+            template: t,
+          })),
+          {
+            title: 'Pick a Query Template',
+            placeHolder: 'Filter → perf → aggregate → projection',
+            matchOnDescription: true,
+          },
+        );
+        if (!chosen) return;
+
+        const editor = vscode.window.activeTextEditor;
+        const snippetString = new vscode.SnippetString(chosen.template.snippet);
+        if (editor && editor.document.languageId === 'python') {
+          await editor.insertSnippet(snippetString);
+          return;
+        }
+        // No active Python editor — open a fresh untitled buffer.
+        const modelName =
+          target.kind === 'model' ? target.modelName : target.modelName;
+        const boiler = [
+          `# Django ORM Lens — Query Builder scratch`,
+          `# from ${
+            currentIndex.apps.find((a) =>
+              a.models.some((m) => m.name === modelName),
+            )?.name ?? 'app'
+          }.models import ${modelName}`,
+          '',
+          '',
+        ].join('\n');
+        const doc = await vscode.workspace.openTextDocument({
+          content: boiler,
+          language: 'python',
+        });
+        const openedEditor = await vscode.window.showTextDocument(doc, {
+          preview: false,
+        });
+        await openedEditor.insertSnippet(snippetString);
+      },
+    ),
   );
 
   // v0.8 · WOW-feature #1 from Discussion #27 — impact analysis.

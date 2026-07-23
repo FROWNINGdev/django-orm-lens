@@ -150,6 +150,11 @@
         "command": "djangoOrmLens.findImpact",
         "title": "Django ORM Lens: Find Impact (What Uses This?)",
         "icon": "$(search)"
+      },
+      {
+        "command": "djangoOrmLens.buildQuery",
+        "title": "Django ORM Lens: Build Query (Insert Snippet)",
+        "icon": "$(zap)"
       }
     ],
     "menus": {
@@ -195,6 +200,16 @@
           "command": "djangoOrmLens.findImpact",
           "when": "view == djangoOrmLens.models && viewItem =~ /^field/",
           "group": "navigation@1"
+        },
+        {
+          "command": "djangoOrmLens.buildQuery",
+          "when": "view == djangoOrmLens.models && viewItem == djangoOrmLensModel",
+          "group": "navigation@4"
+        },
+        {
+          "command": "djangoOrmLens.buildQuery",
+          "when": "view == djangoOrmLens.models && viewItem =~ /^field/",
+          "group": "navigation@2"
         }
       ]
     },
