@@ -7,8 +7,11 @@ import { DjangoCodeLensProvider } from './codeLensProvider';
 import { registerCodeFixes } from './codeActionProvider';
 import { DjangoTreeDecorationProvider } from './decorations';
 import { generateFactoryCode } from './factoryGenerator';
+import { BlobCache, blobShaFor, gitLogFollow, gitShowFile } from './git';
 import { DIAGNOSTIC_SOURCE } from './rules';
+import { diffSchemas, diffToMarkdown } from './schemaDiff';
 import { TreeNode, WorkspaceIndex } from './types';
+import { parseModelsFile } from './parser';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
 let treeProvider: DjangoTreeProvider;
@@ -250,6 +253,130 @@ export async function activate(context: vscode.ExtensionContext) {
       if (currentIndex.apps.length === 0) await refresh();
       showGraph(context, currentIndex);
     })
+  );
+
+  // v0.8 · WOW-feature #5 from Discussion #27 — time-travel schema diff.
+  // Pick a `models.py`, pick two commits, get a typed diff rendered as
+  // markdown into an untitled buffer. Blueprint cited to Atlas + Prisma
+  // migrate diff; caching keyed on blob SHA (not commit SHA) so history
+  // walks with no models.py churn are effectively free.
+  const blobCache = new BlobCache<
+    Awaited<ReturnType<typeof parseModelsFile>>
+  >(50);
+  context.subscriptions.push(
+    vscode.commands.registerCommand('djangoOrmLens.showDiff', async () => {
+      if (currentIndex.apps.length === 0) await refresh();
+      const modelsFiles = [
+        ...new Set(
+          currentIndex.apps.flatMap((a) => a.models.map((m) => m.filePath)),
+        ),
+      ];
+      if (modelsFiles.length === 0) {
+        vscode.window.showInformationMessage(
+          'Django ORM Lens: no models.py found — scan a Django project first.',
+        );
+        return;
+      }
+      let target = modelsFiles[0];
+      if (modelsFiles.length > 1) {
+        const pick = await vscode.window.showQuickPick(
+          modelsFiles.map((p) => ({ label: p, description: 'models.py' })),
+          { title: 'Django ORM Lens — schema diff', placeHolder: 'Pick a models.py' },
+        );
+        if (!pick) return;
+        target = pick.label;
+      }
+      const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(target));
+      if (!wsFolder) {
+        vscode.window.showWarningMessage(
+          'Django ORM Lens: file is outside the current workspace.',
+        );
+        return;
+      }
+      const cwd = wsFolder.uri.fsPath;
+
+      let commits;
+      try {
+        commits = await gitLogFollow(cwd, target, 200);
+      } catch (err) {
+        vscode.window.showWarningMessage(
+          `Django ORM Lens: git log failed — is this a git repo? (${
+            err instanceof Error ? err.message : String(err)
+          })`,
+        );
+        return;
+      }
+      if (commits.length < 2) {
+        vscode.window.showInformationMessage(
+          'Django ORM Lens: need at least 2 commits touching this file for a diff.',
+        );
+        return;
+      }
+      const items = commits.map((c) => ({
+        label: `$(git-commit) ${c.sha.slice(0, 8)}  ${c.subject.slice(0, 60)}`,
+        description: new Date(c.ct * 1000).toISOString(),
+        sha: c.sha,
+      }));
+      const fromPick = await vscode.window.showQuickPick(items, {
+        title: 'From commit (older)',
+        placeHolder: 'Base of the comparison',
+      });
+      if (!fromPick) return;
+      const toPick = await vscode.window.showQuickPick(items, {
+        title: 'To commit (newer)',
+        placeHolder: 'Head of the comparison',
+      });
+      if (!toPick) return;
+
+      const parseCommit = async (sha: string) => {
+        const blobSha = await blobShaFor(cwd, sha, target);
+        if (blobSha) {
+          const cached = blobCache.get(blobSha);
+          if (cached) return cached;
+        }
+        const source = await gitShowFile(cwd, sha, target);
+        const models = parseModelsFile(target, source);
+        if (blobSha) blobCache.set(blobSha, models);
+        return models;
+      };
+
+      let oldModels, newModels;
+      try {
+        [oldModels, newModels] = await Promise.all([
+          parseCommit(fromPick.sha),
+          parseCommit(toPick.sha),
+        ]);
+      } catch (err) {
+        vscode.window.showWarningMessage(
+          `Django ORM Lens: could not read historical models.py (${
+            err instanceof Error ? err.message : String(err)
+          })`,
+        );
+        return;
+      }
+
+      const events = diffSchemas(oldModels, newModels);
+      const header = [
+        `# Django ORM Lens — Schema Diff`,
+        '',
+        `**From:** \`${fromPick.sha.slice(0, 8)}\` — ${new Date(
+          commits.find((c) => c.sha === fromPick.sha)!.ct * 1000,
+        ).toISOString()}  `,
+        `**To:** \`${toPick.sha.slice(0, 8)}\` — ${new Date(
+          commits.find((c) => c.sha === toPick.sha)!.ct * 1000,
+        ).toISOString()}  `,
+        `**File:** \`${target}\``,
+        '',
+        `Copy the section below into your PR description.`,
+        '',
+      ].join('\n');
+      const md = header + diffToMarkdown(events);
+      const doc = await vscode.workspace.openTextDocument({
+        content: md,
+        language: 'markdown',
+      });
+      await vscode.window.showTextDocument(doc, { preview: false });
+    }),
   );
 
   // v0.8 · WOW-feature #4 from Discussion #27 — factory_boy scaffolding.

@@ -140,6 +140,11 @@
         "command": "djangoOrmLens.generateFactory",
         "title": "Django ORM Lens: Generate factory_boy Factory",
         "icon": "$(beaker)"
+      },
+      {
+        "command": "djangoOrmLens.showDiff",
+        "title": "Django ORM Lens: Schema Diff (Time-Travel)",
+        "icon": "$(diff)"
       }
     ],
     "menus": {
