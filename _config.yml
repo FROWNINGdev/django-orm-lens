@@ -1,0 +1,43 @@
+# Jekyll config for the GitHub Pages preview at
+# https://frowningdev.github.io/django-orm-lens/
+#
+# Without this file GitHub Pages falls back to its legacy default
+# renderer that does NOT process markdown inside HTML blocks. Because
+# our README wraps the badge stack and hero section in
+# `<div align="center">` blocks, every `![badge](...)` and `[text](url)`
+# inside those divs stayed as raw text — visible to visitors and cited
+# by wsvincent/awesome-django#378 reviewers as "broken markdown blocks".
+#
+# `parse_block_html: true` fixes that globally; the per-div
+# `markdown="1"` attributes act as belt-and-suspenders in case a future
+# GH-Pages Jekyll bump reverts the default.
+
+theme: jekyll-theme-primer
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  parse_block_html: true
+  parse_span_html: true
+  syntax_highlighter: rouge
+
+# Only publish the README as the docs preview — keep the source tree
+# out of the Jekyll site so it does not accidentally rebuild every
+# markdown file under `docs/` or `src/`.
+include:
+  - README.md
+exclude:
+  - node_modules
+  - out
+  - src
+  - test
+  - scripts
+  - cli
+  - docs
+  - Dockerfile
+  - package.json
+  - package-lock.json
+  - tsconfig.json
+  - smithery.yaml
+  - CHANGELOG.md

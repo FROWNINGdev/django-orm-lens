@@ -1,6 +1,6 @@
 **English** · [Русский](docs/i18n/README.ru.md) · [Español](docs/i18n/README.es.md) · [中文](docs/i18n/README.zh.md)
 
-<div align="center">
+<div align="center" markdown="1">
 
 <img src="media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
 
@@ -79,7 +79,7 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 ## 📊 Traction
 
-<div align="center">
+<div align="center" markdown="1">
 
 <!-- Headline split-badges (dark label · colored value) -->
 
@@ -315,7 +315,7 @@ Stable `TreeItem.id` — refresh no longer collapses the tree. Rich `MarkdownStr
 
 ## 📸 What it looks like
 
-<div align="center">
+<div align="center" markdown="1">
 <img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
 </div>
 
@@ -694,7 +694,7 @@ MIT © [FROWNINGdev](https://github.com/FROWNINGdev)
 
 <br/>
 
-<div align="center">
+<div align="center" markdown="1">
 
 **Made for developers who care about their codebase.**
 
