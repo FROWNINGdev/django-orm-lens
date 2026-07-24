@@ -253,36 +253,104 @@ test('diffToMarkdown handles empty diff', () => {
 
 // v0.9 seed — partial UniqueConstraint detection. Inspired by
 // django-extensions#1813 (sqldiff drops the condition= predicate).
+
+/** Compact ParsedModel factory for constraint tests (workflow FK + meta). */
+function orderModel(constraintsStr) {
+  return {
+    ...model('shop', 'Order', [
+      field('workflow', 'ForeignKey', 'Workflow', {
+        isRelation: true,
+        relatedModel: 'Workflow',
+        relationKind: 'ForeignKey',
+      }),
+    ]),
+    meta: constraintsStr ? { constraints: constraintsStr } : {},
+  };
+}
+
 test('PartialUniqueConstraint fires when a new conditioned UniqueConstraint appears', () => {
-  const before = [
-    {
-      ...model('shop', 'Order', [field('workflow', 'ForeignKey', 'Workflow', {
-        isRelation: true,
-        relatedModel: 'Workflow',
-        relationKind: 'ForeignKey',
-      })]),
-      meta: {},
-    },
-  ];
+  const before = [orderModel(null)];
   const after = [
-    {
-      ...model('shop', 'Order', [field('workflow', 'ForeignKey', 'Workflow', {
-        isRelation: true,
-        relatedModel: 'Workflow',
-        relationKind: 'ForeignKey',
-      })]),
-      meta: {
-        constraints: "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='unique_primary_attachment')]",
-      },
-    },
+    orderModel(
+      "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='unique_primary_attachment')]",
+    ),
   ];
   const events = diffSchemas(before, after);
   const modify = events.find((e) => e.kind === 'ModifyModel');
   assert.ok(modify, 'expected a ModifyModel event');
   const pu = modify.changes.find((c) => c.kind === 'PartialUniqueConstraint');
   assert.ok(pu, 'expected PartialUniqueConstraint');
+  assert.equal(pu.op, 'add');
   assert.equal(pu.name, 'unique_primary_attachment');
   assert.match(pu.condition, /Q\(is_primary=True\)/);
   const md = diffToMarkdown(events);
+  assert.match(md, /\*\*added\*\* `unique_primary_attachment`/);
   assert.match(md, /UniqueConstraint\(fields=\[/);
+});
+
+test('PartialUniqueConstraint op=drop when constraint disappears', () => {
+  const before = [
+    orderModel(
+      "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='unique_primary_attachment')]",
+    ),
+  ];
+  const after = [orderModel(null)];
+  const events = diffSchemas(before, after);
+  const pu = events
+    .find((e) => e.kind === 'ModifyModel')
+    .changes.find((c) => c.kind === 'PartialUniqueConstraint');
+  assert.ok(pu, 'expected PartialUniqueConstraint drop event');
+  assert.equal(pu.op, 'drop');
+  assert.equal(pu.name, 'unique_primary_attachment');
+  const md = diffToMarkdown(events);
+  assert.match(md, /\*\*dropped\*\* `unique_primary_attachment`/);
+});
+
+test('PartialUniqueConstraint op=change when predicate mutates on same name', () => {
+  const before = [
+    orderModel(
+      "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='unique_primary_attachment')]",
+    ),
+  ];
+  const after = [
+    orderModel(
+      "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True, deleted=False), name='unique_primary_attachment')]",
+    ),
+  ];
+  const events = diffSchemas(before, after);
+  const pu = events
+    .find((e) => e.kind === 'ModifyModel')
+    .changes.find((c) => c.kind === 'PartialUniqueConstraint');
+  assert.ok(pu, 'expected PartialUniqueConstraint change event');
+  assert.equal(pu.op, 'change');
+  assert.equal(pu.name, 'unique_primary_attachment');
+  assert.match(pu.fromCondition, /Q\(is_primary=True\)/);
+  assert.match(pu.condition, /deleted=False/);
+  const md = diffToMarkdown(events);
+  assert.match(md, /\*\*changed\*\* `unique_primary_attachment`/);
+  assert.match(md, /Q\(is_primary=True\) → Q\(is_primary=True, deleted=False\)/);
+});
+
+test('PartialUniqueConstraint op=rename when only the name differs', () => {
+  const before = [
+    orderModel(
+      "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='old_name')]",
+    ),
+  ];
+  const after = [
+    orderModel(
+      "[UniqueConstraint(fields=['workflow'], condition=Q(is_primary=True), name='unique_primary_attachment')]",
+    ),
+  ];
+  const events = diffSchemas(before, after);
+  const puEvents = events
+    .find((e) => e.kind === 'ModifyModel')
+    .changes.filter((c) => c.kind === 'PartialUniqueConstraint');
+  assert.equal(puEvents.length, 1, 'rename must not double-emit add+drop');
+  const [pu] = puEvents;
+  assert.equal(pu.op, 'rename');
+  assert.equal(pu.fromName, 'old_name');
+  assert.equal(pu.name, 'unique_primary_attachment');
+  const md = diffToMarkdown(events);
+  assert.match(md, /\*\*renamed\*\* `old_name` → `unique_primary_attachment`/);
 });

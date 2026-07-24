@@ -51,10 +51,21 @@ export type FieldChange =
       // django-extensions#1813 (BoPeng, 2023) — sqldiff drops `condition=`
       // from UniqueConstraint output. Our schema-diff surfaces it as a
       // first-class event so downstream migration reviewers can see it.
+      //
+      // `op` semantics:
+      //   - 'add'    — constraint appeared in the new snapshot only
+      //   - 'drop'   — constraint existed only in the old snapshot
+      //   - 'change' — same name, condition (or field list) mutated;
+      //                `fromCondition` carries the pre-change predicate
+      //   - 'rename' — same fields + same condition, name changed;
+      //                `fromName` carries the pre-rename name
       kind: 'PartialUniqueConstraint';
-      name: string; // constraint name if given
+      op: 'add' | 'drop' | 'change' | 'rename';
+      name: string; // constraint name if given (post-rename when op='rename')
       fields: string;
       condition: string;
+      fromCondition?: string; // only set when op='change'
+      fromName?: string; // only set when op='rename'
     }
   | {
       kind: 'RenameField';
@@ -239,24 +250,89 @@ function diffModelFields(
 ): FieldChange[] {
   const out: FieldChange[] = [];
 
-  // v0.9 — surface partial UniqueConstraint changes as first-class events.
-  // Simple set-diff on the (name, condition) tuple so a modified predicate
-  // shows up as a drop of the old shape and add of the new shape. Rename
-  // detection could come later when the community asks.
+  // v0.9 — surface partial UniqueConstraint changes as first-class events
+  // in four flavours: add, drop, change (same name, mutated predicate) and
+  // rename (same fields + same condition, different name). Anonymous
+  // constraints (empty name) are keyed by their index so multiple unnamed
+  // ones on the same model don't collapse into a single event.
   const oldPU = extractPartialUniqueConstraints(oldModel.meta?.constraints);
   const newPU = extractPartialUniqueConstraints(newModel.meta?.constraints);
-  const oldKey = new Set(oldPU.map((c) => `${c.name}::${c.condition}`));
-  const newKey = new Set(newPU.map((c) => `${c.name}::${c.condition}`));
-  for (const c of newPU) {
-    if (!oldKey.has(`${c.name}::${c.condition}`)) {
-      out.push({ kind: 'PartialUniqueConstraint', ...c });
+  const puKey = (c: { name: string }, idx: number): string =>
+    c.name || `#anon-${idx}`;
+  const oldByPuKey = new Map(oldPU.map((c, i) => [puKey(c, i), c]));
+  const newByPuKey = new Map(newPU.map((c, i) => [puKey(c, i), c]));
+  const matchedOldPu = new Set<string>();
+  const matchedNewPu = new Set<string>();
+
+  // Pass A — name-matched: 'change' when fields or condition differ, no-op otherwise.
+  for (const [key, oldC] of oldByPuKey) {
+    const newC = newByPuKey.get(key);
+    if (!newC) continue;
+    matchedOldPu.add(key);
+    matchedNewPu.add(key);
+    if (oldC.condition !== newC.condition || oldC.fields !== newC.fields) {
+      out.push({
+        kind: 'PartialUniqueConstraint',
+        op: 'change',
+        name: newC.name,
+        fields: newC.fields,
+        condition: newC.condition,
+        fromCondition: oldC.condition,
+      });
     }
+  }
+
+  // Pass B — rename candidates: same fields + condition, different name.
+  const usedNewPu = new Set<string>();
+  for (const [oldKey, oldC] of oldByPuKey) {
+    if (matchedOldPu.has(oldKey)) continue;
+    let match: { key: string; c: { name: string; fields: string; condition: string } } | undefined;
+    for (const [newKey, newC] of newByPuKey) {
+      if (matchedNewPu.has(newKey)) continue;
+      if (usedNewPu.has(newKey)) continue;
+      if (newC.fields === oldC.fields && newC.condition === oldC.condition) {
+        match = { key: newKey, c: newC };
+        break;
+      }
+    }
+    if (!match) continue;
+    out.push({
+      kind: 'PartialUniqueConstraint',
+      op: 'rename',
+      name: match.c.name,
+      fromName: oldC.name,
+      fields: match.c.fields,
+      condition: match.c.condition,
+    });
+    matchedOldPu.add(oldKey);
+    matchedNewPu.add(match.key);
+    usedNewPu.add(match.key);
+  }
+
+  // Pass C — leftovers are pure add / drop.
+  for (const [key, c] of oldByPuKey) {
+    if (matchedOldPu.has(key)) continue;
+    out.push({
+      kind: 'PartialUniqueConstraint',
+      op: 'drop',
+      name: c.name,
+      fields: c.fields,
+      condition: c.condition,
+    });
+  }
+  for (const [key, c] of newByPuKey) {
+    if (matchedNewPu.has(key)) continue;
+    out.push({
+      kind: 'PartialUniqueConstraint',
+      op: 'add',
+      name: c.name,
+      fields: c.fields,
+      condition: c.condition,
+    });
   }
 
   const oldByName = new Map(oldModel.fields.map((f) => [f.name, f]));
   const newByName = new Map(newModel.fields.map((f) => [f.name, f]));
-  // Suppress "unused" for future rename-detection reads — currently unread.
-  void newKey;
 
   const matchedOld = new Set<string>();
   const matchedNew = new Set<string>();
@@ -554,11 +630,33 @@ export function diffToMarkdown(events: ModelChange[]): string {
                 `${fieldEmoji.ChangeFieldOption} \`${c.name}.${c.option}\`: ${c.from} → ${c.to}`,
               );
               break;
-            case 'PartialUniqueConstraint':
-              lines.push(
-                `${fieldEmoji.PartialUniqueConstraint} \`${c.name || '(unnamed)'}\`: UniqueConstraint(fields=[${c.fields}], condition=${c.condition})`,
-              );
+            case 'PartialUniqueConstraint': {
+              const label = c.name || '(unnamed)';
+              const body = `UniqueConstraint(fields=[${c.fields}], condition=${c.condition})`;
+              switch (c.op) {
+                case 'add':
+                  lines.push(
+                    `${fieldEmoji.PartialUniqueConstraint} **added** \`${label}\`: ${body}`,
+                  );
+                  break;
+                case 'drop':
+                  lines.push(
+                    `${fieldEmoji.PartialUniqueConstraint} **dropped** \`${label}\`: ${body}`,
+                  );
+                  break;
+                case 'change':
+                  lines.push(
+                    `${fieldEmoji.PartialUniqueConstraint} **changed** \`${label}\`: UniqueConstraint(fields=[${c.fields}], condition=${c.fromCondition} → ${c.condition})`,
+                  );
+                  break;
+                case 'rename':
+                  lines.push(
+                    `${fieldEmoji.PartialUniqueConstraint} **renamed** \`${c.fromName || '(unnamed)'}\` → \`${label}\`: ${body}`,
+                  );
+                  break;
+              }
               break;
+            }
           }
         }
         break;

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-24
+
+Schema-diff gets a first-class **partial UniqueConstraint** tracker. Inspired
+by django-extensions [#1813](https://github.com/django-extensions/django-extensions/issues/1813)
+(BoPeng, 2023) — `sqldiff` drops the `condition=` predicate from
+`UniqueConstraint` output, so migration reviewers never see what actually
+changed. Django ORM Lens now surfaces these as typed events so PR diffs stop
+lying.
+
+### Added
+
+- **`PartialUniqueConstraint` schema-diff event with four ops:**
+  - `add` — new conditioned `UniqueConstraint` appeared in the new snapshot
+  - `drop` — constraint existed only in the old snapshot
+  - `change` — same name, condition (or field list) mutated; `fromCondition`
+    carries the pre-change predicate so the review comment can show
+    `Q(is_primary=True) → Q(is_primary=True, deleted=False)`
+  - `rename` — same fields + same condition, only the name changed; renamed
+    constraints no longer show up as a lossy `add + drop` pair
+- **Anonymous-safe.** Multiple unnamed constraints on the same model no longer
+  collapse into a single event — internal keying falls back to `#anon-<index>`.
+- **Markdown rendering** grew four dedicated bullet variants (`**added** …`,
+  `**dropped** …`, `**changed** …`, `**renamed** …`) so the PR description
+  reads like a review comment, not a raw diff.
+- **Tests:** 4 new snapshot tests for each op variant (add / drop / change /
+  rename). Schema-diff suite: 17/17 green; full TS suite: 104/104 green.
+
+### Referenced upstream
+
+- <https://github.com/django-extensions/django-extensions/issues/1813> —
+  root-cause description + reproducer + workaround acknowledged in
+  [comment #5062767387](https://github.com/django-extensions/django-extensions/issues/1813#issuecomment-5062767387).
+
 ## [0.7.8] - 2026-07-21
 
 Marketplace SEO polish — no runtime changes, no behaviour changes. VS Code extension only (CLI/MCP unchanged, still on py-1.2.7).
