@@ -113,7 +113,7 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 <!-- MCP directories -->
 
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-official_listing-6f42c1?style=for-the-badge&labelColor=1e293b)](https://registry.modelcontextprotocol.io/)
-[![CodeTriage](https://img.shields.io/badge/CodeTriage-help_triage-2ec4b6?style=for-the-badge&labelColor=1e293b)](https://www.codetriage.com/frowningdev/django-orm-lens)
+[![CodeTriage helpers](https://images.weserv.nl/?url=www.codetriage.com/frowningdev/django-orm-lens/badges/users%2Esvg&output=png)](https://www.codetriage.com/frowningdev/django-orm-lens)
 [![Glama.ai score](https://images.weserv.nl/?url=glama.ai/mcp/servers/FROWNINGdev/django-orm-lens/badges/score%2Esvg&output=png)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
 [![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge&labelColor=1e293b)](https://mcp.so/servers/django-orm-lens)
 
