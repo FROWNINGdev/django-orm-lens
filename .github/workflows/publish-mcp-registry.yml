@@ -51,7 +51,36 @@ jobs:
       # version is fully indexed) every 10 s for up to 5 min, then let
       # publish run. Adds no time on normal releases where PyPI already
       # has the version.
+      # Idempotency guard — this workflow fires on any change to server.json
+      # OR to the workflow itself, so a pure workflow edit (like the
+      # race-guard added on 2026-07-25) triggers a publish attempt even
+      # though the pinned version already exists on the Registry, which
+      # rejects duplicates with HTTP 400 ``cannot publish duplicate
+      # version``. Detect that case here and short-circuit so infra edits
+      # are no-ops instead of red X'd workflow runs.
+      - name: Skip if version already on Registry
+        id: registry_check
+        run: |
+          set -euo pipefail
+          VERSION="$(jq -r '.packages[0].version' cli/server.json)"
+          NAME="$(jq -r '.name' cli/server.json)"
+          # The Registry search endpoint returns a paginated list; each
+          # entry wraps the server metadata under ``.server``. Match on the
+          # exact (name, version) tuple — do not rely on ordering.
+          BODY=$(curl -sS "https://registry.modelcontextprotocol.io/v0/servers?search=$(echo "$NAME" | sed 's|/|%2F|g')")
+          FOUND=$(echo "$BODY" | jq --arg n "$NAME" --arg v "$VERSION" '
+            [ .servers[] | (.server // .) | select(.name == $n and .version == $v) ] | length
+          ')
+          if [ "$FOUND" -gt 0 ]; then
+            echo "Registry already has ${NAME}@${VERSION} — nothing to publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Registry does not have ${NAME}@${VERSION} yet — will proceed."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Wait for PyPI to reflect the pinned version
+        if: steps.registry_check.outputs.skip != 'true'
         run: |
           set -euo pipefail
           VERSION="$(jq -r '.packages[0].version' cli/server.json)"
@@ -74,4 +103,5 @@ jobs:
           exit 1
 
       - name: Publish
+        if: steps.registry_check.outputs.skip != 'true'
         run: ./mcp-publisher publish cli/server.json
