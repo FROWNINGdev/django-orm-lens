@@ -40,5 +40,38 @@ jobs:
       - name: Login via GitHub OIDC
         run: ./mcp-publisher login github-oidc
 
+      # Race guard — Registry validates the pinned PyPI version at publish
+      # time. The PyPI publish workflow runs on `py-v*` tags and can take up
+      # to ~90 s to appear in the pypi.org JSON API, while this workflow
+      # runs on push to `main`. Without this wait the first attempt hits
+      # 404 on a fresh release and needs a manual `gh workflow run` retry
+      # (as happened on py-v1.3.0 — see incident in CHANGELOG.md).
+      #
+      # Poll pypi.org's per-version JSON endpoint (returns 200 iff the
+      # version is fully indexed) every 10 s for up to 5 min, then let
+      # publish run. Adds no time on normal releases where PyPI already
+      # has the version.
+      - name: Wait for PyPI to reflect the pinned version
+        run: |
+          set -euo pipefail
+          VERSION="$(jq -r '.packages[0].version' cli/server.json)"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::could not read .packages[0].version from cli/server.json"
+            exit 1
+          fi
+          URL="https://pypi.org/pypi/django-orm-lens/${VERSION}/json"
+          echo "waiting for $URL"
+          for attempt in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
+            if [ "$code" = "200" ]; then
+              echo "PyPI has django-orm-lens==${VERSION} after ${attempt} attempt(s)"
+              exit 0
+            fi
+            echo "attempt ${attempt}: pypi returned ${code} — sleeping 10s"
+            sleep 10
+          done
+          echo "::error::timed out waiting for django-orm-lens==${VERSION} on PyPI after 5 minutes"
+          exit 1
+
       - name: Publish
         run: ./mcp-publisher publish cli/server.json
