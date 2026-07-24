@@ -367,7 +367,13 @@ django-orm-lens-mcp
 django-orm-lens mcp
 ```
 
-Set `DJANGO_ORM_LENS_ROOT=/abs/path/to/project` to point it anywhere.
+**Workspace resolution (py-1.3.0+).** Every tool accepts an optional
+`workspace_root` argument on the call. Resolution priority: explicit arg →
+`$DJANGO_ORM_LENS_ROOT` → current working directory. Invalid or non-Django
+paths return a structured envelope
+(`{"error": "WORKSPACE_NOT_DJANGO", "hint": "…"}`) instead of empty results,
+so the agent can self-correct. Optional sandbox via
+`DJANGO_ORM_LENS_ALLOWED_ROOTS` (`;`-separated on Windows, `:` elsewhere).
 
 <br/>
 

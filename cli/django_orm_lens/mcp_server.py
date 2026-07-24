@@ -15,53 +15,100 @@ Exposes nine read-only tools that any MCP-compatible AI agent can call:
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
 stays zero-dep. Install with the extras: ``pip install 'django-orm-lens[mcp]'``.
 
-Config: workspace root taken from ``$DJANGO_ORM_LENS_ROOT`` if set, else ``cwd``.
+Workspace discovery (py-1.3.0+)
+-------------------------------
+Every tool accepts an optional ``workspace_root`` argument. Resolution
+priority — explicit arg, then ``$DJANGO_ORM_LENS_ROOT`` env var, then ``cwd``
+— is implemented once in :mod:`django_orm_lens.workspace`. Before py-1.3.0
+the argument was silently dropped by FastMCP because the tool signatures did
+not declare it; the fix is to declare the argument on every tool and delegate
+resolution to a single hardened helper. On failure the tool returns a JSON
+envelope ``{"error": "...", "hint": "..."}`` so the agent gets an actionable
+message instead of an empty list.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
-import time
-from typing import Any, Dict, List, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Union
 
 from .cli import _build_mermaid
 from .migrations_parser import describe_migration_dependency
 from .models import WorkspaceIndex, find_model, find_user_model, resolve_related_tail
-from .parser import DEFAULT_EXCLUDES, scan_workspace
 from .query_analyzer import suggest_indexes as _suggest_indexes
 from .signals_parser import signal_graph as _signal_graph
+from .workspace import WorkspaceError, get_index, resolve_workspace
 
 
-def _workspace_root() -> str:
-    return os.environ.get("DJANGO_ORM_LENS_ROOT") or os.getcwd()
+# ---------------------------------------------------------------------------
+# Resolution helper — every tool starts here
+# ---------------------------------------------------------------------------
 
 
-_INDEX_CACHE: Dict[str, Tuple[WorkspaceIndex, int]] = {}
-_CACHE_TTL_MS = 30_000
+def _resolve(args: Dict[str, Any]) -> Union[Path, WorkspaceError]:
+    """Extract ``workspace_root`` from tool args and delegate to workspace.py.
 
-
-def _get_index() -> WorkspaceIndex:
-    """Cache-backed workspace index — 30s TTL, keyed by workspace root.
-
-    Agents typically fire multiple MCP tool calls back-to-back (list_apps →
-    describe_model → find_relations). Without a cache each call re-walked the
-    filesystem and re-parsed every models.py. TTL is short enough that manual
-    edits between calls still pick up on the next scan.
+    Centralised so every tool has identical resolution semantics. Empty string,
+    missing key, and ``None`` all fall through to env var / cwd — same as
+    calling the tool with no argument at all.
     """
-    root = _workspace_root()
-    now_ms = int(time.time() * 1000)
-    entry = _INDEX_CACHE.get(root)
-    if entry is not None and entry[1] > now_ms:
-        return entry[0]
-    idx = scan_workspace(root, DEFAULT_EXCLUDES)
-    _INDEX_CACHE[root] = (idx, now_ms + _CACHE_TTL_MS)
-    return idx
+    raw = (args or {}).get("workspace_root") or ""
+    return resolve_workspace(raw)
 
 
-def _tool_list_apps(_args: Dict[str, Any]) -> str:
-    idx = _get_index()
+def _error_json(err: WorkspaceError) -> str:
+    """Serialize a :class:`WorkspaceError` as an indent-2 JSON envelope."""
+    return json.dumps(err.to_dict(), indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Model lookup helpers — shared by describe_model / find_relations / cascade
+# ---------------------------------------------------------------------------
+
+
+def _find(idx: WorkspaceIndex, ref: str):
+    """Delegate to shared ``find_model`` so MCP and CLI lookup semantics stay
+    in sync (they previously drifted — hence the shared helper)."""
+    return find_model(idx, ref)
+
+
+def _workspace_user_model(idx: WorkspaceIndex):
+    """Return ``(app_name, model)`` for the workspace's Django User model.
+
+    Thin wrapper around :func:`models.find_user_model` that preserves the
+    ``(app_name, model)`` tuple this MCP layer historically returned. New
+    callers should prefer ``find_user_model`` directly.
+    """
+    user_model = find_user_model(idx)
+    if user_model is None:
+        return None, None
+    for app in idx.apps:
+        if user_model in app.models:
+            return app.name, user_model
+    return None, user_model
+
+
+def _rel_matches_target(related_model, target_name, user_model) -> bool:
+    """True iff ``related_model`` string points at ``target_name``. Handles
+    ``settings.AUTH_USER_MODEL`` via :func:`models.resolve_related_tail`."""
+    if not related_model:
+        return False
+    user_name = user_model.name if user_model is not None else None
+    return resolve_related_tail(related_model, user_name) == target_name
+
+
+# ---------------------------------------------------------------------------
+# Nine tool handlers
+# ---------------------------------------------------------------------------
+
+
+def _tool_list_apps(args: Dict[str, Any]) -> str:
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    idx = get_index(ws)
     return json.dumps(
         [
             {"name": a.name, "path": a.path, "models": len(a.models)}
@@ -72,7 +119,10 @@ def _tool_list_apps(_args: Dict[str, Any]) -> str:
 
 
 def _tool_list_models(args: Dict[str, Any]) -> str:
-    idx = _get_index()
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    idx = get_index(ws)
     only_app = (args or {}).get("app")
     if only_app and not any(a.name == only_app for a in idx.apps):
         available = ", ".join(sorted(a.name for a in idx.apps)) or "(none)"
@@ -89,39 +139,11 @@ def _tool_list_models(args: Dict[str, Any]) -> str:
     return "\n".join(rows) if rows else "(no models)"
 
 
-def _find(idx, ref: str):
-    # Delegates to shared find_model so MCP and CLI lookup semantics stay
-    # in sync (they previously drifted — hence the shared helper).
-    return find_model(idx, ref)
-
-
-def _workspace_user_model(idx):
-    """Return ``(app_name, model)`` for the workspace's Django User model.
-
-    Thin wrapper around :func:`models.find_user_model` that preserves the
-    ``(app_name, model)`` tuple this MCP layer historically returned. New
-    callers should prefer ``find_user_model`` directly.
-    """
-    user_model = find_user_model(idx)
-    if user_model is None:
-        return None, None
-    for app in idx.apps:
-        if user_model in app.models:
-            return app.name, user_model
-    return None, user_model
-
-
-def _rel_matches_target(related_model, target_name, user_model):
-    """True iff ``related_model`` string points at ``target_name``. Handles
-    ``settings.AUTH_USER_MODEL`` via :func:`models.resolve_related_tail`."""
-    if not related_model:
-        return False
-    user_name = user_model.name if user_model is not None else None
-    return resolve_related_tail(related_model, user_name) == target_name
-
-
 def _tool_describe_model(args: Dict[str, Any]) -> str:
-    idx = _get_index()
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    idx = get_index(ws)
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
@@ -130,7 +152,10 @@ def _tool_describe_model(args: Dict[str, Any]) -> str:
 
 
 def _tool_find_relations(args: Dict[str, Any]) -> str:
-    idx = _get_index()
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    idx = get_index(ws)
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
@@ -167,7 +192,10 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
 
 
 def _tool_cascade_preview(args: Dict[str, Any]) -> str:
-    idx = _get_index()
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    idx = get_index(ws)
     app_label = (args or {}).get("app_label", "")
     model_name = (args or {}).get("model_name", "")
     ref = f"{app_label}.{model_name}" if app_label else model_name
@@ -210,8 +238,11 @@ def _tool_cascade_preview(args: Dict[str, Any]) -> str:
     return json.dumps(out, indent=2)
 
 
-def _tool_er_diagram(_args: Dict[str, Any]) -> str:
-    idx = _get_index()
+def _tool_er_diagram(args: Dict[str, Any]) -> str:
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    idx = get_index(ws)
     return _build_mermaid(idx)
 
 
@@ -222,10 +253,13 @@ def _tool_describe_migration_dependency(args: Dict[str, Any]) -> str:
     Unique to django-orm-lens across the MCP + Django-graph tool ecosystem
     (competitors require a running Django process).
     """
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
     app_label = (args or {}).get("app_label", "")
     if not app_label:
         raise ValueError("app_label is required")
-    result = describe_migration_dependency(app_label, _workspace_root())
+    result = describe_migration_dependency(app_label, str(ws))
     return json.dumps(result, indent=2)
 
 
@@ -238,16 +272,19 @@ def _tool_suggest_indexes(args: Dict[str, Any]) -> str:
     Cross-references with the model's existing ``Meta.indexes`` so
     already-covered combos are not re-proposed.
     """
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
     app_label = (args or {}).get("app_label", "")
     model_name = (args or {}).get("model_name", "")
     if not app_label or not model_name:
         raise ValueError("app_label and model_name are required")
-    index = _get_index()
-    result = _suggest_indexes(app_label, model_name, _workspace_root(), index=index)
+    index = get_index(ws)
+    result = _suggest_indexes(app_label, model_name, str(ws), index=index)
     return json.dumps(result, indent=2)
 
 
-def _tool_signal_graph(_args: Dict[str, Any]) -> str:
+def _tool_signal_graph(args: Dict[str, Any]) -> str:
     """Return the sender→signal→handler DAG for the workspace.
 
     Static AST parse of every ``@receiver(...)`` decorator plus every
@@ -255,49 +292,97 @@ def _tool_signal_graph(_args: Dict[str, Any]) -> str:
     ``.send(...)`` call-sites. Surfaces cross-model side effects and
     orphan handlers whose sender model isn't in the workspace.
     """
-    index = _get_index()
-    result = _signal_graph(_workspace_root(), index=index)
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    index = get_index(ws)
+    result = _signal_graph(str(ws), index=index)
     return json.dumps(result, indent=2)
 
+
+# ---------------------------------------------------------------------------
+# Tool registry — descriptions ship in tools/list so agents see them
+# ---------------------------------------------------------------------------
+
+_WORKSPACE_HINT = (
+    " Optional 'workspace_root' argument overrides the DJANGO_ORM_LENS_ROOT "
+    "env var and current directory — pass the absolute path to your Django "
+    "project root (the directory containing manage.py)."
+)
 
 TOOLS = {
     "list_apps": {
         "handler": _tool_list_apps,
-        "description": "List every Django app in the workspace with model counts.",
+        "description": (
+            "List every Django app in the workspace with model counts." + _WORKSPACE_HINT
+        ),
     },
     "list_models": {
         "handler": _tool_list_models,
-        "description": "Flat list of app.Model. Optional 'app' filter.",
+        "description": (
+            "Flat list of app.Model. Optional 'app' filter." + _WORKSPACE_HINT
+        ),
     },
     "describe_model": {
         "handler": _tool_describe_model,
-        "description": "Full JSON detail for one model: fields, relations, Meta, base classes, file path.",
+        "description": (
+            "Full JSON detail for one model: fields, relations, Meta, base "
+            "classes, file path." + _WORKSPACE_HINT
+        ),
     },
     "find_relations": {
         "handler": _tool_find_relations,
-        "description": "Outbound (this model → others) and inbound (others → this) relations. Inbound entries include on_delete behavior.",
+        "description": (
+            "Outbound (this model -> others) and inbound (others -> this) "
+            "relations. Inbound entries include on_delete behavior." + _WORKSPACE_HINT
+        ),
     },
     "cascade_preview": {
         "handler": _tool_cascade_preview,
-        "description": "Blast radius of deleting a row: inbound relations grouped by on_delete behavior (cascade_kills, set_null, protected).",
+        "description": (
+            "Blast radius of deleting a row: inbound relations grouped by "
+            "on_delete behavior (cascade_kills, set_null, protected)." + _WORKSPACE_HINT
+        ),
     },
     "er_diagram": {
         "handler": _tool_er_diagram,
-        "description": "Emit a Mermaid erDiagram for the whole workspace.",
+        "description": (
+            "Emit a Mermaid erDiagram for the whole workspace." + _WORKSPACE_HINT
+        ),
     },
     "describe_migration_dependency": {
         "handler": _tool_describe_migration_dependency,
-        "description": "Return per-app migration DAG (dependencies, roots, leaves, cross-app deps) from static AST parse of migrations/*.py. No Django boot, no DB. Lets agents debug migration conflicts safely.",
+        "description": (
+            "Return per-app migration DAG (dependencies, roots, leaves, "
+            "cross-app deps) from static AST parse of migrations/*.py. No "
+            "Django boot, no DB. Lets agents debug migration conflicts "
+            "safely." + _WORKSPACE_HINT
+        ),
     },
     "suggest_indexes": {
         "handler": _tool_suggest_indexes,
-        "description": "Static analysis of every filter/exclude/get/order_by/aggregate usage of a model across the workspace. Returns field-usage frequency and proposes Meta.indexes covering entries. Zero-runtime, no DB, no Django boot.",
+        "description": (
+            "Static analysis of every filter/exclude/get/order_by/aggregate "
+            "usage of a model across the workspace. Returns field-usage "
+            "frequency and proposes Meta.indexes covering entries. "
+            "Zero-runtime, no DB, no Django boot." + _WORKSPACE_HINT
+        ),
     },
     "signal_graph": {
         "handler": _tool_signal_graph,
-        "description": "Parse every @receiver() decorator and Signal() definition in the workspace. Returns sender→signal→handler DAG plus custom-signal send-sites and orphan handlers. Zero-runtime, no DB, no Django boot.",
+        "description": (
+            "Parse every @receiver() decorator and Signal() definition in "
+            "the workspace. Returns sender->signal->handler DAG plus custom-"
+            "signal send-sites and orphan handlers. Zero-runtime, no DB, no "
+            "Django boot." + _WORKSPACE_HINT
+        ),
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Server bootstrap — lazy-imports mcp so the base install stays zero-dep
+# ---------------------------------------------------------------------------
 
 
 def main() -> int:
@@ -319,49 +404,80 @@ def main() -> int:
     # surface server stderr (Cursor, Aider, mcp-inspector) show this once
     # per session; silent clients ignore it. Zero effect on tool protocol.
     print(
-        "django-orm-lens MCP ready — "
+        "django-orm-lens MCP ready - "
         "if it saves your agent time, a star helps: "
         "https://github.com/FROWNINGdev/django-orm-lens",
         file=sys.stderr,
     )
 
     def _register(name: str, description: str, handler):
+        """Register one tool.
+
+        Every tool declares ``workspace_root: str = ""`` in its Python
+        signature so FastMCP includes it in the ``inputSchema`` served to
+        ``tools/list``. Agents that pass the argument reach the handler with
+        the value; agents that omit it fall through to env var / cwd via the
+        resolution chain in :mod:`django_orm_lens.workspace`.
+        """
         if name == "list_apps":
             @server.tool(name=name, description=description)
-            def list_apps() -> str:
-                return handler({})
+            def list_apps(workspace_root: str = "") -> str:
+                return handler({"workspace_root": workspace_root})
         elif name == "list_models":
             @server.tool(name=name, description=description)
-            def list_models(app: str = "") -> str:
-                return handler({"app": app} if app else {})
+            def list_models(app: str = "", workspace_root: str = "") -> str:
+                args: Dict[str, Any] = {"workspace_root": workspace_root}
+                if app:
+                    args["app"] = app
+                return handler(args)
         elif name == "describe_model":
             @server.tool(name=name, description=description)
-            def describe_model(model: str) -> str:
-                return handler({"model": model})
+            def describe_model(model: str, workspace_root: str = "") -> str:
+                return handler({"model": model, "workspace_root": workspace_root})
         elif name == "find_relations":
             @server.tool(name=name, description=description)
-            def find_relations(model: str) -> str:
-                return handler({"model": model})
+            def find_relations(model: str, workspace_root: str = "") -> str:
+                return handler({"model": model, "workspace_root": workspace_root})
         elif name == "cascade_preview":
             @server.tool(name=name, description=description)
-            def cascade_preview(app_label: str, model_name: str) -> str:
-                return handler({"app_label": app_label, "model_name": model_name})
+            def cascade_preview(
+                app_label: str, model_name: str, workspace_root: str = ""
+            ) -> str:
+                return handler(
+                    {
+                        "app_label": app_label,
+                        "model_name": model_name,
+                        "workspace_root": workspace_root,
+                    }
+                )
         elif name == "er_diagram":
             @server.tool(name=name, description=description)
-            def er_diagram() -> str:
-                return handler({})
+            def er_diagram(workspace_root: str = "") -> str:
+                return handler({"workspace_root": workspace_root})
         elif name == "describe_migration_dependency":
             @server.tool(name=name, description=description)
-            def describe_migration_dependency(app_label: str) -> str:
-                return handler({"app_label": app_label})
+            def describe_migration_dependency(
+                app_label: str, workspace_root: str = ""
+            ) -> str:
+                return handler(
+                    {"app_label": app_label, "workspace_root": workspace_root}
+                )
         elif name == "suggest_indexes":
             @server.tool(name=name, description=description)
-            def suggest_indexes(app_label: str, model_name: str) -> str:
-                return handler({"app_label": app_label, "model_name": model_name})
+            def suggest_indexes(
+                app_label: str, model_name: str, workspace_root: str = ""
+            ) -> str:
+                return handler(
+                    {
+                        "app_label": app_label,
+                        "model_name": model_name,
+                        "workspace_root": workspace_root,
+                    }
+                )
         elif name == "signal_graph":
             @server.tool(name=name, description=description)
-            def signal_graph() -> str:
-                return handler({})
+            def signal_graph(workspace_root: str = "") -> str:
+                return handler({"workspace_root": workspace_root})
 
     for name, spec in TOOLS.items():
         _register(name, spec["description"], spec["handler"])

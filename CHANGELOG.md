@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.3.0] - 2026-07-25
+
+Professional-grade fix for the workspace-resolution silent-drop bug. Before
+1.3.0 every MCP tool function was registered without a ``workspace_root``
+parameter in its Python signature — FastMCP therefore treated any
+``workspace_root`` kwarg passed by an AI agent as an unknown argument and
+silently discarded it, then fell back to ``$DJANGO_ORM_LENS_ROOT`` or
+``os.getcwd()``. Cursor, Claude Desktop and Aider intuitively call
+``list_apps(workspace_root="...")``; the argument vanished, the tool returned
+``[]``, and the agent concluded the server was broken. Root cause verified
+against microsoft/AL#8273, openai/codex#9989, aws-toolkit-jetbrains#6173,
+kirodotdev/Kiro#5662 and modelcontextprotocol/python-sdk#1097 — every one is
+the same class of silent-workspace-drop symptom.
+
+### Added
+
+- **``workspace_root`` argument on all 9 MCP tools.** Declared in every
+  handler signature so FastMCP includes it in the ``inputSchema`` served to
+  ``tools/list`` — agents now see it as a first-class parameter and its
+  value reaches the resolution helper unchanged.
+- **New ``django_orm_lens.workspace`` module.** Single home for resolution,
+  path hardening, and caching. Priority chain: explicit argument →
+  ``$DJANGO_ORM_LENS_ROOT`` → current working directory. A failure at any
+  chosen source is surfaced immediately instead of falling through — that
+  silent fall-through is exactly what produced the pre-1.3.0 bug.
+- **Path hardening.** ``os.path.expanduser`` + ``expandvars`` +
+  ``Path.resolve()`` collapses ``..`` traversal and follows symlinks before
+  any validation. Windows reserved device names (``CON``, ``PRN``, ``AUX``,
+  ``NUL``, ``COMn``, ``LPTn``) are rejected on every OS because paths flow
+  between machines. Django-marker requirement (``manage.py`` /
+  ``manage.pyw`` / ``django`` in ``pyproject.toml`` / any ``models.py`` in
+  the tree) rejects agent typos before they scan the wrong directory.
+- **Optional allowlist.** ``DJANGO_ORM_LENS_ALLOWED_ROOTS`` (``;``-separated
+  on Windows, ``:``-separated elsewhere) restricts which prefixes the agent
+  may resolve to. Empty / unset preserves the historical unrestricted
+  behaviour.
+- **Structured error envelope.** Every failure now returns
+  ``{"error": "WORKSPACE_...", "message": "...", "hint": "...", "path": "..."}``
+  as the tool result — agents get an actionable message instead of ``[]``.
+  Stable error codes: ``WORKSPACE_EMPTY``, ``WORKSPACE_NOT_FOUND``,
+  ``WORKSPACE_NOT_A_DIRECTORY``, ``WORKSPACE_NOT_DJANGO``,
+  ``WORKSPACE_NOT_ALLOWED``, ``WORKSPACE_WINDOWS_RESERVED``,
+  ``WORKSPACE_RESOLVE_FAILED``.
+- **Compound cache key.** Index cache is now keyed by
+  ``(resolved_absolute_path, manage.py mtime)`` — touching ``manage.py``
+  invalidates on the next call without waiting for the 30 s TTL. Cache is
+  LRU-capped at 8 workspaces so multi-project agents (Cursor with several
+  folders open) can't unbounded-grow memory.
+- **Tests:** ``test_mcp_workspace.py`` (23 unit tests: hardening, priority
+  chain, allowlist, cache) + ``test_mcp_server.py`` (22 integration tests +
+  18 subtests: registry contract, error envelope on every tool, happy path
+  equivalence). Full Python suite: **236 passed** (up from 191), zero
+  regressions. TS suite: 104/104 green (unchanged).
+
+### Referenced upstream
+
+- <https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem>
+  — reference implementation of workspace hardening and containment (path
+  resolve + allowlist), whose semantics this fix ports to Python.
+- <https://github.com/modelcontextprotocol/servers-archived/tree/main/src/git>
+  — reference example of per-tool ``repo_path`` argument that inspired the
+  explicit-argument-first priority chain.
+- <https://github.com/microsoft/AL/issues/8273>,
+  <https://github.com/openai/codex/issues/9989>,
+  <https://github.com/aws/aws-toolkit-jetbrains/issues/6173>,
+  <https://github.com/kirodotdev/Kiro/issues/5662> — real-world reports of
+  the identical silent-workspace-drop bug in adjacent MCP servers.
+- <https://github.com/modelcontextprotocol/python-sdk/issues/1097> — the
+  ``roots/list`` deadlock that motivated the deliberate choice to keep this
+  release synchronous and defer MCP-roots integration.
+
 ## [0.9.0] - 2026-07-24
 
 Schema-diff gets a first-class **partial UniqueConstraint** tracker. Inspired

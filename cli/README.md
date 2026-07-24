@@ -79,8 +79,16 @@ django-orm-lens-mcp     # dedicated entry point
 django-orm-lens mcp     # subcommand
 ```
 
-By default the server scans the current working directory. Override with
-`DJANGO_ORM_LENS_ROOT=/abs/path/to/project`.
+**Workspace resolution (py-1.3.0+).** Priority: explicit `workspace_root`
+argument on the tool call → `DJANGO_ORM_LENS_ROOT` env var → current working
+directory. If none resolves to a Django project (`manage.py`, `django` in
+`pyproject.toml`, or any `models.py`) you get a structured error envelope
+back — `{"error": "WORKSPACE_NOT_DJANGO", "hint": "…"}` — instead of an
+empty list, so the agent knows what to do next.
+
+Optional sandbox: set `DJANGO_ORM_LENS_ALLOWED_ROOTS` (`;`-separated on
+Windows, `:`-separated elsewhere) to a whitelist of prefixes; any path
+outside them is rejected with `WORKSPACE_NOT_ALLOWED`.
 
 ### Register it with an agent
 
@@ -97,9 +105,17 @@ By default the server scans the current working directory. Override with
 }
 ```
 
-**Aider / Continue.dev / Zed / any MCP client** — same shape, the tool is
-generic. Point `command` at the installed `django-orm-lens-mcp` binary and set
-the workspace root via env.
+**Any MCP client** — same shape, generic tool. Point `command` at the
+installed `django-orm-lens-mcp` binary. Two ways to tell it which Django
+project to scan:
+
+1. **Set `DJANGO_ORM_LENS_ROOT` in `env`** — the whole session uses one
+   project. Simplest for single-repo workflows.
+2. **Pass `workspace_root` on each tool call** — the agent switches
+   projects per call. Useful for mono-repos and multi-workspace setups.
+
+The tool signatures include `workspace_root: str = ""` as an optional
+parameter, so any agent inspecting `tools/list` sees it and can supply it.
 
 ---
 
