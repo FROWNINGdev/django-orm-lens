@@ -109,7 +109,11 @@ function decorationFlagForField(f: ParsedField): string | undefined {
 
 /** Escape a value for safe embedding inside a Markdown table cell. */
 function mdCell(v: string): string {
-  return v.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  // Escape backslash first — otherwise CodeQL js/incomplete-sanitization
+  // flags us because a raw \ in the input could combine with the following
+  // \| escape and defeat it (\ + \| = \\| = literal \|). Even though our
+  // inputs (Django model/field names) rarely contain \, escape defensively.
+  return v.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
 /**

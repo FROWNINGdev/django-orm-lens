@@ -97,7 +97,14 @@ function reverseAccessorName(
 
 /** Build a VS Code snippet tab-stop placeholder. */
 function snip(placeholder: string, tabStop: number, defaultValue = ''): string {
-  const safe = defaultValue.replace(/\$/g, '\\$').replace(/\}/g, '\\}');
+  // Escape backslash FIRST so later escapes (\$, \}) don't double-count an
+  // already-emitted backslash. CodeQL js/incomplete-sanitization flags the
+  // reverse order as a bypass risk — a raw \ in input could otherwise chain
+  // with the $ or } escape and defeat it downstream in the snippet parser.
+  const safe = defaultValue
+    .replace(/\\/g, '\\\\')
+    .replace(/\$/g, '\\$')
+    .replace(/\}/g, '\\}');
   return safe
     ? `\${${tabStop}:${safe}}`
     : `\${${tabStop}:${placeholder}}`;

@@ -46,6 +46,18 @@ jobs:
           # ruleset plus code-quality checks. Fine for a small codebase;
           # switch to `security-extended` if noise gets too loud later.
           queries: security-and-quality
+          # Skip vendored code and generated assets. Golden fixtures under
+          # cli/tests/fixtures/ are upstream projects' code copied verbatim
+          # for parser regression testing — their bugs (e.g. Saleor's
+          # super-not-enclosing-class in product/models.py) are not ours to
+          # fix and would drown the security tab in noise.
+          config: |
+            paths-ignore:
+              - cli/tests/fixtures/**
+              - dist/**
+              - out/**
+              - node_modules/**
+              - '**/*.min.js'
 
       # No build step needed — both Python and TypeScript are analyzed
       # by CodeQL directly from source. If we ever add a language that
