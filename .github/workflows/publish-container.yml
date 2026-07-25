@@ -81,7 +81,7 @@ jobs:
           echo "PyPI never indexed $VER after 15 minutes — proceeding anyway (Build step will show the pip error)"
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
