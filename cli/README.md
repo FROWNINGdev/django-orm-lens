@@ -2,6 +2,11 @@
 
 <!-- mcp-name: io.github.FROWNINGdev/django-orm-lens -->
 
+[![PyPI](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![Downloads](https://img.shields.io/pepy/dt/django-orm-lens?color=3775a9&label=downloads&logo=pypi&logoColor=white)](https://pepy.tech/project/django-orm-lens)
+[![License](https://img.shields.io/github/license/FROWNINGdev/django-orm-lens?color=16a34a)](https://github.com/FROWNINGdev/django-orm-lens/blob/main/LICENSE)
+
 **Static analysis + MCP server for Django models.** Terminal- and AI-agent-friendly.
 
 Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.FROWNINGdev/django-orm-lens`.
