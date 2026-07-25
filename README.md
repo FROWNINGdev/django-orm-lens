@@ -96,22 +96,14 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 ### 📈 Star growth
 
 <div align="center">
-  <a href="https://star-history.com/#FROWNINGdev/django-orm-lens&Date">
+  <a href="https://www.star-history.com/?repos=FROWNINGdev%2Fdjango-orm-lens&type=date&legend=top-left">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date" />
-      <img alt="Star history of FROWNINGdev/django-orm-lens" src="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date" width="720"/>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&theme=dark&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <img alt="Star history of FROWNINGdev/django-orm-lens" src="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
     </picture>
   </a>
-
-  <br/>
-
-  <a href="https://star-history.com/#FROWNINGdev/django-orm-lens&Date">
-    <img alt="View interactive star history" src="https://img.shields.io/badge/View%20interactive%20chart-star--history.com-eab308?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b"/>
-  </a>
 </div>
-
-<sub>Chart loads live from star-history.com. If GitHub throttles the SVG (grey box), the button opens the interactive chart directly.</sub>
 
 ---
 
