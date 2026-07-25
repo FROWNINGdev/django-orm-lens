@@ -38,6 +38,12 @@ updates:
       types:
         patterns:
           - "@types/*"
+    # Hold major bumps for manual opt-in — they historically break tsc
+    # (typescript 5 -> 7 opened PR #39 on 2026-07-26 with red CI). If we
+    # actually want a major, do it as a hand-written migration PR.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # Docker — root Dockerfile bakes the GHCR image.
   - package-ecosystem: "docker"
@@ -52,6 +58,13 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
+    # Base-image major bumps (python 3.12 -> 3.14 in PR #29) can silently
+    # drop stdlib modules our parser relies on. Held for manual opt-in so
+    # we verify the extension runtime + MCP tools before shipping the
+    # container update.
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions — pin all `uses:` versions so we get security fixes.
   - package-ecosystem: "github-actions"
