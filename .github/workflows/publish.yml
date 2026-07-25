@@ -62,7 +62,7 @@ jobs:
         run: npx --yes ovsx publish "${{ env.VSIX_PATH }}" -p "$OVSX_PAT"
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: vsix
           path: ${{ env.VSIX_PATH }}
