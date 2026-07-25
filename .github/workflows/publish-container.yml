@@ -54,22 +54,28 @@ jobs:
       - name: Wait for PyPI to index the version
         # This workflow runs in parallel with publish-pypi.yml, so a fresh
         # tag push often races: GHCR starts before PyPI has indexed the new
-        # version and `pip install django-orm-lens==X` errors with
-        # "No matching distribution found". Poll the JSON API until the
-        # version appears (or give up after ~15 min, in which case Build
+        # version and `pip install django-orm-lens==X` in the Dockerfile
+        # errors with "No matching distribution found".
+        #
+        # Poll the SIMPLE index (pypi.org/simple/*) — this is what pip
+        # actually queries during install, and it lives on a DIFFERENT
+        # Fastly cache than the JSON metadata endpoint. Historically we
+        # polled the JSON endpoint and it said "yes" while pip still saw
+        # "no" (observed on py-v1.4.0 on 2026-07-25T18:01Z), so we now
+        # match what pip sees. Give up after ~15 min in which case Build
         # will fail loudly with the pip error rather than silently baking
-        # a stale image). 5 min proved too tight during py-v1.2.7 — PyPI's
+        # a stale image. 5 min proved too tight during py-v1.2.7 — PyPI's
         # CDN occasionally takes longer to propagate a new release.
         if: steps.ver.outputs.PKG_VERSION != ''
         run: |
           VER="${{ steps.ver.outputs.PKG_VERSION }}"
-          echo "Waiting for django-orm-lens==$VER to appear on PyPI..."
+          echo "Waiting for django-orm-lens==$VER on the PyPI simple index..."
           for i in $(seq 1 90); do
-            if curl -fsS "https://pypi.org/pypi/django-orm-lens/${VER}/json" >/dev/null 2>&1; then
-              echo "django-orm-lens==$VER is on PyPI (attempt $i)"
+            if curl -fsS "https://pypi.org/simple/django-orm-lens/" | grep -q "django_orm_lens-${VER}-\|django-orm-lens-${VER}.tar.gz"; then
+              echo "django-orm-lens==$VER is on the simple index (attempt $i)"
               exit 0
             fi
-            echo "Not yet indexed (attempt $i/90), sleeping 10s..."
+            echo "Not yet on simple index (attempt $i/90), sleeping 10s..."
             sleep 10
           done
           echo "PyPI never indexed $VER after 15 minutes — proceeding anyway (Build step will show the pip error)"
