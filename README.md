@@ -97,9 +97,21 @@ Then the MCP config snippet in the [Integrations](#-integrations) section below.
 
 <div align="center">
   <a href="https://star-history.com/#FROWNINGdev/django-orm-lens&Date">
-    <img alt="Star history of FROWNINGdev/django-orm-lens" src="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date" width="720"/>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date" />
+      <img alt="Star history of FROWNINGdev/django-orm-lens" src="https://api.star-history.com/svg?repos=FROWNINGdev/django-orm-lens&type=Date" width="720"/>
+    </picture>
+  </a>
+
+  <br/>
+
+  <a href="https://star-history.com/#FROWNINGdev/django-orm-lens&Date">
+    <img alt="View interactive star history" src="https://img.shields.io/badge/View%20interactive%20chart-star--history.com-eab308?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b"/>
   </a>
 </div>
+
+<sub>Chart loads live from star-history.com. If GitHub throttles the SVG (grey box), the button opens the interactive chart directly.</sub>
 
 ---
 
