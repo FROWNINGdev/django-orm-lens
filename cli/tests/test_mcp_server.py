@@ -34,6 +34,7 @@ from django_orm_lens.mcp_server import (
     _tool_find_relations,
     _tool_list_apps,
     _tool_list_models,
+    _tool_nplusone_scan,
     _tool_signal_graph,
     _tool_suggest_indexes,
 )
@@ -66,7 +67,7 @@ def _write_django_project(root: Path) -> None:
 class ToolsRegistryTest(unittest.TestCase):
     """The ``TOOLS`` dict is what feeds ``tools/list`` — schema-level asserts."""
 
-    def test_all_nine_tools_registered(self) -> None:
+    def test_all_ten_tools_registered(self) -> None:
         expected = {
             "list_apps",
             "list_models",
@@ -77,6 +78,7 @@ class ToolsRegistryTest(unittest.TestCase):
             "describe_migration_dependency",
             "suggest_indexes",
             "signal_graph",
+            "nplusone_scan",
         }
         self.assertEqual(set(TOOLS), expected)
 
@@ -213,6 +215,9 @@ class ErrorEnvelopeTest(unittest.TestCase):
     def test_signal_graph_envelope(self) -> None:
         self._assert_envelope(_tool_signal_graph({"workspace_root": str(self.tmp)}))
 
+    def test_nplusone_scan_envelope(self) -> None:
+        self._assert_envelope(_tool_nplusone_scan({"workspace_root": str(self.tmp)}))
+
     def test_missing_workspace_returns_not_found_envelope(self) -> None:
         raw = _tool_list_apps({"workspace_root": str(self.tmp / "no-such-dir")})
         self._assert_envelope(raw, expected_code="WORKSPACE_NOT_FOUND")
@@ -265,6 +270,34 @@ class HappyPathTest(unittest.TestCase):
         payload = json.loads(raw)
         self.assertIsInstance(payload, list)
         self.assertEqual(len(payload), 1)
+
+    def test_nplusone_scan_flags_intentional_loop(self) -> None:
+        # Plant a synthetic views.py with a textbook N+1 pattern —
+        # for book in Book.objects.all(): print(book.author.name) — and
+        # confirm the tool surfaces at least one finding with the shape
+        # the CHANGELOG documents (file, line, queryset_var, accessed,
+        # suggested_fix, confidence).
+        views = self.tmp / "myapp" / "views.py"
+        views.write_text(
+            "from myapp.models import Book\n"
+            "def index(request):\n"
+            "    books = Book.objects.all()\n"
+            "    for book in books:\n"
+            "        print(book.author.name)\n",
+            encoding="utf-8",
+        )
+        raw = _tool_nplusone_scan({"workspace_root": str(self.tmp)})
+        payload = json.loads(raw)
+        self.assertIsInstance(payload, list, f"expected list, got {type(payload).__name__}: {payload!r}")
+        self.assertGreaterEqual(
+            len(payload), 1, f"no findings emitted for a textbook N+1 pattern: {payload!r}"
+        )
+        f = payload[0]
+        for key in ("file", "line", "loop_var", "queryset_var", "accessed",
+                    "suggested_fix", "confidence"):
+            self.assertIn(key, f, f"finding missing key {key!r}: {f!r}")
+        self.assertIn(f["confidence"], ("high", "medium"))
+        self.assertIn("select_related", f["suggested_fix"])
 
 
 class SentinelDataclassTest(unittest.TestCase):

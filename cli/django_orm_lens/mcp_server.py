@@ -37,6 +37,7 @@ from typing import Any, Dict, List, Union
 from .cli import _build_mermaid
 from .migrations_parser import describe_migration_dependency
 from .models import WorkspaceIndex, find_model, find_user_model, resolve_related_tail
+from .query_analyzer import scan_for_nplusone as _scan_for_nplusone
 from .query_analyzer import suggest_indexes as _suggest_indexes
 from .signals_parser import signal_graph as _signal_graph
 from .workspace import WorkspaceError, get_index, resolve_workspace
@@ -300,6 +301,24 @@ def _tool_signal_graph(args: Dict[str, Any]) -> str:
     return json.dumps(result, indent=2)
 
 
+def _tool_nplusone_scan(args: Dict[str, Any]) -> str:
+    """Static scan for Django ORM N+1 anti-patterns across the workspace.
+
+    Walks every ``.py`` file, finds ``for ... in <queryset>:`` loops, and
+    flags attribute-chain accesses against the loop target that touch a
+    related object (FK / O2O / M2M / reverse FK) without a matching
+    ``select_related`` / ``prefetch_related`` clause on the source queryset.
+    Uses the parsed WorkspaceIndex to classify relations; falls back to
+    a schema-less heuristic when a model is unknown. Zero-runtime, no DB.
+    """
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    index = get_index(ws)
+    findings = _scan_for_nplusone(str(ws), index)
+    return json.dumps([f.to_dict() for f in findings], indent=2)
+
+
 # ---------------------------------------------------------------------------
 # Tool registry — descriptions ship in tools/list so agents see them
 # ---------------------------------------------------------------------------
@@ -375,6 +394,17 @@ TOOLS = {
             "the workspace. Returns sender->signal->handler DAG plus custom-"
             "signal send-sites and orphan handlers. Zero-runtime, no DB, no "
             "Django boot." + _WORKSPACE_HINT
+        ),
+    },
+    "nplusone_scan": {
+        "handler": _tool_nplusone_scan,
+        "description": (
+            "Static scan for Django ORM N+1 anti-patterns. Walks every .py "
+            "file, finds 'for x in <queryset>:' loops that touch related "
+            "objects (FK/O2O/M2M/reverse) without matching select_related "
+            "or prefetch_related. Returns findings with file, line, "
+            "queryset_var, accessed relations, suggested_fix, and confidence "
+            "(high/medium). Zero-runtime, no DB, no Django boot." + _WORKSPACE_HINT
         ),
     },
 }
@@ -477,6 +507,10 @@ def main() -> int:
         elif name == "signal_graph":
             @server.tool(name=name, description=description)
             def signal_graph(workspace_root: str = "") -> str:
+                return handler({"workspace_root": workspace_root})
+        elif name == "nplusone_scan":
+            @server.tool(name=name, description=description)
+            def nplusone_scan(workspace_root: str = "") -> str:
                 return handler({"workspace_root": workspace_root})
 
     for name, spec in TOOLS.items():

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.4.0] - 2026-07-25
+
+Adds the tenth MCP tool: **`nplusone_scan`** — a static scan for Django ORM
+N+1 anti-patterns across the workspace. Wraps the existing
+`query_analyzer.scan_for_nplusone` (which had 100% CLI-level test coverage
+via `test_nplusone_detector.py`) as an MCP handler so AI coding agents can
+ask "are there N+1 problems in this project?" and get actionable answers
+with `path:line`, the queryset variable, which related fields were
+accessed, and a suggested `select_related` / `prefetch_related` fix.
+
+### Added
+
+- **`nplusone_scan` MCP tool** — walks every `.py` file, finds
+  `for x in <queryset>:` loops, and flags attribute-chain accesses against
+  the loop target that touch a related object (FK / O2O / M2M / reverse FK)
+  without a matching `select_related` / `prefetch_related` clause on the
+  source queryset. Uses the parsed `WorkspaceIndex` to classify relations;
+  falls back to a schema-less heuristic when a model is unknown.
+- **Structured findings** — returns `[{file, line, loop_var, queryset_var,
+  accessed, suggested_fix, confidence}]` where `confidence` is `"high"` or
+  `"medium"`. Same `WorkspaceError` envelope pattern as the other 9 tools
+  on workspace-resolution failure.
+- **Tests** — 2 new tests in `test_mcp_server.py` (envelope on invalid
+  workspace + happy-path detection against a textbook `for book in
+  Book.objects.all(): print(book.author.name)` pattern). Full Python suite:
+  **238 passed** (was 236), zero regressions. Existing 40+ unit tests in
+  `test_nplusone_detector.py` continue to pin scanner behaviour.
+
+### Changed
+
+- **`server.json` description** — bumped tool count from 9 to 10 with the
+  N+1 scanner mention, so MCP Registry + Smithery listings advertise the
+  new capability accurately.
+
 ## [py-1.3.0] - 2026-07-25
 
 Professional-grade fix for the workspace-resolution silent-drop bug. Before
