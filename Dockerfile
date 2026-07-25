@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="django-orm-lens"
 LABEL org.opencontainers.image.description="Static analysis for Django models. Sidebar tree, ER diagrams, and JSON output for terminals and AI coding agents."
