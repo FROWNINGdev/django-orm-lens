@@ -1,0 +1,68 @@
+# Dependabot v2 config — one entry per ecosystem present in the repo.
+# Weekly cadence so PR volume stays sane for a small maintainer; security
+# updates open immediately regardless of schedule (GitHub default).
+#
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Python — cli/pyproject.toml controls both runtime and dev deps.
+  - package-ecosystem: "pip"
+    directory: "/cli"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Node — root package.json backs the VS Code extension bundle.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Group all @types/* bumps so we do not get 20 PRs a week.
+    groups:
+      types:
+        patterns:
+          - "@types/*"
+
+  # Docker — root Dockerfile bakes the GHCR image.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # GitHub Actions — pin all `uses:` versions so we get security fixes.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"

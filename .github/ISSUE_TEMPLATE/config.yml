@@ -1,0 +1,28 @@
+# Controls the chrome around .github/ISSUE_TEMPLATE/bug.yml + feature.yml.
+# Disabling blank issues plus routing Q&A / security to their proper homes
+# keeps the issue tracker for actionable bugs and features only.
+#
+# Docs: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: 💬 Question, help, or general discussion
+    url: https://github.com/FROWNINGdev/django-orm-lens/discussions
+    about: >-
+      Open a Discussion for "how do I…?", "does this support…?", showcases,
+      roadmap ideas, or anything that is not a concrete bug or feature
+      request. Faster to answer than an issue and stays searchable for the
+      next person with the same question.
+  - name: 🔒 Security vulnerability
+    url: https://github.com/FROWNINGdev/django-orm-lens/security/advisories/new
+    about: >-
+      Never open a public issue for a vulnerability. Use the Private
+      Security Advisory link so we can patch and coordinate disclosure
+      before it becomes weaponisable. See SECURITY.md for full policy.
+  - name: 📦 Install / upgrade instructions
+    url: https://github.com/FROWNINGdev/django-orm-lens#-install
+    about: >-
+      Everything you need to install the VS Code extension, the PyPI
+      package, or the Docker image is in the README's install section.
+      Check there before opening an issue.
