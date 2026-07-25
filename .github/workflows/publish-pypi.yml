@@ -6,9 +6,26 @@ on:
       - 'py-v*'
   workflow_dispatch:
 
+# OIDC — GitHub mints a short-lived token per run that PyPI verifies through
+# its Trusted Publisher config. Removes the long-lived PYPI_API_TOKEN secret
+# and its rotation surface. See:
+# https://docs.pypi.org/trusted-publishers/
+#
+# ⚠️  PyPI-side setup required (one-time):
+#   1. https://pypi.org/manage/project/django-orm-lens/settings/publishing/
+#   2. Add trusted publisher — owner=FROWNINGdev, repo=django-orm-lens,
+#      workflow=publish-pypi.yml, environment=pypi
+#   3. After it lands, delete the PYPI_API_TOKEN repo secret.
+# Until step 1-2 are done, the next tag push fails at the Publish step with
+# a 403 from PyPI — safe failure mode, no bad publish.
+permissions:
+  contents: read
+  id-token: write   # required for OIDC
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: pypi
     steps:
       - uses: actions/checkout@v7
 
@@ -27,9 +44,10 @@ jobs:
         working-directory: cli
         run: python -m twine check dist/*
 
-      - name: Publish to PyPI
-        working-directory: cli
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing dist/*
+      - name: Publish to PyPI (OIDC trusted publisher)
+        # Pin to a full commit SHA (v1.13.0) so a poisoned tag push cannot
+        # silently swap the action. Bump manually — Dependabot will notify.
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc
+        with:
+          packages-dir: cli/dist
+          skip-existing: true

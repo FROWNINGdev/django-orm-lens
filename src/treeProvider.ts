@@ -357,7 +357,13 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     }
     if (element.tooltipMarkdown) {
       const md = new vscode.MarkdownString(element.tooltipMarkdown, true);
-      md.isTrusted = true;
+      // Scope isTrusted to ONLY the commands we intentionally emit in the
+      // tooltip markdown. Setting `isTrusted = true` (broad) would allow any
+      // `command:xxx` URI in the tooltip to fire — including workbench.action.*
+      // — and the tooltip text is built from Django model/field names read
+      // from the workspace, which could be adversarial in a supply-chain
+      // scenario. Match the hover provider's whitelist.
+      md.isTrusted = { enabledCommands: ['djangoOrmLens.jumpToModel', 'djangoOrmLens.showGraph'] };
       md.supportThemeIcons = true;
       item.tooltip = md;
     } else {

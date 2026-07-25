@@ -220,7 +220,19 @@ def harden_path(raw: str) -> Union[Path, WorkspaceError]:
                 "var, or launch the server from your Django project directory."
             ),
         )
-    expanded = os.path.expandvars(os.path.expanduser(raw))
+    # Reject env-var substitution tokens BEFORE any expansion. An MCP caller
+    # (LLM) supplying `$HOME`, `${SECRET}`, or `%APPDATA%` could otherwise
+    # probe host env values by reading them back through the resolved-path
+    # field in the error envelope. We only expand `~` for user convenience —
+    # dollar/percent signs are disallowed to keep host env values off the wire.
+    if "$" in raw or "%" in raw:
+        return WorkspaceError(
+            code="WORKSPACE_RESOLVE_FAILED",
+            message=("Path contains environment-variable substitution tokens ($ or %). "
+                     "Supply a literal absolute path — env expansion is not permitted."),
+            path=raw,
+        )
+    expanded = os.path.expanduser(raw)
     try:
         resolved = Path(expanded).resolve(strict=False)
     except (OSError, RuntimeError) as exc:

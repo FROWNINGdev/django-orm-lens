@@ -1055,7 +1055,12 @@ def scan_for_nplusone(
         scanner = NPlusOneScanner(py, root, flat_schema)
         try:
             scanner.visit(tree)
-        except Exception:  # pragma: no cover
+        except (AttributeError, TypeError, ValueError, RecursionError):  # pragma: no cover
+            # Narrow to error classes the visitor might realistically raise on
+            # malformed but valid-parse ASTs. Anything else (KeyboardInterrupt,
+            # MemoryError, SystemExit, or unexpected security-sensitive
+            # exception classes) must propagate — silently swallowing all
+            # Exception hides bugs and masks abuse patterns.
             continue
         findings.extend(scanner.findings)
     return findings

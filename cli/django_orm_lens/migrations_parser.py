@@ -375,12 +375,16 @@ def _build_current_schema(project_root: str) -> Dict[str, Dict[str, set]]:
     """
     try:
         from .parser import scan_workspace  # local import to avoid cycles
-    except Exception:
+    except ImportError:
         return {}
     schema: Dict[str, Dict[str, set]] = {}
     try:
         index = scan_workspace(project_root)
-    except Exception:
+    except (OSError, ValueError, SyntaxError):
+        # Narrow to error classes scan_workspace realistically raises: OSError
+        # for missing/unreadable files, ValueError/SyntaxError from the parser.
+        # Anything else (MemoryError, RecursionError, KeyboardInterrupt) must
+        # propagate — swallowing them hides bugs and abuse patterns.
         return schema
     for app in index.apps:
         app_map = schema.setdefault(app.name, {})
@@ -458,8 +462,11 @@ class MigrationRiskAnalyzer:
             if handler is not None:
                 try:
                     handler(elt)
-                except Exception:
-                    # Never let a single malformed op sink the run.
+                except (AttributeError, TypeError, ValueError, KeyError, IndexError):
+                    # Narrow to error classes a malformed AST-node walk might
+                    # realistically raise. Never let a single malformed op sink
+                    # the run — but propagate MemoryError, KeyboardInterrupt,
+                    # SystemExit, or any unexpected class so real bugs surface.
                     continue
 
     # ------------------------------------------------------------------
