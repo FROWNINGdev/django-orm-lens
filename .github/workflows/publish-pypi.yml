@@ -47,7 +47,7 @@ jobs:
       - name: Publish to PyPI (OIDC trusted publisher)
         # Pin to a full commit SHA (v1.13.0) so a poisoned tag push cannot
         # silently swap the action. Bump manually — Dependabot will notify.
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc
+        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247
         with:
           packages-dir: cli/dist
           skip-existing: true
