@@ -385,7 +385,7 @@ repos:
 **GitHub Action** —— 检出的问题以 PR 注解呈现，无需任何额外权限：
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@main
+- uses: FROWNINGdev/django-orm-lens@action-v1
   with:
     command: migration-risk      # or: nplusone
     format: github               # ::error / ::warning annotations on the diff
@@ -418,7 +418,7 @@ repos:
 | **Zed** | 在 Zed 设置中注册 MCP 服务器 | ✅ (via MCP) |
 | **任意兼容 MCP 的客户端** | 将 `command` 指向 `django-orm-lens-mcp`，并设置 `DJANGO_ORM_LENS_ROOT` | ✅ |
 | **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + 两个 hook id | ✅ |
-| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@main` —— 注解或 SARIF | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@action-v1` —— 注解或 SARIF | ✅ |
 | **可在 [MCP Registry](https://registry.modelcontextprotocol.io/) 中发现** | 官方 Model Context Protocol 服务器目录 | ✅ |
 | **纯终端 / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
@@ -682,7 +682,7 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 <details>
 <summary><b>如何在 CI 中拦截数据结构回归？</b></summary>
 <br/>
-三种方式，全部零配置：两个 <a href="#%EF%B8%8F-gate-your-ci">pre-commit 钩子</a>、复合 GitHub Action（<code>uses: FROWNINGdev/django-orm-lens@main</code> 配合 <code>format: github</code> 输出 PR 注解），或将 <code>--format sarif</code> 管道到 <code>github/codeql-action/upload-sarif</code> 送入 Security 标签页。<code>diff</code> / <code>nplusone</code> 在有发现时退出 1，<code>migration-risk</code> 在有严重发现时退出 1。
+三种方式，全部零配置：两个 <a href="#%EF%B8%8F-gate-your-ci">pre-commit 钩子</a>、复合 GitHub Action（<code>uses: FROWNINGdev/django-orm-lens@action-v1</code> 配合 <code>format: github</code> 输出 PR 注解），或将 <code>--format sarif</code> 管道到 <code>github/codeql-action/upload-sarif</code> 送入 Security 标签页。<code>diff</code> / <code>nplusone</code> 在有发现时退出 1，<code>migration-risk</code> 在有严重发现时退出 1。
 </details>
 
 <details>

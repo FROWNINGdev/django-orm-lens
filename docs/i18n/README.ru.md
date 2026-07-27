@@ -385,7 +385,7 @@ repos:
 **GitHub Action** — находки появляются как PR-аннотации, без единого дополнительного разрешения:
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@main
+- uses: FROWNINGdev/django-orm-lens@action-v1
   with:
     command: migration-risk      # or: nplusone
     format: github               # ::error / ::warning annotations on the diff
@@ -418,7 +418,7 @@ repos:
 | **Zed** | зарегистрируйте MCP-сервер в настройках Zed | ✅ (через MCP) |
 | **Любой MCP-совместимый клиент** | укажите в `command` путь к `django-orm-lens-mcp`, задайте `DJANGO_ORM_LENS_ROOT` | ✅ |
 | **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + два id хуков | ✅ |
-| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@main` — аннотации или SARIF | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@action-v1` — аннотации или SARIF | ✅ |
 | **Виден в [MCP Registry](https://registry.modelcontextprotocol.io/)** | официальный каталог серверов Model Context Protocol | ✅ |
 | **Обычный терминал / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
@@ -682,7 +682,7 @@ Applicability следует модели Clippy из Rust: **safe**-фиксы 
 <details>
 <summary><b>Как заблокировать регрессии схемы в CI?</b></summary>
 <br/>
-Три способа, все без настройки: два <a href="#%EF%B8%8F-защитите-свой-ci">pre-commit-хука</a>, composite GitHub Action (<code>uses: FROWNINGdev/django-orm-lens@main</code> с <code>format: github</code> для PR-аннотаций) или <code>--format sarif</code>, направленный в <code>github/codeql-action/upload-sarif</code> для вкладки Security. <code>diff</code> / <code>nplusone</code> выходят с кодом 1 при находках, <code>migration-risk</code> — с кодом 1 при критических находках.
+Три способа, все без настройки: два <a href="#%EF%B8%8F-защитите-свой-ci">pre-commit-хука</a>, composite GitHub Action (<code>uses: FROWNINGdev/django-orm-lens@action-v1</code> с <code>format: github</code> для PR-аннотаций) или <code>--format sarif</code>, направленный в <code>github/codeql-action/upload-sarif</code> для вкладки Security. <code>diff</code> / <code>nplusone</code> выходят с кодом 1 при находках, <code>migration-risk</code> — с кодом 1 при критических находках.
 </details>
 
 <details>

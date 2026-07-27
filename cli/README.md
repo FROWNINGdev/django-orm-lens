@@ -162,7 +162,7 @@ repos:
 ```
 
 GitHub Actions users get a composite action:
-`uses: FROWNINGdev/django-orm-lens@main` with `command:` / `format:` inputs.
+`uses: FROWNINGdev/django-orm-lens@action-v1` with `command:` / `format:` inputs.
 
 ---
 

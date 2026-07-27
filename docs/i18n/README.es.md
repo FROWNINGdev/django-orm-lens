@@ -385,7 +385,7 @@ repos:
 **GitHub Action** — los hallazgos aparecen como anotaciones en el PR sin permisos adicionales:
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@main
+- uses: FROWNINGdev/django-orm-lens@action-v1
   with:
     command: migration-risk      # or: nplusone
     format: github               # ::error / ::warning annotations on the diff
@@ -418,7 +418,7 @@ Los códigos de salida son nativos de CI: `diff` y `nplusone` salen con `1` cuan
 | **Zed** | registra el servidor MCP en la configuración de Zed | ✅ (vía MCP) |
 | **Cualquier cliente compatible con MCP** | apunta `command` a `django-orm-lens-mcp`, establece `DJANGO_ORM_LENS_ROOT` | ✅ |
 | **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + dos ids de hooks | ✅ |
-| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@main` — anotaciones o SARIF | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@action-v1` — anotaciones o SARIF | ✅ |
 | **Descubrible vía el [Registro MCP](https://registry.modelcontextprotocol.io/)** | directorio oficial de servidores Model Context Protocol | ✅ |
 | **Terminal simple / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
@@ -682,7 +682,7 @@ Cualquier cliente compatible con MCP — Cursor, Aider, Continue.dev, Zed y cual
 <details>
 <summary><b>¿Cómo bloqueo regresiones de esquema en CI?</b></summary>
 <br/>
-De tres formas, todas sin configuración: los dos <a href="#%EF%B8%8F-gate-your-ci">hooks de pre-commit</a>, la GitHub Action compuesta (<code>uses: FROWNINGdev/django-orm-lens@main</code> con <code>format: github</code> para anotaciones en el PR), o <code>--format sarif</code> canalizado a <code>github/codeql-action/upload-sarif</code> para la pestaña Security. <code>diff</code> / <code>nplusone</code> salen con 1 cuando hay hallazgos, <code>migration-risk</code> sale con 1 ante hallazgos críticos.
+De tres formas, todas sin configuración: los dos <a href="#%EF%B8%8F-gate-your-ci">hooks de pre-commit</a>, la GitHub Action compuesta (<code>uses: FROWNINGdev/django-orm-lens@action-v1</code> con <code>format: github</code> para anotaciones en el PR), o <code>--format sarif</code> canalizado a <code>github/codeql-action/upload-sarif</code> para la pestaña Security. <code>diff</code> / <code>nplusone</code> salen con 1 cuando hay hallazgos, <code>migration-risk</code> sale con 1 ante hallazgos críticos.
 </details>
 
 <details>

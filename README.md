@@ -391,7 +391,7 @@ repos:
 **GitHub Action** — findings appear as PR annotations with zero extra permissions:
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@main
+- uses: FROWNINGdev/django-orm-lens@action-v1
   with:
     command: migration-risk      # or: nplusone
     format: github               # ::error / ::warning annotations on the diff
@@ -424,7 +424,7 @@ Exit codes are CI-native: `diff` and `nplusone` exit `1` on findings, `migration
 | **Zed** | register the MCP server in Zed settings | ✅ (via MCP) |
 | **Any MCP-compatible client** | point `command` at `django-orm-lens-mcp`, set `DJANGO_ORM_LENS_ROOT` | ✅ |
 | **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + two hook ids | ✅ |
-| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@main` — annotations or SARIF | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@action-v1` — annotations or SARIF | ✅ |
 | **Discoverable via [MCP Registry](https://registry.modelcontextprotocol.io/)** | official Model Context Protocol server directory | ✅ |
 | **Plain terminal / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
@@ -688,7 +688,7 @@ Any MCP-compatible client — Cursor, Aider, Continue.dev, Zed, and any other to
 <details>
 <summary><b>How do I block schema regressions in CI?</b></summary>
 <br/>
-Three ways, all zero-config: the two <a href="#%EF%B8%8F-gate-your-ci">pre-commit hooks</a>, the composite GitHub Action (<code>uses: FROWNINGdev/django-orm-lens@main</code> with <code>format: github</code> for PR annotations), or <code>--format sarif</code> piped into <code>github/codeql-action/upload-sarif</code> for the Security tab. <code>diff</code> / <code>nplusone</code> exit 1 on findings, <code>migration-risk</code> exits 1 on critical findings.
+Three ways, all zero-config: the two <a href="#%EF%B8%8F-gate-your-ci">pre-commit hooks</a>, the composite GitHub Action (<code>uses: FROWNINGdev/django-orm-lens@action-v1</code> with <code>format: github</code> for PR annotations), or <code>--format sarif</code> piped into <code>github/codeql-action/upload-sarif</code> for the Security tab. <code>diff</code> / <code>nplusone</code> exit 1 on findings, <code>migration-risk</code> exits 1 on critical findings.
 </details>
 
 <details>
