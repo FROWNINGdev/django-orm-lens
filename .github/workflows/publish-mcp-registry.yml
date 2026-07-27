@@ -1,5 +1,15 @@
 # Push our MCP Registry entry (cli/server.json) to
-# registry.modelcontextprotocol.io whenever the manifest changes on main.
+# registry.modelcontextprotocol.io after a release reaches PyPI.
+#
+# Triggered by the PyPI workflow finishing, NOT by cli/server.json changing
+# on main. The manifest pins an exact version and the publish step below
+# refuses to run until PyPI serves it, but the version bump necessarily
+# lands on main *before* the release tag is pushed — so a paths-based
+# trigger fired while that version did not exist yet and burned its five
+# minutes of retries. It failed that way on 2026-07-24 (twice) and again on
+# 2026-07-27, each time going green only on a manual re-run once PyPI had
+# caught up. Chaining off the PyPI run removes the race instead of waiting
+# longer on it.
 #
 # Auth: GitHub Actions OIDC — the Registry trusts this repo via the
 # `github-oidc` login method, so no PAT / device-flow interaction is
@@ -9,11 +19,9 @@
 name: Publish to MCP Registry
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'cli/server.json'
-      - '.github/workflows/publish-mcp-registry.yml'
+  workflow_run:
+    workflows: ['Publish Python package to PyPI']
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +30,11 @@ permissions:
 
 jobs:
   publish:
+    # workflow_run fires on failure and cancellation too. Manual dispatch has
+    # no upstream run to inspect, so it must pass this gate unconditionally.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
