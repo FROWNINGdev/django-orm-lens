@@ -1,7 +1,8 @@
 name: "django-orm-lens"
+# Marketplace requires the description to stay under 125 characters.
 description: >-
-  Static Django schema gates for CI — N+1 detection, migration risk flags,
-  schema scans and diffs. No database, no Django boot, works on any checkout.
+  Static Django schema gates for CI: N+1 detection, migration risk flags,
+  schema diffs. No DB, no Django boot.
 author: "FROWNINGdev"
 branding:
   icon: "layers"
