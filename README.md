@@ -1,4 +1,4 @@
-**English** · [Русский](docs/i18n/README.ru.md) · [Español](docs/i18n/README.es.md) · [中文](docs/i18n/README.zh.md)
+**English** · [Русский](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.ru.md) · [Español](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.es.md) · [中文](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.zh.md)
 
 <div align="center" markdown="1">
 
@@ -544,14 +544,14 @@ Sixteen editor-side checks (`DOL001`–`DOL032`) with Ruff-style codes, per-rule
 
 | Category | Rules | Examples |
 |---|---|---|
-| [Queryset](docs/rules/README.md) | `DOL001`–`DOL007` | `.count() > 0` → `.exists()`, FK access in loops (N+1) |
-| [Model definition](docs/rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` without `on_delete`, `null=True` on string fields |
-| [Datetime](docs/rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
-| [Forms / views](docs/rules/README.md) | `DOL031`–`DOL032` | `locals()` in `render()`, `Meta.fields = '__all__'` |
-| [Migration risks](docs/rules/migrations.md) | 15 rules | NOT NULL add without default, table-locking index builds, irreversible data migrations |
-| [Static N+1](docs/rules/nplusone.md) | 1 analyzer | FK/M2M access in loops without `select_related` / `prefetch_related` |
+| [Queryset](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL001`–`DOL007` | `.count() > 0` → `.exists()`, FK access in loops (N+1) |
+| [Model definition](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` without `on_delete`, `null=True` on string fields |
+| [Datetime](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
+| [Forms / views](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL031`–`DOL032` | `locals()` in `render()`, `Meta.fields = '__all__'` |
+| [Migration risks](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/migrations.md) | 15 rules | NOT NULL add without default, table-locking index builds, irreversible data migrations |
+| [Static N+1](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/nplusone.md) | 1 analyzer | FK/M2M access in loops without `select_related` / `prefetch_related` |
 
-→ **[Full rule reference](docs/rules/README.md)** — every code with bad/good examples, QuickFix behaviour, and suppression syntax.
+→ **[Full rule reference](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md)** — every code with bad/good examples, QuickFix behaviour, and suppression syntax.
 
 ### Suppress inline
 

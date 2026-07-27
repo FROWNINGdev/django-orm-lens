@@ -1,0 +1,31 @@
+<!--
+  Injected into <head> by the `jekyll-theme-primer` default layout, which
+  calls `{% include head-custom.html %}`.
+
+  Renders the ```mermaid fences. GitHub renders them natively in the README,
+  but GitHub Pages does not — on the published site they came out as a raw
+  `<pre><code class="language-mermaid">` dump of erDiagram syntax, directly
+  under a line promising "rendered right here". That was the "broken website
+  with unrendered Markdown blocks" cited when wsvincent/awesome-django#378
+  was declined.
+
+  The social-card tags live in `_config.yml` instead, so jekyll-seo-tag emits
+  them inside its own block rather than duplicating og:/twitter: keys here.
+-->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  // Kramdown emits ```mermaid as <pre><code class="language-mermaid">.
+  // Mermaid expects the source as the direct text of an element it owns, so
+  // swap each block for a <pre class="mermaid"> holding the decoded source.
+  for (const code of document.querySelectorAll('pre > code.language-mermaid')) {
+    const host = document.createElement('pre');
+    host.className = 'mermaid';
+    host.textContent = code.textContent;
+    code.parentElement.replaceWith(host);
+  }
+
+  mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' });
+  await mermaid.run({ querySelector: 'pre.mermaid' });
+</script>
