@@ -14,14 +14,21 @@
 
 theme: jekyll-theme-primer
 
-# Consumed by jekyll-seo-tag (invoked as `{% seo %}` in the primer layout).
-# Without these the homepage unfurled as a bare `summary` card with no image
-# anywhere it was shared — catalogs, chat, social.
-# `image` must be absolute: seo-tag's absolute_url filter does not prepend the
+# Social card, consumed by jekyll-seo-tag. Without it the homepage unfurled
+# as a bare `summary` card with no image anywhere it was shared.
+#
+# seo-tag resolves `image` off the *page*, not the site root, so setting a
+# top-level `image:` key here does nothing — it has to arrive as a front
+# matter default. Setting the image is also what flips the card type to
+# summary_large_image, so that is not declared separately.
+#
+# The URL must be absolute: seo-tag's absolute_url filter does not prepend the
 # project-pages baseurl, so a root-relative path would resolve off-site.
-image: https://frowningdev.github.io/django-orm-lens/media/hero.png
-twitter:
-  card: summary_large_image
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: https://frowningdev.github.io/django-orm-lens/media/hero.png
 
 markdown: kramdown
 kramdown:
