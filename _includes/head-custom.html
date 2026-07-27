@@ -1,6 +1,11 @@
 <!--
   Injected into <head> by the `jekyll-theme-primer` default layout, which
-  calls `{% include head-custom.html %}`.
+  ends its head block with an include of this filename.
+
+  Do not write that include tag out literally anywhere in this file, not even
+  inside an HTML comment: Liquid runs before HTML is parsed, so the tag would
+  execute and pull this file into itself. That is a self-recursive include and
+  it fails the build with "Liquid Exception: stack level too deep".
 
   Renders the ```mermaid fences. GitHub renders them natively in the README,
   but GitHub Pages does not — on the published site they came out as a raw
