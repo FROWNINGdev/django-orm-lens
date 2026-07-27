@@ -15,6 +15,8 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -360,3 +362,30 @@ class MainReturnsIntForInProcessCallers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ModuleEntryPointTests(unittest.TestCase):
+    """`python -m django_orm_lens` must work wherever the console script does.
+
+    Regression guard: the package shipped without a __main__.py through
+    1.5.0, so `python -m django_orm_lens` failed with "No module named
+    django_orm_lens.__main__" even though the CLI itself was fine.
+    """
+
+    def test_module_invocation_reports_version(self) -> None:
+        proc = subprocess.run(
+            [sys.executable, "-m", "django_orm_lens", "--version"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("django-orm-lens", proc.stdout)
+
+    def test_module_invocation_matches_console_script_help(self) -> None:
+        proc = subprocess.run(
+            [sys.executable, "-m", "django_orm_lens", "--help"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("scan", proc.stdout)

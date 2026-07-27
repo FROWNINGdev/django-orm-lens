@@ -5,6 +5,17 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `python -m django_orm_lens` now works. The package shipped without a
+  `__main__.py`, so the module invocation failed with "No module named
+  django_orm_lens.__main__" even though the `django-orm-lens` console script
+  was fine. `python -m` is the invocation that does not depend on the scripts
+  directory being on PATH, which is what CI images, tox environments and fresh
+  venvs rely on. Two regression tests cover it.
+
 ## [py-1.5.0] - 2026-07-28
 
 The "one core, three surfaces" wave: the CLI gains CI-native output formats,
