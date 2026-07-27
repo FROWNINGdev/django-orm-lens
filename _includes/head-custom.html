@@ -16,7 +16,12 @@
 
   The social-card tags live in `_config.yml` instead, so jekyll-seo-tag emits
   them inside its own block rather than duplicating og:/twitter: keys here.
+  Also points the favicon at the extension icon. Without this the browser
+  asks for /favicon.ico at the domain root — outside this project's page
+  path — and every visit logs a 404 while the tab shows a blank icon.
 -->
+
+<link rel="icon" type="image/png" href="/django-orm-lens/media/icon.png">
 
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
