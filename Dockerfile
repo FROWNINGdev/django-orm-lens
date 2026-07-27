@@ -3,7 +3,7 @@
 # 3.13 is the current stable, and dependabot.yml holds major bumps for
 # manual opt-in so we upgrade only after verifying the extension + MCP
 # tools against the new interpreter.
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="django-orm-lens"
 LABEL org.opencontainers.image.description="Static analysis for Django models. Sidebar tree, ER diagrams, and JSON output for terminals and AI coding agents."
