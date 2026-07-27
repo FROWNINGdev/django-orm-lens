@@ -1,0 +1,398 @@
+{
+  "apps": [
+    {
+      "models": [
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "AbstractPage",
+            "index.Indexed",
+            "ClusterableModel",
+            "metaclass=PageBase"
+          ],
+          "fields": [
+            {
+              "args": "verbose_name=_(\"title\"),\n        max_length=255,\n        help_text=_(\"The page title as you'd like it to be seen by the public\"),",
+              "isRelation": false,
+              "lineNumber": 298,
+              "name": "title",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=255, editable=False",
+              "isRelation": false,
+              "lineNumber": 305,
+              "name": "draft_title",
+              "type": "CharField"
+            },
+            {
+              "args": "verbose_name=_(\"slug\"),\n        allow_unicode=True,\n        max_length=255,\n        help_text=_(\n            \"The name of the page as it will appear in URLs e.g http://domain.com/blog/[my-slug]/\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 306,
+              "name": "slug",
+              "type": "SlugField"
+            },
+            {
+              "args": "ContentType,\n        verbose_name=_(\"content type\"),\n        related_name=\"pages\",\n        on_delete=models.SET(get_default_page_content_type),",
+              "isRelation": true,
+              "lineNumber": 314,
+              "name": "content_type",
+              "onDelete": "SET",
+              "relatedModel": "ContentType",
+              "relatedName": "pages",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "verbose_name=_(\"URL path\"), blank=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 321,
+              "name": "url_path",
+              "type": "TextField"
+            },
+            {
+              "args": "settings.AUTH_USER_MODEL,\n        verbose_name=_(\"owner\"),\n        null=True,\n        blank=True,\n        editable=True,\n        on_delete=models.SET_NULL,\n        related_name=\"owned_pages\",",
+              "isRelation": true,
+              "lineNumber": 322,
+              "name": "owner",
+              "onDelete": "SET_NULL",
+              "relatedModel": "settings.AUTH_USER_MODEL",
+              "relatedName": "owned_pages",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "verbose_name=_(\"title tag\"),\n        max_length=255,\n        blank=True,\n        help_text=_(\n            \"The name of the page displayed on search engine results as the clickable headline.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 333,
+              "name": "seo_title",
+              "type": "CharField"
+            },
+            {
+              "args": "verbose_name=_(\"show in menus\"),\n        default=False,\n        help_text=_(\n            \"Whether a link to this page will appear in automatically generated menus\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 343,
+              "name": "show_in_menus",
+              "type": "BooleanField"
+            },
+            {
+              "args": "verbose_name=_(\"meta description\"),\n        blank=True,\n        help_text=_(\n            \"The descriptive text displayed underneath a headline in search engine results.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 350,
+              "name": "search_description",
+              "type": "TextField"
+            },
+            {
+              "args": "verbose_name=_(\"latest revision created at\"), null=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 358,
+              "name": "latest_revision_created_at",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "\"self\",\n        on_delete=models.SET_NULL,\n        null=True,\n        blank=True,\n        editable=False,\n        related_name=\"aliases\",",
+              "isRelation": true,
+              "lineNumber": 400,
+              "name": "alias_of",
+              "onDelete": "SET_NULL",
+              "relatedModel": "self",
+              "relatedName": "aliases",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "wagtail/models/pages.py",
+          "lineNumber": 297,
+          "meta": {
+            "permissions": "[",
+            "unique_together": "[(\"translation_key\", \"locale\")]",
+            "verbose_name": "_(\"page\")",
+            "verbose_name_plural": "_(\"pages\")"
+          },
+          "name": "Page"
+        },
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Group,\n        verbose_name=_(\"group\"),\n        related_name=\"page_permissions\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2156,
+              "name": "group",
+              "onDelete": "CASCADE",
+              "relatedModel": "Group",
+              "relatedName": "page_permissions",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"Page\",\n        verbose_name=_(\"page\"),\n        related_name=\"group_permissions\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2162,
+              "name": "page",
+              "onDelete": "CASCADE",
+              "relatedModel": "Page",
+              "relatedName": "group_permissions",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Permission,\n        verbose_name=_(\"permission\"),\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2168,
+              "name": "permission",
+              "onDelete": "CASCADE",
+              "relatedModel": "Permission",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "wagtail/models/pages.py",
+          "lineNumber": 2155,
+          "meta": {
+            "constraints": "[",
+            "verbose_name": "_(\"group page permission\")",
+            "verbose_name_plural": "_(\"group page permissions\")"
+          },
+          "name": "GroupPagePermission"
+        },
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "\"Page\",\n        verbose_name=_(\"page\"),\n        on_delete=models.CASCADE,\n        primary_key=True,\n        unique=True,",
+              "isRelation": true,
+              "lineNumber": 2546,
+              "name": "page",
+              "onDelete": "CASCADE",
+              "relatedModel": "Page",
+              "relationKind": "OneToOneField",
+              "type": "OneToOneField"
+            },
+            {
+              "args": "\"Workflow\",\n        related_name=\"workflow_pages\",\n        verbose_name=_(\"workflow\"),\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2553,
+              "name": "workflow",
+              "onDelete": "CASCADE",
+              "relatedModel": "Workflow",
+              "relatedName": "workflow_pages",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "wagtail/models/pages.py",
+          "lineNumber": 2545,
+          "meta": {
+            "verbose_name": "_(\"workflow page\")",
+            "verbose_name_plural": "_(\"workflow pages\")"
+          },
+          "name": "WorkflowPage"
+        },
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "settings.AUTH_USER_MODEL,\n        on_delete=models.CASCADE,\n        related_name=\"comment_replies\",",
+              "isRelation": true,
+              "lineNumber": 2806,
+              "name": "user",
+              "onDelete": "CASCADE",
+              "relatedModel": "settings.AUTH_USER_MODEL",
+              "relatedName": "comment_replies",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 2811,
+              "name": "text",
+              "type": "TextField"
+            },
+            {
+              "args": "auto_now_add=True",
+              "isRelation": false,
+              "lineNumber": 2812,
+              "name": "created_at",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "auto_now=True",
+              "isRelation": false,
+              "lineNumber": 2813,
+              "name": "updated_at",
+              "type": "DateTimeField"
+            }
+          ],
+          "filePath": "wagtail/models/pages.py",
+          "lineNumber": 2804,
+          "meta": {
+            "verbose_name": "_(\"comment reply\")",
+            "verbose_name_plural": "_(\"comment replies\")"
+          },
+          "name": "CommentReply"
+        },
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "settings.AUTH_USER_MODEL,\n        on_delete=models.CASCADE,\n        related_name=\"page_subscriptions\",",
+              "isRelation": true,
+              "lineNumber": 2852,
+              "name": "user",
+              "onDelete": "CASCADE",
+              "relatedModel": "settings.AUTH_USER_MODEL",
+              "relatedName": "page_subscriptions",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Page, on_delete=models.CASCADE, related_name=\"subscribers\"",
+              "isRelation": true,
+              "lineNumber": 2857,
+              "name": "page",
+              "onDelete": "CASCADE",
+              "relatedModel": "Page",
+              "relatedName": "subscribers",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 2859,
+              "name": "comment_notifications",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "wagtail/models/pages.py",
+          "lineNumber": 2851,
+          "meta": {
+            "unique_together": "["
+          },
+          "name": "PageSubscription"
+        },
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "verbose_name=_(\"hostname\"), max_length=255, db_index=True",
+              "isRelation": false,
+              "lineNumber": 90,
+              "name": "hostname",
+              "type": "CharField"
+            },
+            {
+              "args": "verbose_name=_(\"port\"),\n        default=80,\n        help_text=_(\n            \"Set this to something other than 80 if you need a specific port number to appear in URLs\"\n            \" (e.g. development on port 8000). Does not affect request handling (so port forwarding still works).\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 93,
+              "name": "port",
+              "type": "IntegerField"
+            },
+            {
+              "args": "verbose_name=_(\"site name\"),\n        max_length=255,\n        blank=True,\n        help_text=_(\"Human-readable name for the site.\"),",
+              "isRelation": false,
+              "lineNumber": 101,
+              "name": "site_name",
+              "type": "CharField"
+            },
+            {
+              "args": "\"Page\",\n        verbose_name=_(\"root page\"),\n        related_name=\"sites_rooted_here\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 107,
+              "name": "root_page",
+              "onDelete": "CASCADE",
+              "relatedModel": "Page",
+              "relatedName": "sites_rooted_here",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "verbose_name=_(\"is default site\"),\n        default=False,\n        help_text=_(\n            \"If true, this site will handle requests for all other hostnames that do not have a site entry of their own\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 113,
+              "name": "is_default_site",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "wagtail/models/sites.py",
+          "lineNumber": 89,
+          "meta": {
+            "unique_together": "(\"hostname\", \"port\")",
+            "verbose_name": "_(\"site\")",
+            "verbose_name_plural": "_(\"sites\")"
+          },
+          "name": "Site"
+        },
+        {
+          "appName": "wagtail",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Group,\n        verbose_name=_(\"group\"),\n        related_name=\"site_permissions\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 294,
+              "name": "group",
+              "onDelete": "CASCADE",
+              "relatedModel": "Group",
+              "relatedName": "site_permissions",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Site,\n        verbose_name=_(\"site\"),\n        related_name=\"group_permissions\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 300,
+              "name": "site",
+              "onDelete": "CASCADE",
+              "relatedModel": "Site",
+              "relatedName": "group_permissions",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Permission, verbose_name=_(\"permission\"), on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 306,
+              "name": "permission",
+              "onDelete": "CASCADE",
+              "relatedModel": "Permission",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "wagtail/models/sites.py",
+          "lineNumber": 288,
+          "meta": {
+            "unique_together": "(\"group\", \"site\", \"permission\")",
+            "verbose_name": "_(\"group site permission\")",
+            "verbose_name_plural": "_(\"group site permissions\")"
+          },
+          "name": "GroupSitePermission"
+        }
+      ],
+      "name": "wagtail",
+      "path": "wagtail"
+    }
+  ],
+  "scannedAt": 0,
+  "scannedFiles": 2
+}

@@ -5,7 +5,8 @@ Ships a CLI and an optional MCP server for AI coding agents.
 """
 
 try:
-    from importlib.metadata import PackageNotFoundError, version as _pkg_version
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _pkg_version
     try:
         __version__ = _pkg_version("django-orm-lens")
     except PackageNotFoundError:
@@ -18,6 +19,7 @@ from .models import (
     ParsedField,
     ParsedModel,
     WorkspaceIndex,
+    cascade_preview,
     find_model,
     find_user_model,
     find_user_model_from_dict,
@@ -44,5 +46,7 @@ __all__ = [
     "find_user_model_from_dict",
     "iter_workspace_py_files",
     "resolve_related_tail",
+    # shared relation analysis used by both the CLI and the MCP server.
+    "cascade_preview",
     "__version__",
 ]

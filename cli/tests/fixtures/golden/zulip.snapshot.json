@@ -1,0 +1,2318 @@
+{
+  "apps": [
+    {
+      "models": [
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "default=timezone_now, db_index=True",
+              "isRelation": false,
+              "lineNumber": 129,
+              "name": "timestamp",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 131,
+              "name": "restored",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 132,
+              "name": "restored_timestamp",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 136,
+              "name": "protect_from_deletion",
+              "type": "BooleanField"
+            },
+            {
+              "args": "db_index=True",
+              "isRelation": false,
+              "lineNumber": 138,
+              "name": "type",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "Realm, null=True, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 145,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 128,
+          "meta": {},
+          "name": "ArchiveTransaction"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractMessage"
+          ],
+          "fields": [
+            {
+              "args": "ArchiveTransaction, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 163,
+              "name": "archive_transaction",
+              "onDelete": "CASCADE",
+              "relatedModel": "ArchiveTransaction",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 157,
+          "meta": {},
+          "name": "ArchivedMessage"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractMessage"
+          ],
+          "fields": [],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 166,
+          "meta": {
+            "indexes": "["
+          },
+          "name": "Message"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractSubMessage"
+          ],
+          "fields": [
+            {
+              "args": "Message, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 343,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "Message",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 342,
+          "meta": {},
+          "name": "SubMessage"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractSubMessage"
+          ],
+          "fields": [
+            {
+              "args": "ArchivedMessage, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 354,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "ArchivedMessage",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 353,
+          "meta": {},
+          "name": "ArchivedSubMessage"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractReaction"
+          ],
+          "fields": [
+            {
+              "args": "Message, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 418,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "Message",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 417,
+          "meta": {},
+          "name": "Reaction"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractReaction"
+          ],
+          "fields": [
+            {
+              "args": "ArchivedMessage, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 440,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "ArchivedMessage",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 439,
+          "meta": {},
+          "name": "ArchivedReaction"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractUserMessage"
+          ],
+          "fields": [
+            {
+              "args": "Message, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 583,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "Message",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 582,
+          "meta": {
+            "indexes": "["
+          },
+          "name": "UserMessage"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractUserMessage"
+          ],
+          "fields": [
+            {
+              "args": "ArchivedMessage, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 715,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "ArchivedMessage",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 709,
+          "meta": {},
+          "name": "ArchivedUserMessage"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 724,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "db_index=True, unique=True",
+              "isRelation": false,
+              "lineNumber": 725,
+              "name": "path_id",
+              "type": "TextField"
+            },
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 726,
+              "name": "content_type",
+              "type": "TextField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 728,
+              "name": "original_width_px",
+              "type": "IntegerField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 729,
+              "name": "original_height_px",
+              "type": "IntegerField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 730,
+              "name": "frames",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=list, null=False",
+              "isRelation": false,
+              "lineNumber": 733,
+              "name": "thumbnail_metadata",
+              "type": "JSONField"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 723,
+          "meta": {},
+          "name": "ImageAttachment"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractAttachment"
+          ],
+          "fields": [
+            {
+              "args": "ArchivedMessage, related_name=\"attachment_set\", related_query_name=\"attachment\"",
+              "isRelation": true,
+              "lineNumber": 797,
+              "name": "messages",
+              "relatedModel": "ArchivedMessage",
+              "relatedName": "attachment_set",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 781,
+          "meta": {},
+          "name": "ArchivedAttachment"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractAttachment"
+          ],
+          "fields": [
+            {
+              "args": "Message",
+              "isRelation": true,
+              "lineNumber": 803,
+              "name": "messages",
+              "relatedModel": "Message",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "\"zerver.ScheduledMessage\"",
+              "isRelation": true,
+              "lineNumber": 807,
+              "name": "scheduled_messages",
+              "relatedModel": "zerver.ScheduledMessage",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 802,
+          "meta": {
+            "indexes": "["
+          },
+          "name": "Attachment"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 843,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Message, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 844,
+              "name": "message",
+              "onDelete": "CASCADE",
+              "relatedModel": "Message",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/messages.py",
+          "lineNumber": 836,
+          "meta": {},
+          "name": "OnboardingUserMessage"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractRealmAuditLog"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 237,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserProfile,\n        null=True,\n        related_name=\"+\",\n        on_delete=CASCADE,",
+              "isRelation": true,
+              "lineNumber": 238,
+              "name": "acting_user",
+              "onDelete": "CASCADE",
+              "relatedModel": "UserProfile",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserProfile,\n        null=True,\n        related_name=\"+\",\n        on_delete=CASCADE,",
+              "isRelation": true,
+              "lineNumber": 244,
+              "name": "modified_user",
+              "onDelete": "CASCADE",
+              "relatedModel": "UserProfile",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Stream,\n        null=True,\n        on_delete=CASCADE,",
+              "isRelation": true,
+              "lineNumber": 250,
+              "name": "modified_stream",
+              "onDelete": "CASCADE",
+              "relatedModel": "Stream",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "NamedUserGroup,\n        null=True,\n        on_delete=CASCADE,",
+              "isRelation": true,
+              "lineNumber": 255,
+              "name": "modified_user_group",
+              "onDelete": "CASCADE",
+              "relatedModel": "NamedUserGroup",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "ChannelFolder,\n        null=True,\n        on_delete=CASCADE,",
+              "isRelation": true,
+              "lineNumber": 260,
+              "name": "modified_channel_folder",
+              "onDelete": "CASCADE",
+              "relatedModel": "ChannelFolder",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 265,
+              "name": "event_last_message_id",
+              "type": "IntegerField"
+            },
+            {
+              "args": "db_default=False, default=False",
+              "isRelation": false,
+              "lineNumber": 266,
+              "name": "scrubbed",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "zerver/models/realm_audit_logs.py",
+          "lineNumber": 215,
+          "meta": {
+            "indexes": "[",
+            "ordering": "[\"id\"]"
+          },
+          "name": "RealmAuditLog"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "\"Realm\", on_delete=CASCADE, db_index=True",
+              "isRelation": true,
+              "lineNumber": 64,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=80",
+              "isRelation": false,
+              "lineNumber": 65,
+              "name": "name",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "zerver/models/realms.py",
+          "lineNumber": 56,
+          "meta": {
+            "unique_together": "(\"realm\", \"name\")"
+          },
+          "name": "RealmAuthenticationMethod"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "auto_created=True, primary_key=True, serialize=False, verbose_name=\"ID\"",
+              "isRelation": false,
+              "lineNumber": 182,
+              "name": "id",
+              "type": "AutoField"
+            },
+            {
+              "args": "max_length=MAX_REALM_NAME_LENGTH",
+              "isRelation": false,
+              "lineNumber": 185,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "default=\"\"",
+              "isRelation": false,
+              "lineNumber": 186,
+              "name": "description",
+              "type": "TextField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 187,
+              "name": "rendered_description",
+              "type": "TextField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 188,
+              "name": "rendered_description_version",
+              "type": "IntegerField"
+            },
+            {
+              "args": "max_length=MAX_REALM_SUBDOMAIN_LENGTH, unique=True",
+              "isRelation": false,
+              "lineNumber": 193,
+              "name": "string_id",
+              "type": "CharField"
+            },
+            {
+              "args": "default=uuid4, unique=True",
+              "isRelation": false,
+              "lineNumber": 197,
+              "name": "uuid",
+              "type": "UUIDField"
+            },
+            {
+              "args": "default=generate_realm_uuid_owner_secret",
+              "isRelation": false,
+              "lineNumber": 198,
+              "name": "uuid_owner_secret",
+              "type": "TextField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 202,
+              "name": "push_notifications_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 203,
+              "name": "push_notifications_enabled_end_timestamp",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=False, db_default=False",
+              "isRelation": false,
+              "lineNumber": 204,
+              "name": "require_e2ee_push_notifications",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=timezone_now",
+              "isRelation": false,
+              "lineNumber": 206,
+              "name": "date_created",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=None, db_index=True, null=True",
+              "isRelation": false,
+              "lineNumber": 207,
+              "name": "scheduled_deletion_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 208,
+              "name": "demo_organization_scheduled_deletion_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 209,
+              "name": "deactivated",
+              "type": "BooleanField"
+            },
+            {
+              "args": "max_length=MAX_REALM_REDIRECT_URL_LENGTH, null=True",
+              "isRelation": false,
+              "lineNumber": 212,
+              "name": "deactivated_redirect",
+              "type": "URLField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 215,
+              "name": "emails_restricted_to_domains",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 217,
+              "name": "invite_required",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, db_column=\"max_invites\"",
+              "isRelation": false,
+              "lineNumber": 219,
+              "name": "_max_invites",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 220,
+              "name": "disallow_disposable_email_addresses",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 224,
+              "name": "enable_spectator_access",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 228,
+              "name": "want_advertise_in_communities_directory",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 231,
+              "name": "inline_image_preview",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 232,
+              "name": "inline_url_embed_preview",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=RealmMediaPreviewSizeEnum.SMALL.value",
+              "isRelation": false,
+              "lineNumber": 234,
+              "name": "media_preview_size",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 239,
+              "name": "digest_emails_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=1",
+              "isRelation": false,
+              "lineNumber": 241,
+              "name": "digest_weekday",
+              "type": "SmallIntegerField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 244,
+              "name": "send_channel_events_messages",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 246,
+              "name": "send_welcome_emails",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 247,
+              "name": "message_content_allowed_in_email_notifications",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False, db_default=False",
+              "isRelation": false,
+              "lineNumber": 252,
+              "name": "owner_full_content_access",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=RealmTopicsPolicyEnum.allow_empty_topic.value",
+              "isRelation": false,
+              "lineNumber": 254,
+              "name": "topics_policy",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 259,
+              "name": "require_unique_names",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 260,
+              "name": "name_changes_disabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 261,
+              "name": "email_changes_disabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 262,
+              "name": "avatar_changes_disabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=\"\"",
+              "isRelation": false,
+              "lineNumber": 264,
+              "name": "welcome_message_custom_text",
+              "type": "TextField"
+            },
+            {
+              "args": "default=DEFAULT_MOVE_MESSAGE_LIMIT_SECONDS, null=True",
+              "isRelation": false,
+              "lineNumber": 301,
+              "name": "move_messages_within_stream_limit_seconds",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "default=DEFAULT_MOVE_MESSAGE_LIMIT_SECONDS, null=True",
+              "isRelation": false,
+              "lineNumber": 305,
+              "name": "move_messages_between_streams_limit_seconds",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 310,
+              "name": "can_add_custom_emoji_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 315,
+              "name": "can_create_public_channel_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 318,
+              "name": "can_create_private_channel_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 321,
+              "name": "can_create_web_public_channel_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 326,
+              "name": "can_delete_any_message_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 331,
+              "name": "can_delete_own_message_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 336,
+              "name": "can_move_messages_between_topics_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 341,
+              "name": "can_invite_users_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 346,
+              "name": "can_summarize_topics_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 351,
+              "name": "create_multiuse_invite_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 357,
+              "name": "direct_message_initiator_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 363,
+              "name": "direct_message_permission_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 371,
+              "name": "can_access_all_users_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 376,
+              "name": "can_create_groups",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 379,
+              "name": "can_manage_all_groups",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 384,
+              "name": "can_add_subscribers_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 389,
+              "name": "can_move_messages_between_channels_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 394,
+              "name": "can_resolve_topics_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 399,
+              "name": "can_create_bots_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 404,
+              "name": "can_create_write_only_bots_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 409,
+              "name": "can_manage_billing_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 414,
+              "name": "can_mention_many_users_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 419,
+              "name": "can_set_delete_message_policy_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 424,
+              "name": "can_set_topics_policy_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 432,
+              "name": "waiting_period_threshold",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "default=DEFAULT_MESSAGE_CONTENT_DELETE_LIMIT_SECONDS, null=True",
+              "isRelation": false,
+              "lineNumber": 440,
+              "name": "message_content_delete_limit_seconds",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 444,
+              "name": "allow_message_editing",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=DEFAULT_MESSAGE_CONTENT_EDIT_LIMIT_SECONDS, null=True",
+              "isRelation": false,
+              "lineNumber": 448,
+              "name": "message_content_edit_limit_seconds",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "default=MessageEditHistoryVisibilityPolicyEnum.all.value,",
+              "isRelation": false,
+              "lineNumber": 453,
+              "name": "message_edit_history_visibility_policy",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=\"en\", max_length=MAX_LANGUAGE_ID_LENGTH",
+              "isRelation": false,
+              "lineNumber": 459,
+              "name": "default_language",
+              "type": "CharField"
+            },
+            {
+              "args": "\"Stream\",\n        related_name=\"+\",\n        null=True,\n        blank=True,\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 473,
+              "name": "moderation_request_channel",
+              "onDelete": "SET_NULL",
+              "relatedModel": "Stream",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"Stream\",\n        related_name=\"+\",\n        null=True,\n        blank=True,\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 480,
+              "name": "new_stream_announcements_stream",
+              "onDelete": "SET_NULL",
+              "relatedModel": "Stream",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"Stream\",\n        related_name=\"+\",\n        null=True,\n        blank=True,\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 487,
+              "name": "signup_announcements_stream",
+              "onDelete": "SET_NULL",
+              "relatedModel": "Stream",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"Stream\",\n        related_name=\"+\",\n        null=True,\n        blank=True,\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 496,
+              "name": "zulip_update_announcements_stream",
+              "onDelete": "SET_NULL",
+              "relatedModel": "Stream",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 504,
+              "name": "zulip_update_announcements_level",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "null=False, default=-1",
+              "isRelation": false,
+              "lineNumber": 510,
+              "name": "message_retention_days",
+              "type": "IntegerField"
+            },
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 514,
+              "name": "message_visibility_limit",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 517,
+              "name": "first_visible_message_id",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=ORG_TYPES[\"unspecified\"][\"id\"],\n        choices=[(t[\"id\"], t[\"name\"]) for t in ORG_TYPES.values()],",
+              "isRelation": false,
+              "lineNumber": 616,
+              "name": "org_type",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=PLAN_TYPE_SELF_HOSTED",
+              "isRelation": false,
+              "lineNumber": 640,
+              "name": "plan_type",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 644,
+              "name": "custom_upload_quota_gb",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=VIDEO_CHAT_PROVIDERS[\"jitsi_meet\"][\"id\"]",
+              "isRelation": false,
+              "lineNumber": 684,
+              "name": "video_chat_provider",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 689,
+              "name": "jitsi_server_url",
+              "type": "URLField"
+            },
+            {
+              "args": "default=GIF_RATING_POLICY_OPTIONS[\"g\"][\"id\"]",
+              "isRelation": false,
+              "lineNumber": 720,
+              "name": "gif_rating_policy",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=\"\"",
+              "isRelation": false,
+              "lineNumber": 724,
+              "name": "default_code_block_language",
+              "type": "TextField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 728,
+              "name": "enable_read_receipts",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 731,
+              "name": "enable_guest_user_indicator",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 734,
+              "name": "enable_guest_user_dm_warning",
+              "type": "BooleanField"
+            },
+            {
+              "args": "\"UserGroup\", on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 737,
+              "name": "workplace_users_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=AVATAR_FROM_JDENTICON, choices=AVATAR_SOURCES, max_length=1",
+              "isRelation": false,
+              "lineNumber": 748,
+              "name": "default_avatar_source",
+              "type": "CharField"
+            },
+            {
+              "args": "default=ICON_FROM_GRAVATAR,\n        choices=ICON_SOURCES,\n        max_length=1,",
+              "isRelation": false,
+              "lineNumber": 944,
+              "name": "icon_source",
+              "type": "CharField"
+            },
+            {
+              "args": "default=1",
+              "isRelation": false,
+              "lineNumber": 949,
+              "name": "icon_version",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=LOGO_DEFAULT,\n        choices=LOGO_SOURCES,\n        max_length=1,",
+              "isRelation": false,
+              "lineNumber": 958,
+              "name": "logo_source",
+              "type": "CharField"
+            },
+            {
+              "args": "default=1",
+              "isRelation": false,
+              "lineNumber": 963,
+              "name": "logo_version",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=LOGO_DEFAULT,\n        choices=LOGO_SOURCES,\n        max_length=1,",
+              "isRelation": false,
+              "lineNumber": 965,
+              "name": "night_logo_source",
+              "type": "CharField"
+            },
+            {
+              "args": "default=1",
+              "isRelation": false,
+              "lineNumber": 970,
+              "name": "night_logo_version",
+              "type": "PositiveSmallIntegerField"
+            }
+          ],
+          "filePath": "zerver/models/realms.py",
+          "lineNumber": 170,
+          "meta": {},
+          "name": "Realm"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 1409,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=80, db_index=True",
+              "isRelation": false,
+              "lineNumber": 1411,
+              "name": "domain",
+              "type": "CharField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 1412,
+              "name": "allow_subdomains",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "zerver/models/realms.py",
+          "lineNumber": 1405,
+          "meta": {
+            "unique_together": "(\"realm\", \"domain\")"
+          },
+          "name": "RealmDomain"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 1466,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=EXPORT_PUBLIC",
+              "isRelation": false,
+              "lineNumber": 1476,
+              "name": "type",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=REQUESTED",
+              "isRelation": false,
+              "lineNumber": 1484,
+              "name": "status",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 1486,
+              "name": "date_requested",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1487,
+              "name": "date_started",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1488,
+              "name": "date_succeeded",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1489,
+              "name": "date_failed",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1490,
+              "name": "date_deleted",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "\"UserProfile\", null=True, on_delete=models.SET_NULL",
+              "isRelation": true,
+              "lineNumber": 1492,
+              "name": "acting_user",
+              "onDelete": "SET_NULL",
+              "relatedModel": "UserProfile",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1493,
+              "name": "export_path",
+              "type": "TextField"
+            },
+            {
+              "args": "default=None, null=True, max_length=64",
+              "isRelation": false,
+              "lineNumber": 1494,
+              "name": "sha256sum_hex",
+              "type": "CharField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1495,
+              "name": "tarball_size_bytes",
+              "type": "PositiveBigIntegerField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 1496,
+              "name": "stats",
+              "type": "JSONField"
+            }
+          ],
+          "filePath": "zerver/models/realms.py",
+          "lineNumber": 1463,
+          "meta": {},
+          "name": "RealmExport"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "max_length=MAX_NAME_LENGTH, db_index=True",
+              "isRelation": false,
+              "lineNumber": 36,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "Realm, db_index=True, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 37,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=timezone_now",
+              "isRelation": false,
+              "lineNumber": 38,
+              "name": "date_created",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "UserProfile, null=True, on_delete=models.SET_NULL",
+              "isRelation": true,
+              "lineNumber": 39,
+              "name": "creator",
+              "onDelete": "SET_NULL",
+              "relatedModel": "UserProfile",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 40,
+              "name": "deactivated",
+              "type": "BooleanField"
+            },
+            {
+              "args": "max_length=MAX_DESCRIPTION_LENGTH, default=\"\"",
+              "isRelation": false,
+              "lineNumber": 41,
+              "name": "description",
+              "type": "CharField"
+            },
+            {
+              "args": "default=\"\"",
+              "isRelation": false,
+              "lineNumber": 42,
+              "name": "rendered_description",
+              "type": "TextField"
+            },
+            {
+              "args": "default=0, db_default=0",
+              "isRelation": false,
+              "lineNumber": 47,
+              "name": "subscriber_count",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "Recipient, null=True, on_delete=models.SET_NULL",
+              "isRelation": true,
+              "lineNumber": 50,
+              "name": "recipient",
+              "onDelete": "SET_NULL",
+              "relatedModel": "Recipient",
+              "relationKind": "OneToOneField",
+              "type": "OneToOneField"
+            },
+            {
+              "args": "ChannelFolder, null=True, on_delete=models.SET_NULL",
+              "isRelation": true,
+              "lineNumber": 52,
+              "name": "folder",
+              "onDelete": "SET_NULL",
+              "relatedModel": "ChannelFolder",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 81,
+              "name": "invite_only",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 82,
+              "name": "history_public_to_subscribers",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 85,
+              "name": "is_web_public",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 118,
+              "name": "message_retention_days",
+              "type": "IntegerField"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 125,
+              "name": "can_add_subscribers_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 128,
+              "name": "can_administer_channel_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 131,
+              "name": "can_create_topic_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 134,
+              "name": "can_delete_any_message_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 137,
+              "name": "can_delete_own_message_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 140,
+              "name": "can_move_messages_out_of_channel_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 143,
+              "name": "can_move_messages_within_channel_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT",
+              "isRelation": true,
+              "lineNumber": 146,
+              "name": "can_remove_subscribers_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 147,
+              "name": "can_send_message_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 150,
+              "name": "can_subscribe_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserGroup, on_delete=models.RESTRICT, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 151,
+              "name": "can_resolve_topics_group",
+              "onDelete": "RESTRICT",
+              "relatedModel": "UserGroup",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "null=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 158,
+              "name": "first_message_id",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=True, db_default=True",
+              "isRelation": false,
+              "lineNumber": 163,
+              "name": "is_recently_active",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=StreamTopicsPolicyEnum.inherit.value",
+              "isRelation": false,
+              "lineNumber": 165,
+              "name": "topics_policy",
+              "type": "PositiveSmallIntegerField"
+            }
+          ],
+          "filePath": "zerver/models/streams.py",
+          "lineNumber": 32,
+          "meta": {
+            "indexes": "["
+          },
+          "name": "Stream"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "UserProfile, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 371,
+              "name": "user_profile",
+              "onDelete": "CASCADE",
+              "relatedModel": "UserProfile",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Recipient, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 372,
+              "name": "recipient",
+              "onDelete": "CASCADE",
+              "relatedModel": "Recipient",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 379,
+              "name": "active",
+              "type": "BooleanField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 386,
+              "name": "is_user_active",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 389,
+              "name": "is_muted",
+              "type": "BooleanField"
+            },
+            {
+              "args": "max_length=10, default=DEFAULT_STREAM_COLOR",
+              "isRelation": false,
+              "lineNumber": 392,
+              "name": "color",
+              "type": "CharField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 393,
+              "name": "pin_to_top",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 398,
+              "name": "desktop_notifications",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 399,
+              "name": "audible_notifications",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 400,
+              "name": "push_notifications",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 401,
+              "name": "email_notifications",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, default=None",
+              "isRelation": false,
+              "lineNumber": 402,
+              "name": "wildcard_mentions_notify",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "zerver/models/streams.py",
+          "lineNumber": 359,
+          "meta": {
+            "indexes": "[",
+            "unique_together": "(\"user_profile\", \"recipient\")"
+          },
+          "name": "Subscription"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 445,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Stream, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 446,
+              "name": "stream",
+              "onDelete": "CASCADE",
+              "relatedModel": "Stream",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "zerver/models/streams.py",
+          "lineNumber": 444,
+          "meta": {
+            "unique_together": "(\"realm\", \"stream\")"
+          },
+          "name": "DefaultStream"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "max_length=MAX_NAME_LENGTH, db_index=True",
+              "isRelation": false,
+              "lineNumber": 455,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 456,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"zerver.Stream\"",
+              "isRelation": true,
+              "lineNumber": 457,
+              "name": "streams",
+              "relatedModel": "zerver.Stream",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "max_length=1024, default=\"\"",
+              "isRelation": false,
+              "lineNumber": 458,
+              "name": "description",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "zerver/models/streams.py",
+          "lineNumber": 452,
+          "meta": {
+            "unique_together": "(\"realm\", \"name\")"
+          },
+          "name": "DefaultStreamGroup"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Realm, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 477,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Stream, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 478,
+              "name": "channel",
+              "onDelete": "CASCADE",
+              "relatedModel": "Stream",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserProfile, null=True, on_delete=CASCADE, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 479,
+              "name": "creator",
+              "onDelete": "CASCADE",
+              "relatedModel": "UserProfile",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "UserProfile, on_delete=CASCADE, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 480,
+              "name": "sender",
+              "onDelete": "CASCADE",
+              "relatedModel": "UserProfile",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=32,\n        default=generate_email_token_for_stream,\n        unique=True,\n        db_index=True,",
+              "isRelation": false,
+              "lineNumber": 485,
+              "name": "email_token",
+              "type": "CharField"
+            },
+            {
+              "args": "default=timezone_now",
+              "isRelation": false,
+              "lineNumber": 492,
+              "name": "date_created",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 493,
+              "name": "deactivated",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "zerver/models/streams.py",
+          "lineNumber": 476,
+          "meta": {
+            "indexes": "[",
+            "unique_together": "(\"channel\", \"creator\", \"sender\")"
+          },
+          "name": "ChannelEmailAddress"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "UserBaseSettings"
+          ],
+          "fields": [
+            {
+              "args": "\"zerver.Realm\", on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 442,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "zerver.Realm",
+              "relationKind": "OneToOneField",
+              "type": "OneToOneField"
+            }
+          ],
+          "filePath": "zerver/models/users.py",
+          "lineNumber": 437,
+          "meta": {},
+          "name": "RealmUserDefault"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "AbstractBaseUser",
+            "PermissionsMixin",
+            "UserBaseSettings"
+          ],
+          "fields": [
+            {
+              "args": "auto_created=True, primary_key=True, serialize=False, verbose_name=\"ID\"",
+              "isRelation": false,
+              "lineNumber": 490,
+              "name": "id",
+              "type": "AutoField"
+            },
+            {
+              "args": "blank=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 508,
+              "name": "delivery_email",
+              "type": "EmailField"
+            },
+            {
+              "args": "blank=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 509,
+              "name": "email",
+              "type": "EmailField"
+            },
+            {
+              "args": "\"zerver.Realm\", on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 511,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "zerver.Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=MAX_NAME_LENGTH",
+              "isRelation": false,
+              "lineNumber": 520,
+              "name": "full_name",
+              "type": "CharField"
+            },
+            {
+              "args": "default=timezone_now",
+              "isRelation": false,
+              "lineNumber": 522,
+              "name": "date_joined",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "null=True, max_length=10",
+              "isRelation": false,
+              "lineNumber": 530,
+              "name": "tos_version",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=API_KEY_LENGTH, default=generate_api_key, unique=True",
+              "isRelation": false,
+              "lineNumber": 531,
+              "name": "api_key",
+              "type": "CharField"
+            },
+            {
+              "args": "default=uuid4, unique=True",
+              "isRelation": false,
+              "lineNumber": 537,
+              "name": "uuid",
+              "type": "UUIDField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 540,
+              "name": "is_staff",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 547,
+              "name": "is_active",
+              "type": "BooleanField"
+            },
+            {
+              "args": "db_default=False, default=False",
+              "isRelation": false,
+              "lineNumber": 552,
+              "name": "is_deleted",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 554,
+              "name": "is_bot",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 555,
+              "name": "bot_type",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "\"self\", null=True, on_delete=models.SET_NULL",
+              "isRelation": true,
+              "lineNumber": 556,
+              "name": "bot_owner",
+              "onDelete": "SET_NULL",
+              "relatedModel": "self",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=ROLE_MEMBER, db_index=True",
+              "isRelation": false,
+              "lineNumber": 568,
+              "name": "role",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 610,
+              "name": "long_term_idle",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 613,
+              "name": "last_active_message_id",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 620,
+              "name": "is_mirror_dummy",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 623,
+              "name": "is_imported_stub",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 627,
+              "name": "can_forge_sender",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 629,
+              "name": "can_create_users",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 631,
+              "name": "can_change_user_emails",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=None, null=True",
+              "isRelation": false,
+              "lineNumber": 634,
+              "name": "last_reminder",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=\"\", max_length=100",
+              "isRelation": false,
+              "lineNumber": 641,
+              "name": "rate_limits",
+              "type": "CharField"
+            },
+            {
+              "args": "\"zerver.Stream\",\n        null=True,\n        related_name=\"+\",\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 644,
+              "name": "default_sending_stream",
+              "onDelete": "SET_NULL",
+              "relatedModel": "zerver.Stream",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"zerver.Stream\",\n        null=True,\n        related_name=\"+\",\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 650,
+              "name": "default_events_register_stream",
+              "onDelete": "SET_NULL",
+              "relatedModel": "zerver.Stream",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 656,
+              "name": "default_all_public_streams",
+              "type": "BooleanField"
+            },
+            {
+              "args": "max_length=40, default=\"\"",
+              "isRelation": false,
+              "lineNumber": 666,
+              "name": "timezone",
+              "type": "CharField"
+            },
+            {
+              "args": "default=DEFAULT_AVATAR_SOURCE, choices=AVATAR_SOURCES, max_length=1",
+              "isRelation": false,
+              "lineNumber": 677,
+              "name": "avatar_source",
+              "type": "CharField"
+            },
+            {
+              "args": "default=1",
+              "isRelation": false,
+              "lineNumber": 680,
+              "name": "avatar_version",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "null=True, max_length=64",
+              "isRelation": false,
+              "lineNumber": 684,
+              "name": "avatar_hash",
+              "type": "CharField"
+            },
+            {
+              "args": "default=dict, db_default={}",
+              "isRelation": false,
+              "lineNumber": 692,
+              "name": "third_party_api_state",
+              "type": "JSONField"
+            }
+          ],
+          "filePath": "zerver/models/users.py",
+          "lineNumber": 445,
+          "meta": {
+            "constraints": "[",
+            "indexes": "["
+          },
+          "name": "UserProfile"
+        },
+        {
+          "appName": "zerver",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "UserProfile, on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 1261,
+              "name": "user",
+              "onDelete": "CASCADE",
+              "relatedModel": "UserProfile",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"zerver.Realm\", on_delete=CASCADE",
+              "isRelation": true,
+              "lineNumber": 1262,
+              "name": "realm",
+              "onDelete": "CASCADE",
+              "relatedModel": "zerver.Realm",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=timezone_now",
+              "isRelation": false,
+              "lineNumber": 1263,
+              "name": "date_created",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "db_index=False",
+              "isRelation": false,
+              "lineNumber": 1266,
+              "name": "external_auth_method_name",
+              "type": "TextField"
+            },
+            {
+              "args": "db_index=False",
+              "isRelation": false,
+              "lineNumber": 1267,
+              "name": "external_auth_id",
+              "type": "TextField"
+            }
+          ],
+          "filePath": "zerver/models/users.py",
+          "lineNumber": 1260,
+          "meta": {
+            "constraints": "["
+          },
+          "name": "ExternalAuthID"
+        }
+      ],
+      "name": "zerver",
+      "path": "zerver"
+    }
+  ],
+  "scannedAt": 0,
+  "scannedFiles": 5
+}

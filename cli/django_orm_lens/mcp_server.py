@@ -1,16 +1,17 @@
 """MCP (Model Context Protocol) stdio server for Django ORM Lens.
 
-Exposes nine read-only tools that any MCP-compatible AI agent can call:
+Exposes ten read-only tools that any MCP-compatible AI agent can call:
 
 * ``list_apps``       — list Django apps with model counts
 * ``list_models``    — flat ``app.Model`` list, optional app filter
 * ``describe_model`` — full field/relation/Meta detail for one model
 * ``find_relations`` — inbound + outbound relations for one model
 * ``cascade_preview`` — group inbound relations by on_delete behavior
-* ``er_diagram``     — Mermaid ER diagram string for the whole workspace
+* ``er_diagram``     — workspace ER diagram (mermaid / dbml / d2 / plantuml)
 * ``describe_migration_dependency`` — per-app migration DAG from static AST parse
 * ``suggest_indexes`` — proposed ``Meta.indexes`` from workspace QuerySet usage
 * ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` decorators
+* ``nplusone_scan``  — static N+1 findings for the whole workspace
 
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
 stays zero-dep. Install with the extras: ``pip install 'django-orm-lens[mcp]'``.
@@ -32,23 +33,29 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from .cli import _build_mermaid
+from .er_formats import ER_BUILDERS
 from .migrations_parser import describe_migration_dependency
-from .models import WorkspaceIndex, find_model, find_user_model, resolve_related_tail
+from .models import (
+    WorkspaceIndex,
+    cascade_preview,
+    find_model,
+    find_user_model,
+    resolve_related_tail,
+)
 from .query_analyzer import scan_for_nplusone as _scan_for_nplusone
 from .query_analyzer import suggest_indexes as _suggest_indexes
 from .signals_parser import signal_graph as _signal_graph
 from .workspace import WorkspaceError, get_index, resolve_workspace
-
 
 # ---------------------------------------------------------------------------
 # Resolution helper — every tool starts here
 # ---------------------------------------------------------------------------
 
 
-def _resolve(args: Dict[str, Any]) -> Union[Path, WorkspaceError]:
+def _resolve(args: dict[str, Any]) -> Path | WorkspaceError:
     """Extract ``workspace_root`` from tool args and delegate to workspace.py.
 
     Centralised so every tool has identical resolution semantics. Empty string,
@@ -101,11 +108,11 @@ def _rel_matches_target(related_model, target_name, user_model) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Nine tool handlers
+# Ten tool handlers
 # ---------------------------------------------------------------------------
 
 
-def _tool_list_apps(args: Dict[str, Any]) -> str:
+def _tool_list_apps(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
@@ -119,7 +126,7 @@ def _tool_list_apps(args: Dict[str, Any]) -> str:
     )
 
 
-def _tool_list_models(args: Dict[str, Any]) -> str:
+def _tool_list_models(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
@@ -131,7 +138,7 @@ def _tool_list_models(args: Dict[str, Any]) -> str:
             f"(app '{only_app}' not found in workspace; "
             f"available apps: {available})"
         )
-    rows: List[str] = []
+    rows: list[str] = []
     for app in idx.apps:
         if only_app and app.name != only_app:
             continue
@@ -140,7 +147,7 @@ def _tool_list_models(args: Dict[str, Any]) -> str:
     return "\n".join(rows) if rows else "(no models)"
 
 
-def _tool_describe_model(args: Dict[str, Any]) -> str:
+def _tool_describe_model(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
@@ -152,7 +159,7 @@ def _tool_describe_model(args: Dict[str, Any]) -> str:
     return json.dumps(m.to_dict(), indent=2)
 
 
-def _tool_find_relations(args: Dict[str, Any]) -> str:
+def _tool_find_relations(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
@@ -161,7 +168,7 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
     m = _find(idx, ref)
     if not m:
         raise ValueError(f"model {ref!r} not found")
-    out: Dict[str, Any] = {"outbound": [], "inbound": []}
+    out: dict[str, Any] = {"outbound": [], "inbound": []}
     for f in m.fields:
         if f.is_relation:
             out["outbound"].append(
@@ -192,7 +199,9 @@ def _tool_find_relations(args: Dict[str, Any]) -> str:
     return json.dumps(out, indent=2)
 
 
-def _tool_cascade_preview(args: Dict[str, Any]) -> str:
+def _tool_cascade_preview(args: dict[str, Any]) -> str:
+    # Delegates to the shared implementation in ``models.cascade_preview``
+    # so the CLI ``cascade`` command and this tool can never drift apart.
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
@@ -200,54 +209,29 @@ def _tool_cascade_preview(args: Dict[str, Any]) -> str:
     app_label = (args or {}).get("app_label", "")
     model_name = (args or {}).get("model_name", "")
     ref = f"{app_label}.{model_name}" if app_label else model_name
-    m = _find(idx, ref)
-    if not m:
+    out = cascade_preview(idx, ref)
+    if "error" in out:
         raise ValueError(f"model {ref!r} not found")
-    target_app = None
-    for app in idx.apps:
-        if m in app.models:
-            target_app = app.name
-            break
-    out: Dict[str, Any] = {
-        "target": f"{target_app}.{m.name}" if target_app else m.name,
-        "cascade_kills": [],
-        "set_null": [],
-        "protected": [],
-    }
-    _, user_model = _workspace_user_model(idx)
-    for app in idx.apps:
-        for other in app.models:
-            if other is m:
-                continue
-            for f in other.fields:
-                if not f.is_relation:
-                    continue
-                if not _rel_matches_target(f.related_model, m.name, user_model):
-                    continue
-                on_delete = (f.on_delete or "").upper()
-                entry = {
-                    "model": f"{app.name}.{other.name}",
-                    "via_field": f.name,
-                }
-                if on_delete == "CASCADE":
-                    entry["count_hint"] = "unknown"
-                    out["cascade_kills"].append(entry)
-                elif on_delete in ("SET_NULL", "SET_DEFAULT", "SET"):
-                    out["set_null"].append(entry)
-                elif on_delete in ("PROTECT", "RESTRICT"):
-                    out["protected"].append(entry)
     return json.dumps(out, indent=2)
 
 
-def _tool_er_diagram(args: Dict[str, Any]) -> str:
+def _tool_er_diagram(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
     idx = get_index(ws)
-    return _build_mermaid(idx)
+    fmt = ((args or {}).get("diagram_format") or "mermaid").lower()
+    if fmt == "mermaid":
+        return _build_mermaid(idx)
+    builder = ER_BUILDERS.get(fmt)
+    if builder is None:
+        raise ValueError(
+            f"unknown diagram_format {fmt!r}; use mermaid | dbml | d2 | plantuml"
+        )
+    return builder(idx)
 
 
-def _tool_describe_migration_dependency(args: Dict[str, Any]) -> str:
+def _tool_describe_migration_dependency(args: dict[str, Any]) -> str:
     """Return migration DAG for one Django app.
 
     Static AST parse of ``<app>/migrations/*.py`` — no Django boot, no DB.
@@ -264,7 +248,7 @@ def _tool_describe_migration_dependency(args: Dict[str, Any]) -> str:
     return json.dumps(result, indent=2)
 
 
-def _tool_suggest_indexes(args: Dict[str, Any]) -> str:
+def _tool_suggest_indexes(args: dict[str, Any]) -> str:
     """Static analysis of QuerySet usage → proposed ``Meta.indexes`` entries.
 
     Walks the workspace, captures every ``<Model>.objects.filter/.exclude/
@@ -285,7 +269,7 @@ def _tool_suggest_indexes(args: Dict[str, Any]) -> str:
     return json.dumps(result, indent=2)
 
 
-def _tool_signal_graph(args: Dict[str, Any]) -> str:
+def _tool_signal_graph(args: dict[str, Any]) -> str:
     """Return the sender→signal→handler DAG for the workspace.
 
     Static AST parse of every ``@receiver(...)`` decorator plus every
@@ -301,7 +285,7 @@ def _tool_signal_graph(args: Dict[str, Any]) -> str:
     return json.dumps(result, indent=2)
 
 
-def _tool_nplusone_scan(args: Dict[str, Any]) -> str:
+def _tool_nplusone_scan(args: dict[str, Any]) -> str:
     """Static scan for Django ORM N+1 anti-patterns across the workspace.
 
     Walks every ``.py`` file, finds ``for ... in <queryset>:`` loops, and
@@ -329,7 +313,7 @@ _WORKSPACE_HINT = (
     "project root (the directory containing manage.py)."
 )
 
-TOOLS = {
+TOOLS: dict[str, dict[str, Any]] = {
     "list_apps": {
         "handler": _tool_list_apps,
         "description": (
@@ -366,7 +350,9 @@ TOOLS = {
     "er_diagram": {
         "handler": _tool_er_diagram,
         "description": (
-            "Emit a Mermaid erDiagram for the whole workspace." + _WORKSPACE_HINT
+            "Emit an ER diagram for the whole workspace. diagram_format "
+            "picks the language: mermaid (default, renders on GitHub), "
+            "dbml (dbdiagram.io), d2, or plantuml." + _WORKSPACE_HINT
         ),
     },
     "describe_migration_dependency": {
@@ -456,7 +442,7 @@ def main() -> int:
         elif name == "list_models":
             @server.tool(name=name, description=description)
             def list_models(app: str = "", workspace_root: str = "") -> str:
-                args: Dict[str, Any] = {"workspace_root": workspace_root}
+                args: dict[str, Any] = {"workspace_root": workspace_root}
                 if app:
                     args["app"] = app
                 return handler(args)
@@ -482,8 +468,15 @@ def main() -> int:
                 )
         elif name == "er_diagram":
             @server.tool(name=name, description=description)
-            def er_diagram(workspace_root: str = "") -> str:
-                return handler({"workspace_root": workspace_root})
+            def er_diagram(
+                workspace_root: str = "", diagram_format: str = "mermaid"
+            ) -> str:
+                return handler(
+                    {
+                        "workspace_root": workspace_root,
+                        "diagram_format": diagram_format,
+                    }
+                )
         elif name == "describe_migration_dependency":
             @server.tool(name=name, description=description)
             def describe_migration_dependency(

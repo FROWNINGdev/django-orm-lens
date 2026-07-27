@@ -1,0 +1,1291 @@
+{
+  "apps": [
+    {
+      "models": [
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "primary_key=True, editable=False, unique=True, default=uuid4",
+              "isRelation": false,
+              "lineNumber": 219,
+              "name": "id",
+              "type": "UUIDField"
+            },
+            {
+              "args": "max_length=255, unique=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 220,
+              "name": "code",
+              "type": "CharField"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 221,
+              "name": "used",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 222,
+              "name": "is_active",
+              "type": "BooleanField"
+            },
+            {
+              "args": "Voucher, related_name=\"codes\", on_delete=models.CASCADE, db_index=False",
+              "isRelation": true,
+              "lineNumber": 223,
+              "name": "voucher",
+              "onDelete": "CASCADE",
+              "relatedModel": "Voucher",
+              "relatedName": "codes",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "auto_now_add=True",
+              "isRelation": false,
+              "lineNumber": 226,
+              "name": "created_at",
+              "type": "DateTimeField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 218,
+          "meta": {
+            "indexes": "[BTreeIndex(fields=[\"voucher\"], name=\"vouchercode_voucher_idx\")]",
+            "ordering": "(\"-created_at\", \"code\")"
+          },
+          "name": "VoucherCode"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Voucher,\n        null=False,\n        blank=False,\n        related_name=\"channel_listings\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 234,
+              "name": "voucher",
+              "onDelete": "CASCADE",
+              "relatedModel": "Voucher",
+              "relatedName": "channel_listings",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Channel,\n        null=False,\n        blank=False,\n        related_name=\"voucher_listings\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 241,
+              "name": "channel",
+              "onDelete": "CASCADE",
+              "relatedModel": "Channel",
+              "relatedName": "voucher_listings",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,",
+              "isRelation": false,
+              "lineNumber": 248,
+              "name": "discount_value",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH,",
+              "isRelation": false,
+              "lineNumber": 253,
+              "name": "currency",
+              "type": "CharField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 256,
+              "name": "min_spent_amount",
+              "type": "DecimalField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 233,
+          "meta": {
+            "ordering": "(\"pk\",)",
+            "unique_together": "((\"voucher\", \"channel\"),)"
+          },
+          "name": "VoucherChannelListing"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "VoucherCode,\n        related_name=\"customers\",\n        on_delete=models.CASCADE,\n        db_index=False,",
+              "isRelation": true,
+              "lineNumber": 270,
+              "name": "voucher_code",
+              "onDelete": "CASCADE",
+              "relatedModel": "VoucherCode",
+              "relatedName": "customers",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 276,
+              "name": "customer_email",
+              "type": "EmailField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 269,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"voucher_code\", \"customer_email\", \"pk\")",
+            "unique_together": "((\"voucher_code\", \"customer_email\"),)"
+          },
+          "name": "VoucherCustomer"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "primary_key=True, editable=False, unique=True, default=uuid4",
+              "isRelation": false,
+              "lineNumber": 381,
+              "name": "id",
+              "type": "UUIDField"
+            },
+            {
+              "args": "max_length=255, blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 382,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "Promotion, on_delete=models.CASCADE, related_name=\"rules\"",
+              "isRelation": true,
+              "lineNumber": 384,
+              "name": "promotion",
+              "onDelete": "CASCADE",
+              "relatedModel": "Promotion",
+              "relatedName": "rules",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Channel",
+              "isRelation": true,
+              "lineNumber": 387,
+              "name": "channels",
+              "relatedModel": "Channel",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "blank=True, default=dict, encoder=CustomJsonEncoder",
+              "isRelation": false,
+              "lineNumber": 388,
+              "name": "catalogue_predicate",
+              "type": "JSONField"
+            },
+            {
+              "args": "blank=True, default=dict, encoder=CustomJsonEncoder",
+              "isRelation": false,
+              "lineNumber": 391,
+              "name": "order_predicate",
+              "type": "JSONField"
+            },
+            {
+              "args": "# type: ignore[var-annotated]\n        \"product.ProductVariant\", blank=True, through=\"PromotionRule_Variants\"",
+              "isRelation": true,
+              "lineNumber": 394,
+              "name": "variants",
+              "relatedModel": "product.ProductVariant",
+              "relationKind": "ManyToManyField",
+              "throughModel": "PromotionRule_Variants",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "max_length=255, choices=RewardValueType.CHOICES, blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 397,
+              "name": "reward_value_type",
+              "type": "CharField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 400,
+              "name": "reward_value",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_length=255, choices=RewardType.CHOICES, blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 406,
+              "name": "reward_type",
+              "type": "CharField"
+            },
+            {
+              "args": "\"product.ProductVariant\", blank=True, related_name=\"+\"",
+              "isRelation": true,
+              "lineNumber": 409,
+              "name": "gifts",
+              "relatedModel": "product.ProductVariant",
+              "relatedName": "+",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "blank=True, null=True, unique=True",
+              "isRelation": false,
+              "lineNumber": 412,
+              "name": "old_channel_listing_id",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 413,
+              "name": "variants_dirty",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 380,
+          "meta": {
+            "ordering": "(\"name\", \"pk\")"
+          },
+          "name": "PromotionRule"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "primary_key=True, editable=False, unique=True",
+              "isRelation": false,
+              "lineNumber": 443,
+              "name": "id",
+              "type": "BigAutoField"
+            },
+            {
+              "args": "PromotionRule,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 444,
+              "name": "promotionrule",
+              "onDelete": "CASCADE",
+              "relatedModel": "PromotionRule",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"product.ProductVariant\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 448,
+              "name": "productvariant",
+              "onDelete": "CASCADE",
+              "relatedModel": "product.ProductVariant",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 442,
+          "meta": {},
+          "name": "PromotionRule_Variants"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "BaseDiscount"
+          ],
+          "fields": [
+            {
+              "args": "\"order.Order\",\n        related_name=\"discounts\",\n        blank=True,\n        null=True,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 521,
+              "name": "order",
+              "onDelete": "CASCADE",
+              "relatedModel": "order.Order",
+              "relatedName": "discounts",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "unique=True, null=True, blank=True",
+              "isRelation": false,
+              "lineNumber": 528,
+              "name": "old_id",
+              "type": "PositiveIntegerField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 520,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"created_at\", \"id\")"
+          },
+          "name": "OrderDiscount"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "BaseDiscount"
+          ],
+          "fields": [
+            {
+              "args": "\"order.OrderLine\",\n        related_name=\"discounts\",\n        blank=True,\n        null=True,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 543,
+              "name": "line",
+              "onDelete": "CASCADE",
+              "relatedModel": "order.OrderLine",
+              "relatedName": "discounts",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=64, null=True, blank=True, choices=DiscountType.CHOICES",
+              "isRelation": false,
+              "lineNumber": 554,
+              "name": "unique_type",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 542,
+          "meta": {
+            "constraints": "[",
+            "indexes": "[",
+            "ordering": "(\"created_at\", \"id\")"
+          },
+          "name": "OrderLineDiscount"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "BaseDiscount"
+          ],
+          "fields": [
+            {
+              "args": "\"checkout.Checkout\",\n        related_name=\"discounts\",\n        blank=True,\n        null=True,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 575,
+              "name": "checkout",
+              "onDelete": "CASCADE",
+              "relatedModel": "checkout.Checkout",
+              "relatedName": "discounts",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 574,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"created_at\", \"id\")",
+            "unique_together": "(\"checkout_id\", \"promotion_rule_id\")"
+          },
+          "name": "CheckoutDiscount"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "BaseDiscount"
+          ],
+          "fields": [
+            {
+              "args": "\"checkout.CheckoutLine\",\n        related_name=\"discounts\",\n        blank=True,\n        null=True,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 595,
+              "name": "line",
+              "onDelete": "CASCADE",
+              "relatedModel": "checkout.CheckoutLine",
+              "relatedName": "discounts",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=64, null=True, blank=True, choices=DiscountType.CHOICES",
+              "isRelation": false,
+              "lineNumber": 606,
+              "name": "unique_type",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 594,
+          "meta": {
+            "constraints": "[",
+            "indexes": "[",
+            "ordering": "(\"created_at\", \"id\")"
+          },
+          "name": "CheckoutLineDiscount"
+        },
+        {
+          "appName": "discount",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "primary_key=True, editable=False, unique=True, default=uuid4",
+              "isRelation": false,
+              "lineNumber": 627,
+              "name": "id",
+              "type": "UUIDField"
+            },
+            {
+              "args": "auto_now_add=True, db_index=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 628,
+              "name": "date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "max_length=255, choices=PromotionEvents.CHOICES",
+              "isRelation": false,
+              "lineNumber": 629,
+              "name": "type",
+              "type": "CharField"
+            },
+            {
+              "args": "blank=True, default=dict, encoder=CustomJsonEncoder",
+              "isRelation": false,
+              "lineNumber": 630,
+              "name": "parameters",
+              "type": "JSONField"
+            },
+            {
+              "args": "settings.AUTH_USER_MODEL,\n        blank=True,\n        null=True,\n        related_name=\"promotion_events\",\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 631,
+              "name": "user",
+              "onDelete": "SET_NULL",
+              "relatedModel": "settings.AUTH_USER_MODEL",
+              "relatedName": "promotion_events",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "App,\n        blank=True,\n        null=True,\n        related_name=\"promotion_events\",\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 638,
+              "name": "app",
+              "onDelete": "SET_NULL",
+              "relatedModel": "App",
+              "relatedName": "promotion_events",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Promotion, related_name=\"events\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 645,
+              "name": "promotion",
+              "onDelete": "CASCADE",
+              "relatedModel": "Promotion",
+              "relatedName": "events",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/discount/models.py",
+          "lineNumber": 626,
+          "meta": {
+            "ordering": "(\"date\",)"
+          },
+          "name": "PromotionEvent"
+        }
+      ],
+      "name": "discount",
+      "path": "saleor/discount"
+    },
+    {
+      "models": [
+        {
+          "appName": "order",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "OrderLine,\n        related_name=\"fulfillment_lines\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 830,
+              "name": "order_line",
+              "onDelete": "CASCADE",
+              "relatedModel": "OrderLine",
+              "relatedName": "fulfillment_lines",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Fulfillment, related_name=\"lines\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 835,
+              "name": "fulfillment",
+              "onDelete": "CASCADE",
+              "relatedModel": "Fulfillment",
+              "relatedName": "lines",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 838,
+              "name": "quantity",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "\"warehouse.Stock\",\n        related_name=\"fulfillment_lines\",\n        on_delete=models.SET_NULL,\n        blank=True,\n        null=True,",
+              "isRelation": true,
+              "lineNumber": 839,
+              "name": "stock",
+              "onDelete": "SET_NULL",
+              "relatedModel": "warehouse.Stock",
+              "relatedName": "fulfillment_lines",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "blank=True, default=\"\"",
+              "isRelation": false,
+              "lineNumber": 846,
+              "name": "reason",
+              "type": "TextField"
+            },
+            {
+              "args": "\"page.Page\",\n        related_name=\"+\",\n        on_delete=models.SET_NULL,\n        null=True,\n        blank=True,\n        db_index=False,",
+              "isRelation": true,
+              "lineNumber": 847,
+              "name": "reason_reference",
+              "onDelete": "SET_NULL",
+              "relatedModel": "page.Page",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/order/models.py",
+          "lineNumber": 829,
+          "meta": {
+            "indexes": "["
+          },
+          "name": "FulfillmentLine"
+        },
+        {
+          "appName": "order",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "default=now, editable=False",
+              "isRelation": false,
+              "lineNumber": 875,
+              "name": "date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "max_length=255,\n        choices=[\n            (type_name.upper(), type_name) for type_name, _ in OrderEvents.CHOICES\n        ],",
+              "isRelation": false,
+              "lineNumber": 876,
+              "name": "type",
+              "type": "CharField"
+            },
+            {
+              "args": "Order, related_name=\"events\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 882,
+              "name": "order",
+              "onDelete": "CASCADE",
+              "relatedModel": "Order",
+              "relatedName": "events",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "blank=True, default=dict, encoder=CustomJsonEncoder",
+              "isRelation": false,
+              "lineNumber": 883,
+              "name": "parameters",
+              "type": "JSONField"
+            },
+            {
+              "args": "settings.AUTH_USER_MODEL,\n        blank=True,\n        null=True,\n        on_delete=models.SET_NULL,\n        related_name=\"+\",",
+              "isRelation": true,
+              "lineNumber": 884,
+              "name": "user",
+              "onDelete": "SET_NULL",
+              "relatedModel": "settings.AUTH_USER_MODEL",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "App, related_name=\"+\", on_delete=models.SET_NULL, null=True",
+              "isRelation": true,
+              "lineNumber": 891,
+              "name": "app",
+              "onDelete": "SET_NULL",
+              "relatedModel": "App",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"self\",\n        blank=True,\n        null=True,\n        on_delete=models.SET_NULL,\n        related_name=\"related_events\",\n        db_index=False,",
+              "isRelation": true,
+              "lineNumber": 892,
+              "name": "related",
+              "onDelete": "SET_NULL",
+              "relatedModel": "self",
+              "relatedName": "related_events",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/order/models.py",
+          "lineNumber": 866,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"date\",)"
+          },
+          "name": "OrderEvent"
+        },
+        {
+          "appName": "order",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "default=now, editable=False",
+              "isRelation": false,
+              "lineNumber": 916,
+              "name": "created_at",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "auto_now=True, editable=False, db_index=True",
+              "isRelation": false,
+              "lineNumber": 917,
+              "name": "updated_at",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        default=Decimal(0),",
+              "isRelation": false,
+              "lineNumber": 919,
+              "name": "amount_value",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH,",
+              "isRelation": false,
+              "lineNumber": 925,
+              "name": "currency",
+              "type": "CharField"
+            },
+            {
+              "args": "blank=True, default=\"\"",
+              "isRelation": false,
+              "lineNumber": 928,
+              "name": "reason",
+              "type": "TextField"
+            },
+            {
+              "args": "\"page.Page\", related_name=\"+\", on_delete=models.SET_NULL, null=True, blank=True",
+              "isRelation": true,
+              "lineNumber": 929,
+              "name": "reason_reference",
+              "onDelete": "SET_NULL",
+              "relatedModel": "page.Page",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "settings.AUTH_USER_MODEL,\n        blank=True,\n        null=True,\n        on_delete=models.SET_NULL,\n        related_name=\"+\",",
+              "isRelation": true,
+              "lineNumber": 932,
+              "name": "user",
+              "onDelete": "SET_NULL",
+              "relatedModel": "settings.AUTH_USER_MODEL",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "App, related_name=\"+\", on_delete=models.SET_NULL, null=True, blank=True",
+              "isRelation": true,
+              "lineNumber": 939,
+              "name": "app",
+              "onDelete": "SET_NULL",
+              "relatedModel": "App",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Order, related_name=\"granted_refunds\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 942,
+              "name": "order",
+              "onDelete": "CASCADE",
+              "relatedModel": "Order",
+              "relatedName": "granted_refunds",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 945,
+              "name": "shipping_costs_included",
+              "type": "BooleanField"
+            },
+            {
+              "args": "\"payment.TransactionItem\",\n        related_name=\"granted_refund\",\n        on_delete=models.SET_NULL,\n        null=True,\n        blank=True,",
+              "isRelation": true,
+              "lineNumber": 947,
+              "name": "transaction_item",
+              "onDelete": "SET_NULL",
+              "relatedModel": "payment.TransactionItem",
+              "relatedName": "granted_refund",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "choices=OrderGrantedRefundStatus.CHOICES,\n        default=OrderGrantedRefundStatus.NONE,\n        max_length=128,",
+              "isRelation": false,
+              "lineNumber": 955,
+              "name": "status",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "saleor/order/models.py",
+          "lineNumber": 913,
+          "meta": {
+            "ordering": "(\"created_at\", \"id\")"
+          },
+          "name": "OrderGrantedRefund"
+        },
+        {
+          "appName": "order",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "OrderLine, related_name=\"granted_refund_lines\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 968,
+              "name": "order_line",
+              "onDelete": "CASCADE",
+              "relatedModel": "OrderLine",
+              "relatedName": "granted_refund_lines",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 971,
+              "name": "quantity",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "OrderGrantedRefund, related_name=\"lines\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 973,
+              "name": "granted_refund",
+              "onDelete": "CASCADE",
+              "relatedModel": "OrderGrantedRefund",
+              "relatedName": "lines",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "blank=True, null=True, default=\"\"",
+              "isRelation": false,
+              "lineNumber": 977,
+              "name": "reason",
+              "type": "TextField"
+            },
+            {
+              "args": "\"page.Page\",\n        related_name=\"+\",\n        on_delete=models.SET_NULL,\n        null=True,\n        blank=True,\n        db_index=False,",
+              "isRelation": true,
+              "lineNumber": 978,
+              "name": "reason_reference",
+              "onDelete": "SET_NULL",
+              "relatedModel": "page.Page",
+              "relatedName": "+",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/order/models.py",
+          "lineNumber": 965,
+          "meta": {
+            "indexes": "["
+          },
+          "name": "OrderGrantedRefundLine"
+        }
+      ],
+      "name": "order",
+      "path": "saleor/order"
+    },
+    {
+      "models": [
+        {
+          "appName": "product",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "ProductVariant,\n        null=False,\n        blank=False,\n        related_name=\"channel_listings\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 482,
+              "name": "variant",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductVariant",
+              "relatedName": "channel_listings",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Channel,\n        null=False,\n        blank=False,\n        related_name=\"variant_listings\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 489,
+              "name": "channel",
+              "onDelete": "CASCADE",
+              "relatedModel": "Channel",
+              "relatedName": "variant_listings",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH",
+              "isRelation": false,
+              "lineNumber": 496,
+              "name": "currency",
+              "type": "CharField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 497,
+              "name": "price_amount",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 505,
+              "name": "cost_price_amount",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 513,
+              "name": "prior_price_amount",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 523,
+              "name": "discounted_price_amount",
+              "type": "DecimalField"
+            },
+            {
+              "args": "PromotionRule,\n        help_text=\"Promotion rules that were included in the discounted price.\",\n        through=\"product.VariantChannelListingPromotionRule\",\n        blank=True,",
+              "isRelation": true,
+              "lineNumber": 532,
+              "name": "promotion_rules",
+              "relatedModel": "PromotionRule",
+              "relationKind": "ManyToManyField",
+              "throughModel": "product.VariantChannelListingPromotionRule",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 539,
+              "name": "preorder_quantity_threshold",
+              "type": "IntegerField"
+            }
+          ],
+          "filePath": "saleor/product/models.py",
+          "lineNumber": 481,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"pk\",)",
+            "unique_together": "[[\"variant\", \"channel\"]]"
+          },
+          "name": "ProductVariantChannelListing"
+        },
+        {
+          "appName": "product",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "ProductVariantChannelListing,\n        related_name=\"variantlistingpromotionrule\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 552,
+              "name": "variant_channel_listing",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductVariantChannelListing",
+              "relatedName": "variantlistingpromotionrule",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "PromotionRule,\n        related_name=\"variantlistingpromotionrule\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 557,
+              "name": "promotion_rule",
+              "onDelete": "CASCADE",
+              "relatedModel": "PromotionRule",
+              "relatedName": "variantlistingpromotionrule",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        default=Decimal(\"0.0\"),",
+              "isRelation": false,
+              "lineNumber": 562,
+              "name": "discount_amount",
+              "type": "DecimalField"
+            },
+            {
+              "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH,",
+              "isRelation": false,
+              "lineNumber": 568,
+              "name": "currency",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "saleor/product/models.py",
+          "lineNumber": 551,
+          "meta": {
+            "unique_together": "[[\"variant_channel_listing\", \"promotion_rule\"]]"
+          },
+          "name": "VariantChannelListingPromotionRule"
+        },
+        {
+          "appName": "product",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "\"ProductVariant\", related_name=\"variant_media\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 614,
+              "name": "variant",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductVariant",
+              "relatedName": "variant_media",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "ProductMedia, related_name=\"variant_media\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 617,
+              "name": "media",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductMedia",
+              "relatedName": "variant_media",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/product/models.py",
+          "lineNumber": 613,
+          "meta": {
+            "unique_together": "(\"variant\", \"media\")"
+          },
+          "name": "VariantMedia"
+        }
+      ],
+      "name": "product",
+      "path": "saleor/product"
+    },
+    {
+      "models": [
+        {
+          "appName": "warehouse",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Warehouse, null=False, on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 527,
+              "name": "warehouse",
+              "onDelete": "CASCADE",
+              "relatedModel": "Warehouse",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "ProductVariant, null=False, on_delete=models.CASCADE, related_name=\"stocks\"",
+              "isRelation": true,
+              "lineNumber": 528,
+              "name": "product_variant",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductVariant",
+              "relatedName": "stocks",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 531,
+              "name": "quantity",
+              "type": "IntegerField"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 532,
+              "name": "quantity_allocated",
+              "type": "IntegerField"
+            }
+          ],
+          "filePath": "saleor/warehouse/models.py",
+          "lineNumber": 526,
+          "meta": {
+            "ordering": "(\"pk\",)",
+            "unique_together": "[[\"warehouse\", \"product_variant\"]]"
+          },
+          "name": "Stock"
+        },
+        {
+          "appName": "warehouse",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "OrderLine,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"allocations\",",
+              "isRelation": true,
+              "lineNumber": 573,
+              "name": "order_line",
+              "onDelete": "CASCADE",
+              "relatedModel": "OrderLine",
+              "relatedName": "allocations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Stock,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"allocations\",",
+              "isRelation": true,
+              "lineNumber": 580,
+              "name": "stock",
+              "onDelete": "CASCADE",
+              "relatedModel": "Stock",
+              "relatedName": "allocations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 587,
+              "name": "quantity_allocated",
+              "type": "PositiveIntegerField"
+            }
+          ],
+          "filePath": "saleor/warehouse/models.py",
+          "lineNumber": 572,
+          "meta": {
+            "ordering": "(\"pk\",)",
+            "unique_together": "[[\"order_line\", \"stock\"]]"
+          },
+          "name": "Allocation"
+        },
+        {
+          "appName": "warehouse",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "OrderLine,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"preorder_allocations\",",
+              "isRelation": true,
+              "lineNumber": 597,
+              "name": "order_line",
+              "onDelete": "CASCADE",
+              "relatedModel": "OrderLine",
+              "relatedName": "preorder_allocations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 604,
+              "name": "quantity",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "ProductVariantChannelListing,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"preorder_allocations\",",
+              "isRelation": true,
+              "lineNumber": 605,
+              "name": "product_variant_channel_listing",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductVariantChannelListing",
+              "relatedName": "preorder_allocations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            }
+          ],
+          "filePath": "saleor/warehouse/models.py",
+          "lineNumber": 596,
+          "meta": {
+            "ordering": "(\"pk\",)",
+            "unique_together": "[[\"order_line\", \"product_variant_channel_listing\"]]"
+          },
+          "name": "PreorderAllocation"
+        },
+        {
+          "appName": "warehouse",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "CheckoutLine,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"preorder_reservations\",",
+              "isRelation": true,
+              "lineNumber": 636,
+              "name": "checkout_line",
+              "onDelete": "CASCADE",
+              "relatedModel": "CheckoutLine",
+              "relatedName": "preorder_reservations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "ProductVariantChannelListing,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"preorder_reservations\",",
+              "isRelation": true,
+              "lineNumber": 643,
+              "name": "product_variant_channel_listing",
+              "onDelete": "CASCADE",
+              "relatedModel": "ProductVariantChannelListing",
+              "relatedName": "preorder_reservations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 650,
+              "name": "quantity_reserved",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 651,
+              "name": "reserved_until",
+              "type": "DateTimeField"
+            }
+          ],
+          "filePath": "saleor/warehouse/models.py",
+          "lineNumber": 635,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"pk\",)",
+            "unique_together": "[[\"checkout_line\", \"product_variant_channel_listing\"]]"
+          },
+          "name": "PreorderReservation"
+        },
+        {
+          "appName": "warehouse",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "CheckoutLine,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"reservations\",",
+              "isRelation": true,
+              "lineNumber": 664,
+              "name": "checkout_line",
+              "onDelete": "CASCADE",
+              "relatedModel": "CheckoutLine",
+              "relatedName": "reservations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "Stock,\n        null=False,\n        blank=False,\n        on_delete=models.CASCADE,\n        related_name=\"reservations\",",
+              "isRelation": true,
+              "lineNumber": 671,
+              "name": "stock",
+              "onDelete": "CASCADE",
+              "relatedModel": "Stock",
+              "relatedName": "reservations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=0",
+              "isRelation": false,
+              "lineNumber": 678,
+              "name": "quantity_reserved",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 679,
+              "name": "reserved_until",
+              "type": "DateTimeField"
+            }
+          ],
+          "filePath": "saleor/warehouse/models.py",
+          "lineNumber": 663,
+          "meta": {
+            "indexes": "[",
+            "ordering": "(\"pk\",)",
+            "unique_together": "[[\"checkout_line\", \"stock\"]]"
+          },
+          "name": "Reservation"
+        }
+      ],
+      "name": "warehouse",
+      "path": "saleor/warehouse"
+    }
+  ],
+  "scannedAt": 0,
+  "scannedFiles": 4
+}

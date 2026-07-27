@@ -1,0 +1,26 @@
+# Root-level shim so `pre-commit` can install this repository as a hook
+# environment — pre-commit always runs `pip install .` against the repo
+# root, and the real distribution lives in cli/pyproject.toml (published
+# to PyPI as `django-orm-lens`).
+#
+# This shim ships no code. It only depends on the published package so the
+# `django-orm-lens` entry point resolves inside the hook venv. Pin the
+# analyzer version from your .pre-commit-config.yaml with:
+#
+#   additional_dependencies: ["django-orm-lens==<version>"]
+#
+# Contributors: to work on the actual package, `pip install -e cli/[dev]`.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-orm-lens-hooks"
+version = "0.0.0"
+description = "pre-commit hook shim for django-orm-lens (the real package lives in cli/)"
+requires-python = ">=3.9"
+dependencies = ["django-orm-lens"]
+
+[tool.setuptools]
+packages = []

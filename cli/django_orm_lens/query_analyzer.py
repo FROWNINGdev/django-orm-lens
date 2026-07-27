@@ -26,9 +26,10 @@ from __future__ import annotations
 import ast
 import re
 from collections import defaultdict
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any
 
 from .models import (
     WorkspaceIndex,
@@ -62,12 +63,12 @@ def _order_field(raw: str) -> str:
     return prefix + body
 
 
-def _unwrap_call_chain(node: ast.Call) -> List[ast.Call]:
+def _unwrap_call_chain(node: ast.Call) -> list[ast.Call]:
     """For ``Foo.objects.filter(a=1).filter(b=2).order_by('c')`` return every
     Call node in the chain, outermost last. The receiver root (``Foo.objects``)
     must be identified separately via :func:`_chain_root`.
     """
-    chain: List[ast.Call] = []
+    chain: list[ast.Call] = []
     cursor: ast.AST = node
     while isinstance(cursor, ast.Call):
         chain.append(cursor)
@@ -80,7 +81,7 @@ def _unwrap_call_chain(node: ast.Call) -> List[ast.Call]:
     return chain
 
 
-def _chain_root(outermost: ast.Call) -> Optional[Tuple[str, ast.Attribute]]:
+def _chain_root(outermost: ast.Call) -> tuple[str, ast.Attribute] | None:
     """Return ``(ModelClassName, .objects_attr_node)`` for the leftmost
     ``<Model>.objects`` in the chain, or ``None`` if the chain doesn't start
     with a ``<Name>.objects`` pattern.
@@ -105,13 +106,13 @@ def _chain_root(outermost: ast.Call) -> Optional[Tuple[str, ast.Attribute]]:
     return None
 
 
-def _kwarg_names(call: ast.Call) -> List[str]:
+def _kwarg_names(call: ast.Call) -> list[str]:
     return [kw.arg for kw in call.keywords if kw.arg is not None]
 
 
-def _order_by_positionals(call: ast.Call) -> Tuple[List[str], bool]:
+def _order_by_positionals(call: ast.Call) -> tuple[list[str], bool]:
     """Return (list of order_by strings, has_non_string_positional)."""
-    strings: List[str] = []
+    strings: list[str] = []
     has_expr = False
     for arg in call.args:
         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
@@ -139,7 +140,7 @@ def _rel(root: Path, path: Path, line: int) -> str:
     return f"{rel}:{line}"
 
 
-def _existing_meta_indexes(meta: Dict[str, str]) -> List[List[str]]:
+def _existing_meta_indexes(meta: dict[str, str]) -> list[list[str]]:
     """Best-effort parse of ``Meta.indexes = [models.Index(fields=[...]), ...]``.
 
     ``meta`` values are raw source snippets (see parser). We regex the
@@ -149,7 +150,7 @@ def _existing_meta_indexes(meta: Dict[str, str]) -> List[List[str]]:
     raw = meta.get("indexes")
     if not raw:
         return []
-    out: List[List[str]] = []
+    out: list[list[str]] = []
     for m in re.finditer(r"fields\s*=\s*\[([^\]]*)\]", raw):
         body = m.group(1)
         fields = re.findall(r"['\"]([^'\"]+)['\"]", body)
@@ -164,13 +165,13 @@ class _Collector(ast.NodeVisitor):
         self.file_path = file_path
         self.root = root
         # per-method usage rows
-        self.filter_sites: List[Dict[str, Any]] = []
-        self.exclude_sites: List[Dict[str, Any]] = []
-        self.get_sites: List[Dict[str, Any]] = []
-        self.order_by_sites: List[Dict[str, Any]] = []
-        self.aggregate_sites: List[Dict[str, Any]] = []
+        self.filter_sites: list[dict[str, Any]] = []
+        self.exclude_sites: list[dict[str, Any]] = []
+        self.get_sites: list[dict[str, Any]] = []
+        self.order_by_sites: list[dict[str, Any]] = []
+        self.aggregate_sites: list[dict[str, Any]] = []
         # visited call-node ids so we don't double-count nested chain calls
-        self._visited: Set[int] = set()
+        self._visited: set[int] = set()
 
     def visit_Call(self, node: ast.Call) -> None:
         if id(node) not in self._visited:
@@ -203,7 +204,7 @@ class _Collector(ast.NodeVisitor):
             kwargs = _kwarg_names(call)
             fields = [_root_field(k) for k in kwargs]
             advanced = _has_positional_expr(call)
-            row: Dict[str, Any] = {
+            row: dict[str, Any] = {
                 "site": site,
                 "fields": fields,
             }
@@ -236,8 +237,8 @@ class _Collector(ast.NodeVisitor):
 
 
 def _summarise_filter_like(
-    sites: List[Dict[str, Any]],
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    sites: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Return (single_field_usages, composite_usages) for filter/exclude/get.
 
     * single_field_usages: one row per distinct field, with occurrence count
@@ -245,14 +246,14 @@ def _summarise_filter_like(
     * composite_usages: one row per distinct multi-field combo that appears
       in a single call, with occurrence count across sites.
     """
-    single_counts: Dict[str, int] = defaultdict(int)
-    single_example: Dict[str, str] = {}
-    composite_counts: Dict[Tuple[str, ...], int] = defaultdict(int)
-    composite_example: Dict[Tuple[str, ...], str] = {}
+    single_counts: dict[str, int] = defaultdict(int)
+    single_example: dict[str, str] = {}
+    composite_counts: dict[tuple[str, ...], int] = defaultdict(int)
+    composite_example: dict[tuple[str, ...], str] = {}
 
     for row in sites:
         fields = row["fields"]
-        seen_this_site: Set[str] = set()
+        seen_this_site: set[str] = set()
         for f in fields:
             if f in seen_this_site:
                 continue
@@ -284,9 +285,9 @@ def _summarise_filter_like(
     return singles, composites
 
 
-def _summarise_order_by(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    counts: Dict[str, int] = defaultdict(int)
-    example: Dict[str, str] = {}
+def _summarise_order_by(sites: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = defaultdict(int)
+    example: dict[str, str] = {}
     for row in sites:
         for f in row["fields"]:
             counts[f] += 1
@@ -298,11 +299,11 @@ def _summarise_order_by(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _propose_indexes(
-    filter_singles: List[Dict[str, Any]],
-    filter_composites: List[Dict[str, Any]],
-    order_by_summary: List[Dict[str, Any]],
-    existing: List[List[str]],
-) -> List[Dict[str, Any]]:
+    filter_singles: list[dict[str, Any]],
+    filter_composites: list[dict[str, Any]],
+    order_by_summary: list[dict[str, Any]],
+    existing: list[list[str]],
+) -> list[dict[str, Any]]:
     """Turn the frequency tables into concrete ``Meta.indexes`` suggestions.
 
     Rules:
@@ -316,8 +317,8 @@ def _propose_indexes(
     Existing ``Meta.indexes`` are dedup'd by exact field-list match.
     """
     existing_set = {tuple(x) for x in existing}
-    proposed: List[Dict[str, Any]] = []
-    covered_leaders: Set[str] = set()
+    proposed: list[dict[str, Any]] = []
+    covered_leaders: set[str] = set()
 
     for combo in filter_composites:
         if combo["sites"] < 2:
@@ -374,8 +375,8 @@ def suggest_indexes(
     app_label: str,
     model_name: str,
     root: str,
-    index: Optional[WorkspaceIndex] = None,
-) -> Dict[str, Any]:
+    index: WorkspaceIndex | None = None,
+) -> dict[str, Any]:
     """Analyse the workspace for QuerySet usage of ``app_label.model_name``.
 
     Returns the dict shape documented in the MCP tool spec. If the model
@@ -408,11 +409,11 @@ def suggest_indexes(
     root_path = Path(root).resolve()
     collector = None
 
-    all_filter: List[Dict[str, Any]] = []
-    all_exclude: List[Dict[str, Any]] = []
-    all_get: List[Dict[str, Any]] = []
-    all_order_by: List[Dict[str, Any]] = []
-    all_aggregate: List[Dict[str, Any]] = []
+    all_filter: list[dict[str, Any]] = []
+    all_exclude: list[dict[str, Any]] = []
+    all_get: list[dict[str, Any]] = []
+    all_order_by: list[dict[str, Any]] = []
+    all_aggregate: list[dict[str, Any]] = []
 
     for py in _iter_py_files(root_path):
         try:
@@ -446,7 +447,7 @@ def suggest_indexes(
         filter_singles, filter_composites, order_by_summary, existing
     )
 
-    filter_usages: List[Dict[str, Any]] = list(filter_singles)
+    filter_usages: list[dict[str, Any]] = list(filter_singles)
     filter_usages.extend(filter_composites)
 
     return {
@@ -461,12 +462,12 @@ def suggest_indexes(
     }
 
 
-def _sites_to_summary(sites: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _sites_to_summary(sites: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Compact per-field summary of an exclude/get bucket."""
-    counts: Dict[str, int] = defaultdict(int)
-    example: Dict[str, str] = {}
+    counts: dict[str, int] = defaultdict(int)
+    example: dict[str, str] = {}
     for row in sites:
-        seen: Set[str] = set()
+        seen: set[str] = set()
         for f in row["fields"]:
             if f in seen:
                 continue
@@ -523,11 +524,11 @@ class NPlusOneFinding:
     line: int
     loop_var: str
     queryset_var: str
-    accessed: List[str]
+    accessed: list[str]
     suggested_fix: str
     confidence: str  # "high" | "medium"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -549,12 +550,12 @@ def _iter_py_files_broad(root: Path) -> Iterable[Path]:
     )
 
 
-def _attr_chain(node: ast.AST) -> Optional[List[str]]:
+def _attr_chain(node: ast.AST) -> list[str] | None:
     """Flatten an ``ast.Attribute`` chain rooted at an ``ast.Name`` into a
     ``[name, attr1, attr2, ...]`` list. Returns ``None`` when the root
     isn't a plain ``ast.Name``.
     """
-    parts: List[str] = []
+    parts: list[str] = []
     cursor: ast.AST = node
     while isinstance(cursor, ast.Attribute):
         parts.append(cursor.attr)
@@ -566,7 +567,7 @@ def _attr_chain(node: ast.AST) -> Optional[List[str]]:
     return parts
 
 
-def _call_method_name(node: ast.Call) -> Optional[str]:
+def _call_method_name(node: ast.Call) -> str | None:
     """Return the method name of a method-call ``x.y(...)`` — i.e. the
     ``y``. Returns ``None`` for bare-function calls (``f(...)``).
     """
@@ -576,7 +577,7 @@ def _call_method_name(node: ast.Call) -> Optional[str]:
     return None
 
 
-def _collect_call_chain_methods(node: ast.AST) -> List[Tuple[str, ast.Call]]:
+def _collect_call_chain_methods(node: ast.AST) -> list[tuple[str, ast.Call]]:
     """Walk backwards through a method-chain ``a.b().c().d()`` and yield
     ``(method_name, call_node)`` tuples in call order (innermost first).
 
@@ -585,7 +586,7 @@ def _collect_call_chain_methods(node: ast.AST) -> List[Tuple[str, ast.Call]]:
     ``qs`` is a bare Name). Used by the N+1 scanner to walk any chain
     hanging off a queryset variable.
     """
-    out: List[Tuple[str, ast.Call]] = []
+    out: list[tuple[str, ast.Call]] = []
     cursor: ast.AST = node
     while isinstance(cursor, ast.Call):
         method = _call_method_name(cursor)
@@ -602,8 +603,8 @@ def _collect_call_chain_methods(node: ast.AST) -> List[Tuple[str, ast.Call]]:
 
 
 def _chain_prefetch_args(
-    chain: List[Tuple[str, ast.Call]],
-) -> Tuple[Set[str], Set[str]]:
+    chain: list[tuple[str, ast.Call]],
+) -> tuple[set[str], set[str]]:
     """Collect all string literal args passed to ``select_related`` /
     ``prefetch_related`` calls in ``chain``. Returns ``(select, prefetch)``.
 
@@ -611,8 +612,8 @@ def _chain_prefetch_args(
     represented by the wildcard token ``"*"``. Same for ``.prefetch_related()``
     which is uncommon but valid.
     """
-    select_set: Set[str] = set()
-    prefetch_set: Set[str] = set()
+    select_set: set[str] = set()
+    prefetch_set: set[str] = set()
     for method, call in chain:
         if method == "select_related":
             if not call.args and not call.keywords:
@@ -635,7 +636,7 @@ def _chain_prefetch_args(
     return select_set, prefetch_set
 
 
-def _chain_model_root(chain: List[Tuple[str, ast.Call]]) -> Optional[str]:
+def _chain_model_root(chain: list[tuple[str, ast.Call]]) -> str | None:
     """If the chain begins at ``<Model>.objects.<method>(...)`` return
     ``Model``, else ``None``.
     """
@@ -655,7 +656,7 @@ def _chain_model_root(chain: List[Tuple[str, ast.Call]]) -> Optional[str]:
     return None
 
 
-def _chain_source_method(chain: List[Tuple[str, ast.Call]]) -> Optional[str]:
+def _chain_source_method(chain: list[tuple[str, ast.Call]]) -> str | None:
     """First method name in the chain (``all`` / ``filter`` / ...)."""
     if not chain:
         return None
@@ -674,7 +675,7 @@ class _QuerySetTracker(ast.NodeVisitor):
 
     def __init__(self) -> None:
         # name -> (chain, model_root_name_or_None)
-        self.bindings: Dict[str, Tuple[List[Tuple[str, ast.Call]], Optional[str]]] = {}
+        self.bindings: dict[str, tuple[list[tuple[str, ast.Call]], str | None]] = {}
 
     def visit_Assign(self, node: ast.Assign) -> None:
         chain = _collect_call_chain_methods(node.value)
@@ -713,12 +714,12 @@ class NPlusOneScanner(ast.NodeVisitor):
         self,
         file_path: Path,
         project_root: Path,
-        models_schema: Optional[Dict[str, Dict[str, str]]] = None,
+        models_schema: dict[str, dict[str, str]] | None = None,
     ) -> None:
         self.file_path = file_path
         self.project_root = project_root
         self.models_schema = models_schema or {}
-        self.findings: List[NPlusOneFinding] = []
+        self.findings: list[NPlusOneFinding] = []
         # QuerySet name bindings from the module scope. We refresh this at
         # every function/class boundary for a mild scope-awareness.
         self._tracker = _QuerySetTracker()
@@ -757,7 +758,7 @@ class NPlusOneScanner(ast.NodeVisitor):
 
     # -- core --------------------------------------------------------------
 
-    def _process_loop(self, loop: ast.AST) -> None:
+    def _process_loop(self, loop: ast.For | ast.AsyncFor) -> None:
         target = getattr(loop, "target", None)
         iter_node = getattr(loop, "iter", None)
         body = getattr(loop, "body", [])
@@ -767,9 +768,9 @@ class NPlusOneScanner(ast.NodeVisitor):
 
         # 1. Resolve the queryset source: either a bare Name (look up in
         #    tracker) or an inline chain (``for x in Foo.objects.all():``).
-        chain: List[Tuple[str, ast.Call]] = []
+        chain: list[tuple[str, ast.Call]] = []
         qs_var = "<inline>"
-        model_root: Optional[str] = None
+        model_root: str | None = None
         if isinstance(iter_node, ast.Name):
             binding = self._tracker.bindings.get(iter_node.id)
             if binding is None:
@@ -799,8 +800,8 @@ class NPlusOneScanner(ast.NodeVisitor):
             return
 
         # 3. Classify each access: is it a relation? Is it already covered?
-        uncovered_fk: List[str] = []
-        uncovered_m2m: List[str] = []
+        uncovered_fk: list[str] = []
+        uncovered_m2m: list[str] = []
         confidence = "medium"
         for attr, kind_hint in accesses:
             kind = self._classify(model_root, attr, kind_hint)
@@ -826,14 +827,17 @@ class NPlusOneScanner(ast.NodeVisitor):
                     if "*" not in prefetch_set and attr not in prefetch_set:
                         uncovered_m2m.append(attr)
                         confidence = "high"
-                elif kind_hint == "chain":
-                    if "*" not in select_set and attr not in select_set:
-                        uncovered_fk.append(attr)
+                elif (
+                    kind_hint == "chain"
+                    and "*" not in select_set
+                    and attr not in select_set
+                ):
+                    uncovered_fk.append(attr)
 
         if not uncovered_fk and not uncovered_m2m:
             return
 
-        fix_parts: List[str] = []
+        fix_parts: list[str] = []
         if uncovered_fk:
             fix_parts.append(
                 ".select_related("
@@ -862,10 +866,10 @@ class NPlusOneScanner(ast.NodeVisitor):
 
     def _classify(
         self,
-        model_root: Optional[str],
+        model_root: str | None,
         attr: str,
-        kind_hint: Optional[str],
-    ) -> Optional[str]:
+        kind_hint: str | None,
+    ) -> str | None:
         """Return ``"fk" | "o2o" | "m2m" | "reverse" | "scalar" | None``.
 
         Uses the parsed schema when the source model is known; falls back
@@ -888,9 +892,9 @@ class NPlusOneScanner(ast.NodeVisitor):
         return kind_hint
 
 
-def _dedup_preserve(seq: Sequence[str]) -> List[str]:
-    seen: Set[str] = set()
-    out: List[str] = []
+def _dedup_preserve(seq: Sequence[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
     for s in seq:
         if s in seen:
             continue
@@ -902,7 +906,7 @@ def _dedup_preserve(seq: Sequence[str]) -> List[str]:
 def _collect_target_accesses(
     body: Sequence[ast.stmt],
     loop_var: str,
-) -> List[Tuple[str, Optional[str]]]:
+) -> list[tuple[str, str | None]]:
     """Walk ``body`` and find every attribute-chain access rooted at the
     loop target ``loop_var``. Returns a list of ``(root_attr, kind_hint)``.
 
@@ -915,7 +919,7 @@ def _collect_target_accesses(
     Nested for-loops are NOT descended into — a nested ``for tag in
     post.tags.all():`` is handled by a separate call from :meth:`visit_For`.
     """
-    hits: List[Tuple[str, Optional[str]]] = []
+    hits: list[tuple[str, str | None]] = []
     for stmt in body:
         _walk_for_accesses(stmt, loop_var, hits)
     return hits
@@ -924,7 +928,7 @@ def _collect_target_accesses(
 def _walk_for_accesses(
     node: ast.AST,
     loop_var: str,
-    hits: List[Tuple[str, Optional[str]]],
+    hits: list[tuple[str, str | None]],
 ) -> None:
     # Don't recurse into nested for-loops — the outer walker handles them
     # as their own top-level loop. Nested functions and class defs are
@@ -978,14 +982,14 @@ def _walk_for_accesses(
         _walk_for_accesses(child, loop_var, hits)
 
 
-def _build_schema_from_index(index: WorkspaceIndex) -> Dict[str, Dict[str, str]]:
+def _build_schema_from_index(index: WorkspaceIndex) -> dict[str, dict[str, str]]:
     """Flatten a ``WorkspaceIndex`` into ``{ModelName: {attr: kind}}``.
 
     ``kind`` in ``{"fk", "o2o", "m2m", "reverse", "scalar"}``. Reverse
     relations (``<related_name>`` or default ``<model_lower>_set``) are
     computed by walking every FK/O2O/M2M in the workspace.
     """
-    schema: Dict[str, Dict[str, str]] = {}
+    schema: dict[str, dict[str, str]] = {}
     for app in index.apps:
         for model in app.models:
             attrs = schema.setdefault(model.name, {})
@@ -1021,8 +1025,8 @@ def _build_schema_from_index(index: WorkspaceIndex) -> Dict[str, Dict[str, str]]
 
 def scan_for_nplusone(
     project_root: str,
-    models_schema: Optional[Any] = None,
-) -> List[NPlusOneFinding]:
+    models_schema: Any | None = None,
+) -> list[NPlusOneFinding]:
     """Public entry point — walks ``project_root`` and returns findings.
 
     ``models_schema`` accepts either the flat ``{ModelName: {attr: kind}}``
@@ -1035,11 +1039,11 @@ def scan_for_nplusone(
     if not root.is_dir():
         return []
 
-    flat_schema: Optional[Dict[str, Dict[str, str]]] = None
+    flat_schema: dict[str, dict[str, str]] | None = None
     if models_schema is not None:
         flat_schema = _normalise_schema(models_schema)
 
-    findings: List[NPlusOneFinding] = []
+    findings: list[NPlusOneFinding] = []
     for py in _iter_py_files_broad(root):
         try:
             source = py.read_text(encoding="utf-8", errors="replace")
@@ -1066,14 +1070,14 @@ def scan_for_nplusone(
     return findings
 
 
-def _normalise_schema(schema: Any) -> Dict[str, Dict[str, str]]:
+def _normalise_schema(schema: Any) -> dict[str, dict[str, str]]:
     """Accept multiple schema shapes and return the flat internal shape."""
     if isinstance(schema, WorkspaceIndex):
         return _build_schema_from_index(schema)
     if isinstance(schema, dict) and "apps" in schema and isinstance(schema["apps"], list):
         return _build_schema_from_index_dict(schema)
     if isinstance(schema, dict):
-        out: Dict[str, Dict[str, str]] = {}
+        out: dict[str, dict[str, str]] = {}
         for model, attrs in schema.items():
             if isinstance(model, str) and isinstance(attrs, dict):
                 out[model] = {
@@ -1084,12 +1088,12 @@ def _normalise_schema(schema: Any) -> Dict[str, Dict[str, str]]:
     return {}
 
 
-def _build_schema_from_index_dict(payload: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+def _build_schema_from_index_dict(payload: dict[str, Any]) -> dict[str, dict[str, str]]:
     """Same as :func:`_build_schema_from_index` but for a raw dict payload
     (as emitted by ``WorkspaceIndex.to_dict()`` or ``scan --format json``).
     """
-    schema: Dict[str, Dict[str, str]] = {}
-    all_models: List[Dict[str, Any]] = []
+    schema: dict[str, dict[str, str]] = {}
+    all_models: list[dict[str, Any]] = []
     for app in payload.get("apps", []):
         for model in app.get("models", []):
             all_models.append(model)

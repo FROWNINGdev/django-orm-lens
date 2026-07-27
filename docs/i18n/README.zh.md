@@ -1,6 +1,6 @@
-[English](../../README.md) · [Русский](./README.ru.md) · [Español](./README.es.md) · **中文**
+[English](../../README.md) · [Русский](README.ru.md) · [Español](README.es.md) · **中文**
 
-<div align="center">
+<div align="center" markdown="1">
 
 <img src="../../media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
 
@@ -9,137 +9,129 @@
 
 # Django ORM Lens
 
-### 在编辑器、终端和 AI agent 中，一览你的整个 Django 数据结构。
+### Django 的数据结构智能层。
 
-每个 app、每个模型、每个字段、每条关系。分组、可导航，一次按键即可生成实时 ER 图。
+你的整张模型图 —— 实时呈现在编辑器侧边栏、为你的 CI 把关，并通过 MCP 回答你的 AI agent 的提问。全部来自静态解析：无需数据库、无需 `runserver`、无需可用的 venv。
 
-<br/>
-
-[![Install from Marketplace](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-[![PyPI](https://img.shields.io/badge/PyPI-pip_install-3775a9?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6f42c1?style=for-the-badge)](https://registry.modelcontextprotocol.io/)
-[![Glama](https://img.shields.io/badge/Glama-listed-0f172a?style=for-the-badge)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
-[![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge)](https://mcp.so/servers/django-orm-lens)
-[![Star on GitHub](https://img.shields.io/badge/★-Star_on_GitHub-24292f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/FROWNINGdev/django-orm-lens)
-[![Sponsor](https://img.shields.io/badge/♥-Sponsor-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/FROWNINGdev)
+**取代：** `graph_models` + `django-schema-graph` + 手绘 ER 图 + grep 考古。
 
 <br/>
 
-[![Version](https://img.shields.io/visual-studio-marketplace/v/frowningdev.django-orm-lens?color=0c4b33&label=extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/frowningdev.django-orm-lens?color=0c4b33&label=installs)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-[![Rating](https://img.shields.io/visual-studio-marketplace/r/frowningdev.django-orm-lens?color=0c4b33&label=rating)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
-[![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=pypi)](https://pypi.org/project/django-orm-lens/)
-[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9)](https://pypi.org/project/django-orm-lens/)
-[![License MIT](https://img.shields.io/badge/license-MIT-0c4b33?style=flat)](../../LICENSE)
-[![CI](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml)
+<!-- Hero — LIVE badges only, minimal (FastAPI / Rich pattern) -->
+
+[![PyPI](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![Django versions](https://img.shields.io/pypi/djversions/django-orm-lens?color=092e20&label=Django&logo=django&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![CI](https://img.shields.io/github/actions/workflow/status/FROWNINGdev/django-orm-lens/ci.yml?branch=main&label=CI&logo=github)](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/pepy/dt/django-orm-lens?color=3775a9&label=downloads&logo=pypi&logoColor=white)](https://pepy.tech/project/django-orm-lens)
+[![License](https://img.shields.io/github/license/FROWNINGdev/django-orm-lens?color=16a34a)](../../LICENSE)
+
+<br/>
+
+<!-- One-click install per platform -->
+
+[![Install on VS Code](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Install on Open VSX](https://img.shields.io/badge/Open_VSX-Install-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
+[![Docker GHCR](https://img.shields.io/badge/Docker-GHCR-2496ed?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/FROWNINGdev/django-orm-lens/pkgs/container/django-orm-lens)
 
 </div>
 
 ---
 
-## 🎯 选择你的路径
-
-Django ORM Lens 基于同一核心提供**三种发行形式** —— 选择最贴合你工作流的那种。每种都能在 60 秒内跑起来。
-
-**编辑器用户（VS Code / Cursor / Windsurf）：** 安装扩展 → 打开任意 Django 项目 → 侧边栏树形视图与 ER 图立即呈现。
+## ⚡ 10 秒获得第一份洞察
 
 ```bash
-code --install-extension frowningdev.django-orm-lens
+uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
 ```
 
-**终端 / CI 用户：** 从 PyPI 安装 → 在任意包含 Django app 的目录下运行 `django-orm-lens`。
+冷克隆、坏掉的 venv、没有 settings 模块 —— 项目的每个 app、模型、字段和关系依然会出现在你的终端里。
 
-```bash
-pip install django-orm-lens
-django-orm-lens               # 欢迎信息 + 命令列表
-django-orm-lens scan          # 扫描当前目录中的 app 与 model
-```
+**接着选择你的使用面** —— 三种发行形式，同一个解析器内核：
 
-**AI agent 用户（Cursor / Aider / Continue / Zed）：** 安装 MCP 附加组件 → 在客户端配置中添加一段 JSON。
+| 你是谁 | 安装 | 你将得到 |
+|---|---|---|
+| **编辑器用户** —— VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | 侧边栏树形视图、实时 ER 图、悬停卡片、16 条 QuickFix 规则 |
+| **终端 / CI 用户** | `pip install django-orm-lens` | 13 个子命令、SARIF + PR 注解、pre-commit 钩子、一个 GitHub Action |
+| **AI agent 用户** —— Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 10 个只读 MCP 工具，基于确凿事实回答数据结构问题 |
 
-```bash
-pip install "django-orm-lens[mcp]"
-```
-
-然后使用下面 [Integrations](#-integrations) 章节中的 MCP 配置片段。将 `DJANGO_ORM_LENS_ROOT` 指向你的 Django 项目的绝对路径。
+MCP 配置只需一段 JSON —— 参见 [Integrations](#-integrations)。将 `DJANGO_ORM_LENS_ROOT` 指向你的 Django 项目的绝对路径。
 
 ---
 
 ## 📊 项目动态
 
-<div align="center">
+<div align="center" markdown="1">
 
-<!-- Headline split-badges (dark label · colored value) -->
+<!-- Traction — LIVE counters only, no hardcoded numbers -->
 
-[![First-week installs](https://img.shields.io/badge/first--week_installs-1814-3775a9?style=for-the-badge&logo=pypi&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
-[![Peak day](https://img.shields.io/badge/peak_day_installs-441-f97316?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
-[![Unique cloners](https://img.shields.io/badge/unique_cloners_14d-279-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
-[![VS Code rating](https://img.shields.io/badge/VS_Code_rating-5.0_%E2%98%85-eab308?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-
-<br/>
-
-<!-- Cross-platform reach snapshot -->
-
-[![VS Code installs](https://img.shields.io/badge/VS_Code_installs-6-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-[![GitHub views](https://img.shields.io/badge/GitHub_views_14d-381-24292f?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens)
-[![LinkedIn posts](https://img.shields.io/badge/LinkedIn_posts_live-7-0a66c2?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=1e293b)](https://linkedin.com/company/django-orm-lens)
-[![Awesome-list PRs](https://img.shields.io/badge/awesome--list_PRs-4_pending-16a34a?style=for-the-badge&logo=awesomelists&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev)
-[![Community PRs merged](https://img.shields.io/badge/community_PRs_merged-5-8b5cf6?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/pulls?q=is%3Apr+is%3Amerged+-author%3AFROWNINGdev)
+[![GitHub stars](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=eab308&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
+[![Forks](https://img.shields.io/github/forks/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/network/members)
+[![PyPI monthly](https://img.shields.io/pypi/dm/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI%2Fmonth&color=3775a9&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
+[![Total downloads](https://img.shields.io/pepy/dt/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=total%20downloads&color=3775a9&labelColor=1e293b)](https://pepy.tech/project/django-orm-lens)
+[![Marketplace rating](https://img.shields.io/visual-studio-marketplace/r/frowningdev.django-orm-lens?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=rating&color=c160ef&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
+[![Contributors](https://img.shields.io/github/contributors/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=contributors&color=8b5cf6&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/graphs/contributors)
+[![Last commit](https://img.shields.io/github/last-commit/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=last%20commit&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/commits/main)
 
 <br/>
 
-<!-- Live counters + directories -->
+<!-- Directory presence — one row per registry, no duplicates -->
 
-[![PyPI downloads total](https://img.shields.io/pepy/dt/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=total%20downloads&labelColor=1e293b&color=3775a9)](https://pepy.tech/project/django-orm-lens)
-[![PyPI weekly](https://img.shields.io/badge/weekly_downloads-1895-3775a9?style=for-the-badge&logo=pypi&logoColor=white&labelColor=1e293b)](https://pepy.tech/project/django-orm-lens)
-[![GitHub stars](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=stars&labelColor=1e293b&color=eab308)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=forks&labelColor=1e293b&color=64748b)](https://github.com/FROWNINGdev/django-orm-lens/network/members)
-
-<br/>
-
-<!-- MCP directories -->
-
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-official_listing-6f42c1?style=for-the-badge&labelColor=1e293b)](https://registry.modelcontextprotocol.io/)
-[![CodeTriage](https://img.shields.io/badge/CodeTriage-help_triage-2ec4b6?style=for-the-badge&labelColor=1e293b)](https://www.codetriage.com/frowningdev/django-orm-lens)
-[![Glama.ai](https://img.shields.io/badge/Glama.ai-listed-0f172a?style=for-the-badge&labelColor=1e293b)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-official-6f42c1?style=for-the-badge&labelColor=1e293b)](https://registry.modelcontextprotocol.io/)
+[![Smithery](https://img.shields.io/badge/Smithery-listed-8b5cf6?style=for-the-badge&labelColor=1e293b)](https://smithery.ai/server/@frowningdev/django-orm-lens)
+[![Glama](https://img.shields.io/badge/Glama.ai-listed-64748b?style=for-the-badge&labelColor=1e293b)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+[![awesome-mcp-servers](https://img.shields.io/badge/awesome--mcp--servers-listed-16a34a?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/punkpeye/awesome-mcp-servers)
 [![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge&labelColor=1e293b)](https://mcp.so/servers/django-orm-lens)
-
-<br/>
-
-<!-- Tech stack + license -->
-
-[![VS Code v0.5.1](https://img.shields.io/badge/VS_Code-v0.5.1-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
-[![PyPI version](https://img.shields.io/pypi/v/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
-[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?style=for-the-badge&logo=python&logoColor=white&label=Python&labelColor=1e293b&color=3775a9)](https://pypi.org/project/django-orm-lens/)
-[![Django](https://img.shields.io/badge/Django-4.0_%E2%80%93_5.1-092e20?style=for-the-badge&logo=django&logoColor=white&labelColor=1e293b)](https://www.djangoproject.com/)
-[![License MIT](https://img.shields.io/badge/license-MIT-16a34a?style=for-the-badge&labelColor=1e293b)](../../LICENSE)
 
 </div>
 
-<sub><i>更新于 2026-07-19。GitHub stars / forks 与累计下载量（通过 pepy.tech）实时自动刷新；每周下载量以及 VS Code / PyPI 版本号在每次发布时更新。</i></sub>
-
 > 如果这个工具下次帮你在一个陌生的 Django 项目里省掉一次 `grep` —— **[一颗 star 能帮助更多人发现它](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**。
+
+### 📈 Star 增长
+
+<div align="center">
+  <a href="https://www.star-history.com/?repos=FROWNINGdev%2Fdjango-orm-lens&type=date&legend=top-left">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&theme=dark&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <img alt="Star history of FROWNINGdev/django-orm-lens" src="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+    </picture>
+  </a>
+</div>
 
 ---
 
 ## ⚡ 安装
 
-**VS Code / Cursor / Windsurf / 任意 Code 派生版：**
+**VS Code / Cursor / Windsurf**（VS Code Marketplace）：
 
 ```bash
 code --install-extension frowningdev.django-orm-lens
 ```
 
-或者在扩展视图中搜索 **`Django ORM Lens`**。
-
-**终端与 AI agent：**
+**VSCodium / code-server / Gitpod / 任意开源 Code 派生版**（Open VSX）：
 
 ```bash
-pip install django-orm-lens              # 仅 CLI
-pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP 服务器
+codium --install-extension frowningdev.django-orm-lens
+```
+
+或者在扩展视图中搜索 **`Django ORM Lens`** —— 两个市场上的发布者都是同一个 `frowningdev`。
+
+**终端与 AI 编码 agent：**
+
+```bash
+pip install django-orm-lens              # CLI only
+pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
 ```
 
 需要 Python 3.9+。CLI 运行时零依赖。
+
+**Docker（v0.6+）：**
+
+```bash
+docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/django-orm-lens scan --path .
+```
+
+多架构（amd64 + arm64）。宿主机无需 Python。适合 CI 与一次性审计。
 
 <br/>
 
@@ -216,11 +208,101 @@ pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP 服务器
 
 <br/>
 
+## 🚀 进阶功能
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎯 行内 QuickFix（16 条规则）
+
+对 `.py` 文件做静态分析：Ruff 风格的规则码（`DOL001`..`DOL032`）、Clippy 风格的 `Applicability`，以及按规则覆盖的严重级别。`.count() > 0` → `.exists()`、`CharField` 上的 `null=True`、缺失的 `on_delete`、`datetime.now()` → `timezone.now()`，以及另外十几条。
+
+用 `# django-orm-lens-disable-next-line DOL007` 即可行内抑制。
+
+</td>
+<td width="50%" valign="top">
+
+### 🧪 Factory 生成器
+
+右键任意模型 → 生成 `factory_boy` 的 `DjangoModelFactory` 脚手架，Faker provider 按字段类型匹配。`CharField(max_length)` 按长度分档调整词数，`DecimalField(N,D)` 计算 `left_digits=N-D`，`choices=` 映射为 `Iterator`，M2M 使用 `@post_generation`。FK 链会传递式地拉入相关工厂。
+
+也可通过每个模型类上方的 CodeLens 使用。
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🕰 时间旅行 Schema Diff
+
+选一个 `models.py`，选两个 commit，得到一份可直接用于 PR 的类型化 markdown diff。`AddModel` / `DropModel` / `RenameModel` / `ModifyModel` 事件，重命名检测带置信度评分（Levenshtein + 字段形态 Jaccard）。
+
+重命名是一等事件，绝不会退化成 `Add + Drop`。Blob-SHA LRU 缓存 —— 未改动 `models.py` 的 commit 共享同一份解析快照。
+
+</td>
+<td width="50%" valign="top">
+
+### 🔎 影响分析
+
+"删掉这个字段会弄坏什么？" —— 右键字段或模型 → 全工作区扫描，按 Django 层级分组（models、serializers、forms、admin、views、urls、templates、tests、migrations）。
+
+每条结果都带 **Certain / Likely / Possibly** 置信标签。可处理 ORM 字符串引用（`order_by("-author")`）、kwarg 查询（`filter(author__id=1)`）、`Meta.fields` 元组以及模板变量。
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### ⚡ 交互式查询构建器
+
+右键字段或模型 → 选择模板 → 代码片段插入光标处（带 tab-stop），或插入一个全新的未命名缓冲区。
+
+FK 上的 `.filter(field=?)` 自动追加 `.select_related(...)`，`.annotate(post_count=Count('post_set'))` 尊重 `related_name`，M2M 用 `.prefetch_related`，还有 `.values('field').distinct()`、`.only('field')`。
+
+</td>
+<td width="50%" valign="top">
+
+### 🎨 侧边栏 UX 全面翻新
+
+稳定的 `TreeItem.id` —— 刷新不再折叠树。富 `MarkdownString` 工具提示，内含 `command:` 深层链接。活动栏徽标统计 DOL### 问题数量。
+
+`FileDecorationProvider` 徽标：缺少 `on_delete` 的 FK 标红色 `!`，`null=True` 的字符串字段标黄色 `~`（像 Git 一样向上冒泡到父级模型行）。
+
+</td>
+</tr>
+</table>
+
+<br/>
+
 ## 📸 界面预览
 
-<div align="center">
+<div align="center" markdown="1">
 <img src="../../media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
 </div>
+
+**实时示例** — `django-orm-lens er` 的真实输出，GitHub 会直接在此渲染：
+```mermaid
+erDiagram
+  User {
+    CharField display_name
+  }
+  Tag {
+    CharField name
+  }
+  Post {
+    CharField title
+    DateTimeField created_at
+  }
+  Comment {
+    TextField body
+  }
+  Post }o--|| User : "author [CASCADE, as posts]"
+  Post }o--o{ Tag : "tags [as posts]"
+  Comment }o--|| Post : "post [CASCADE, as comments]"
+  Comment }o--|| User : "author [SET_NULL]"
+```
+
 
 **扩展中还包含：**
 
@@ -231,33 +313,46 @@ pip install "django-orm-lens[mcp]"       # + 面向 AI agent 的 MCP 服务器
 
 <br/>
 
-## 🤖 面向终端与 AI agent
+## 🤖 面向终端与 AI 编码 agent
 
-驱动 VS Code 扩展的解析器同时作为独立的 Python 包发布 —— 并可选配 **MCP（Model Context Protocol）服务器**，让任意兼容 MCP 的 AI agent 在无需导入 Django、也无需启动你的应用的情况下浏览 Django 数据结构。
+驱动 VS Code 扩展的那个解析器同时作为独立的 Python 包发布 —— 并可选配 **MCP（Model Context Protocol）服务器**，让任意兼容 MCP 的 AI agent 在不导入 Django、也不启动你的应用的情况下浏览你的 Django 数据结构。
 
 ### CLI
 
 ```bash
-django-orm-lens scan -f json          # every app, every model, every field
-django-orm-lens describe blog.Post    # one model in Markdown
-django-orm-lens hover blog.Post       # compact hover card
-django-orm-lens list | fzf            # flat app.Model — pipes anywhere
-django-orm-lens er > schema.mmd       # Mermaid ER diagram
+django-orm-lens scan -f json                 # every app, every model, every field
+django-orm-lens describe blog.Post           # one model in Markdown
+django-orm-lens list | fzf                   # flat app.Model — pipes anywhere
+django-orm-lens er > schema.mmd              # ER diagram — Mermaid (default)
+django-orm-lens er -f dbml > schema.dbml     # …or DBML: paste into dbdiagram.io
+django-orm-lens er -f d2 > schema.d2         # …or D2 / plantuml
+django-orm-lens diff before.json after.json  # what a PR changes structurally
+django-orm-lens nplusone --format github     # N+1 findings as PR annotations
+django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
+django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
+django-orm-lens signals                      # sender→signal→handler graph
+django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
+django-orm-lens cascade blog.Author          # what one delete() takes down
 ```
 
-每个命令都支持 `--path <dir>` 与 `--exclude <glob>`。
+每个命令都接受 `--path <dir>` 与 `--exclude <glob>`。`nplusone` / `migration-risk` / `diff` 在有发现时以退出码 `1` 结束 —— 把它们放进 CI，即可在出现回归时拦下 PR。
 
 ### MCP 服务器
 
-在你的 agent 中注册一次，即可暴露五个只读工具：
+在你的 agent 中注册一次，即可暴露十个只读工具：
 
 | 工具 | 用途 |
 | --- | --- |
-| `list_apps` | 工作区中的每个 Django app 以及模型数量 |
-| `list_models` | 扁平的 `app.Model` 列表，可按 app 过滤 |
+| `list_apps` | 工作区中的每个 Django app 及其模型数量 |
+| `list_models` | 扁平的 `app.Model` 列表，可选按 app 过滤 |
 | `describe_model` | 单个模型的完整字段 / 关系 / Meta 详情 |
 | `find_relations` | 单个模型的入向 + 出向关系 |
-| `er_diagram` | 覆盖整个工作区的 Mermaid `erDiagram` |
+| `cascade_preview` | 一次 `delete()` 的波及范围，按 `on_delete` 分组 |
+| `er_diagram` | ER 图 —— `mermaid` / `dbml` / `d2` / `plantuml` |
+| `describe_migration_dependency` | 按 app 的迁移 DAG：根、叶、跨 app 依赖 |
+| `suggest_indexes` | 依据观察到的 QuerySet 用法给出 `Meta.indexes` 建议 |
+| `signal_graph` | 来自 `@receiver` 装饰器的 Sender→signal→handler 图 |
+| `nplusone_scan` | 整个工作区的静态 N+1 检测结果 |
 
 ```bash
 # Start it directly
@@ -267,7 +362,47 @@ django-orm-lens-mcp
 django-orm-lens mcp
 ```
 
-设置 `DJANGO_ORM_LENS_ROOT=/abs/path/to/project` 即可让它指向任意位置。
+**工作区解析（py-1.3.0+）。** 每个工具在调用时都接受可选的 `workspace_root` 参数。解析优先级：显式参数 → `$DJANGO_ORM_LENS_ROOT` → 当前工作目录。无效或非 Django 路径会返回结构化响应（`{"error": "WORKSPACE_NOT_DJANGO", "hint": "…"}`）而不是空结果，agent 因此可以自我纠正。可选沙箱通过 `DJANGO_ORM_LENS_ALLOWED_ROOTS` 设置（Windows 上以 `;` 分隔，其他平台以 `:` 分隔）。
+
+<br/>
+
+## 🛡️ 把关你的 CI
+
+数据结构回归在刚进入 PR 的那一刻拦截成本最低。三种零配置的拦截方式：
+
+**pre-commit** —— 两个钩子，本地无需安装任何东西：
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/FROWNINGdev/django-orm-lens
+    rev: py-v1.4.0
+    hooks:
+      - id: django-orm-lens-nplusone
+      - id: django-orm-lens-migration-risk
+```
+
+**GitHub Action** —— 检出的问题以 PR 注解呈现，无需任何额外权限：
+
+```yaml
+- uses: FROWNINGdev/django-orm-lens@main
+  with:
+    command: migration-risk      # or: nplusone
+    format: github               # ::error / ::warning annotations on the diff
+```
+
+**SARIF → Code Scanning** —— 检出的问题会进入仓库的 Security 标签页：
+
+```yaml
+- run: |
+    pip install django-orm-lens
+    django-orm-lens migration-risk --format sarif --exit-zero > lens.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: lens.sarif
+```
+
+退出码天生适配 CI：`diff` 与 `nplusone` 在有发现时退出 `1`，`migration-risk` 在有严重发现时退出 `1`。加上 `--exit-zero` 即为只报告模式。
 
 <br/>
 
@@ -282,6 +417,8 @@ django-orm-lens mcp
 | **Continue.dev** | 在 `~/.continue/config.json` 中注册 MCP 服务器 | ✅ (via MCP) |
 | **Zed** | 在 Zed 设置中注册 MCP 服务器 | ✅ (via MCP) |
 | **任意兼容 MCP 的客户端** | 将 `command` 指向 `django-orm-lens-mcp`，并设置 `DJANGO_ORM_LENS_ROOT` | ✅ |
+| **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + 两个 hook id | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@main` —— 注解或 SARIF | ✅ |
 | **可在 [MCP Registry](https://registry.modelcontextprotocol.io/) 中发现** | 官方 Model Context Protocol 服务器目录 | ✅ |
 | **纯终端 / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
@@ -300,33 +437,16 @@ django-orm-lens mcp
 
 <br/>
 
-## 🚀 快速上手（30 秒）
+## ⚡ 性能
 
-**在 VS Code 中：**
+回归测试套件解析 **Zulip、Saleor、Wagtail、django CMS 与 Mezzanine** 内置的模型图 —— 59 个模型、13,478 行真实世界的 `models.py` —— 在一台笔记本上端到端约 **20 ms**（在仓库的黄金夹具语料上三次取最佳为 21 ms；CI 的每个矩阵单元都运行一道 `<2 s` 守卫）。
 
-1. `code --install-extension frowningdev.django-orm-lens`
-2. 打开包含 `manage.py` 或 `models.py` 的文件夹
-3. 点击活动栏中的 **Django ORM Lens** 图标
-4. 展开 apps → models → fields
-5. 点击面板顶部的 **type-hierarchy** 图标 → ER 图会在代码旁边打开
-
-**在终端中：**
+自己复现一下：
 
 ```bash
-pip install django-orm-lens
-cd my-django-project
-django-orm-lens scan -f table
+git clone https://github.com/FROWNINGdev/django-orm-lens && cd django-orm-lens/cli
+pip install -e . && python -m pytest tests/test_golden_fixtures.py tests/test_golden_snapshots.py -q
 ```
-
-**作为 AI agent 工具：**
-
-```bash
-pip install "django-orm-lens[mcp]"
-```
-
-…然后在你的 agent 的 MCP 配置中注册 `django-orm-lens-mcp`（参见上面的 [Integrations](#-integrations) 表格）。
-
-无设置界面。无需登录。零遥测。
 
 <br/>
 
@@ -343,7 +463,7 @@ pip install "django-orm-lens[mcp]"
 
 ## 🗺️ 市场定位
 
-Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地带 —— 一个此前没有现成方案覆盖的位置：
+Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地带 —— 一个现有软件包都没有覆盖的位置：
 
 | 细分 | 现有方案 | 代价 |
 |---|---|---|
@@ -377,6 +497,10 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 
 > *`django-schema-graph` 自 2023-05 起未再更新，且未测试 Django 5.x。*
 
+### 当你需要别的东西时
+
+坦诚的边界：剖析一个在线请求 → **django-debug-toolbar**。历史请求剖析 → **django-silk**。测试套件内的查询计数断言 → **django-perf-rec**。真实流量上的生产 APM → **Scout / Sentry**。Django ORM Lens 刻意保持静态 —— 它是在应用还无法启动之前就能工作的那一层，也是你的 CI 和 AI agent 在任何 checkout 上都能用的唯一一层。
+
 <br/>
 
 ## ⚙️ 配置
@@ -401,6 +525,41 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 |---|---|---|---|
 | `djangoOrmLens.excludeGlobs` | `string[]` | 见上方 | 扫描时要跳过的 glob 模式 |
 | `djangoOrmLens.autoRefresh` | `boolean` | `true` | 在 `models.py` 变化时重新扫描 |
+| `djangoOrmLens.codeFixes.enabled` | `boolean` | `true` | DOL### 诊断 + QuickFix 的总开关 |
+| `djangoOrmLens.rules` | `object` | `{}` | 按规则的严重级别：`{ "DOL007": "off", "DOL013": "error" }` |
+| `djangoOrmLens.rulesSelect` | `string[]` | `[]` | Ruff 风格的 select。`["DOL0"]` 只运行 queryset+model 规则 |
+| `djangoOrmLens.rulesIgnore` | `string[]` | `[]` | Ruff 风格的 ignore。`["DOL03"]` 静默 form/view 规则 |
+
+<br/>
+
+## 🔬 规则目录
+
+十六条编辑器端检查（`DOL001`–`DOL032`），带 Ruff 风格规则码、按规则的严重级别与 Clippy 风格的 applicability —— 外加十五条 CLI 端迁移风险规则和静态 N+1 分析器。**现在每条规则都有自己的文档页。**
+
+| 类别 | 规则 | 示例 |
+|---|---|---|
+| [Queryset](../rules/README.md) | `DOL001`–`DOL007` | `.count() > 0` → `.exists()`、循环中访问 FK（N+1） |
+| [模型定义](../rules/README.md) | `DOL011`–`DOL015` | 缺少 `on_delete` 的 `ForeignKey`、字符串字段上的 `null=True` |
+| [日期时间](../rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
+| [表单 / 视图](../rules/README.md) | `DOL031`–`DOL032` | `render()` 中使用 `locals()`、`Meta.fields = '__all__'` |
+| [迁移风险](../rules/migrations.md) | 15 条规则 | 无默认值的 NOT NULL 新增、锁表的索引构建、不可逆的数据迁移 |
+| [静态 N+1](../rules/nplusone.md) | 1 个分析器 | 循环中访问 FK/M2M 而未用 `select_related` / `prefetch_related` |
+
+→ **[完整规则参考](../rules/README.md)** —— 每个规则码都附有反例/正例、QuickFix 行为与抑制语法。
+
+### 行内抑制
+
+```python
+# django-orm-lens-disable-next-line DOL007
+for user in User.objects.all():
+    print(user.profile)  # not flagged
+
+qs.count() > 0  # django-orm-lens-disable-line DOL001
+
+# django-orm-lens-disable DOL011  ← on its own line, kills DOL011 for the rest of the file
+```
+
+Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix All"），**suggestion** 修复以 QuickFix 的形式提供但需人工确认，**unsafe** 发现绝不自动应用。修复器与分析器相互分离（Roslyn 风格），因此一条规则可以随时间生长出多个修复器，而无需触碰检测逻辑。
 
 <br/>
 
@@ -411,10 +570,15 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 | 命令 | 作用 |
 |---|---|
 | `Django ORM Lens: Refresh` | 强制重新扫描工作区 |
-| `Django ORM Lens: Show ER Diagram` | 在旁边打开 Mermaid ER 图 |
+| `Django ORM Lens: Show ER Diagram` | 在代码旁边打开 Mermaid ER 图 |
 | `Django ORM Lens: Filter Models` | 按 app / 模型 / 字段名过滤树形视图 |
 | `Django ORM Lens: Clear Filter` | 恢复完整的树形视图 |
 | `Django ORM Lens: Jump to Model` | 程序化触发 —— 由树中点击与悬停卡片调用 |
+| `Django ORM Lens: Find Reverse References` | 右键模型 —— QuickPick 列出指向它的每个 FK |
+| `Django ORM Lens: Generate factory_boy Factory` | 右键模型或使用 CodeLens —— 生成 `DjangoModelFactory` 脚手架 |
+| `Django ORM Lens: Schema Diff (Time-Travel)` | 选两个 commit —— 在 markdown 缓冲区中得到类型化 diff |
+| `Django ORM Lens: Find Impact (What Uses This?)` | 右键字段或模型 —— 全工作区引用扫描 |
+| `Django ORM Lens: Build Query (Insert Snippet)` | 右键字段或模型 —— 选择一个 ORM 模板 |
 
 <br/>
 
@@ -436,16 +600,46 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 - [x] **v0.3.0** —— 命名的颜色主题（`auto` / `default` / `dark` / `forest` / `neutral`）
 - [x] **v0.3.1** —— M2M 连线上的 `through_model`（由 [@kingrubic](https://github.com/kingrubic) 贡献）
 - [x] **v0.3.1** —— 收录到 [官方 MCP Registry](https://registry.modelcontextprotocol.io/) 与 [Glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+- [x] **v0.6.0** —— CLI `nplusone` —— 静态 N+1 检测器（循环内访问 FK/M2M 而未用 `select_related`/`prefetch_related`）
+- [x] **v0.6.0** —— CLI `migration-risk` —— 标记 `migrations/*.py` 中的危险操作（目前 15 条规则）
+- [x] **v0.6.0** —— CLI `diff` —— 比较两份 schema JSON 导出，用于 PR 评审
+- [x] **v0.6.0** —— ER 图缩略图按 Django app 为节点着色
+- [x] **v0.6.0** —— README 翻译：🇷🇺 俄语、🇪🇸 西班牙语、🇨🇳 中文
+- [x] **v0.6.0** —— GHCR 上的 Docker 镜像：`docker run ghcr.io/frowningdev/django-orm-lens`
+- [x] **v0.7.0** —— `settings.AUTH_USER_MODEL` 在所有位置都能解析：n+1 反向关系、信号 sender、Mermaid ER、VS Code webview、入向关系面板、React ER
+- [x] **v0.7.0** —— 基于 AST 的字段解析器：`ForeignKey(on_delete=CASCADE, to='User')` 无论 kwarg 顺序如何都能解析（Python 与 TS 行为一致）
+- [x] **v0.7.0** —— 公开的共享辅助函数：`find_user_model`、`resolve_related_tail`、`find_model`、`iter_workspace_py_files`（Python）+ `findUserModel`、`resolveRelatedTail`（TS）
+- [x] **v0.7.0** —— `--verbose` 不再把目录树遍历两遍；文件计数由 `WorkspaceIndex.scanned_files` 提供
+- [x] **v0.7.3** —— 字段上的 PEP-526 类型注解（`jti: CharField[str] = models.CharField(...)`）现在可以解析 —— 由 [@jsabater](https://github.com/jsabater) 报告（[#25](https://github.com/FROWNINGdev/django-orm-lens/issues/25)），并附上了干净的 Django Ninja 1.6 复现
+- [x] **v0.7.4** —— PEP-695 泛型类头（Python 3.12+）：`class Container[T](models.Model):` 现在可以解析
+- [x] **v0.7.5** —— 现在能检测别名化的 models 模块（`from django.db import models as m`）与第三方字段包（`jsonfield.JSONField`）
+- [x] **v0.7.6** —— Tab 缩进的模型体现在可以解析（默认使用 tab 的编辑器不再显示空模型）
+- [x] **v0.8.0** —— 行内 QuickFix：16 条规则（`DOL001`..`DOL032`），支持按规则的严重级别 + Ruff 风格 select/ignore + 行内 `# django-orm-lens-disable-next-line`
+- [x] **v0.8.0** —— Factory 生成器：从任意模型生成 `factory_boy` 脚手架，Faker provider 按字段类型匹配
+- [x] **v0.8.0** —— 时间旅行 Schema Diff：选两个 commit → 类型化 markdown diff，重命名检测为一等公民
+- [x] **v0.8.0** —— 影响分析：跨每个 Django 层级的全工作区字段引用扫描，带 Certain/Likely/Possibly 置信标签
+- [x] **v0.8.0** —— 交互式查询构建器：右键 → 模板 → 片段插入光标处，语法感知（FK 会追加 `.select_related`，尊重 `related_name`）
+- [x] **v0.8.0** —— 侧边栏 UX 全面翻新：稳定的 `TreeItem.id`、带 `command:` 深层链接的 `MarkdownString` 工具提示、`FileDecorationProvider` 徽标、活动栏上的 `TreeView.badge`、三个由 when 条件门控的 `viewsWelcome` 状态
+
+**未发布（位于 `main`）**
+
+- [x] CI 输出格式：SARIF 2.1.0 + `nplusone` 与 `migration-risk` 的 `--format github` PR 注解
+- [x] 四个分析器从 MCP 专属提升到 CLI：`suggest-indexes`、`signals`、`migration-deps`、`cascade`
+- [x] `er --format dbml | d2 | plantuml` —— 社区标准的图表导出（dbdiagram.io、D2、PlantUML）
+- [x] 三条新的迁移风险规则：`runpython_no_reverse`、`alter_unique_together_lock`、`alter_index_together_deprecated` —— 共 15 条
+- [x] pre-commit 钩子（`django-orm-lens-nplusone`、`django-orm-lens-migration-risk`）+ 复合 GitHub Action
+- [x] `docs/rules/` —— 每条规则一个文档页（19 页）
+- [x] 覆盖 59 个真实世界模型的黄金快照回归套件（Zulip / Saleor / Wagtail / django CMS / Mezzanine）；ruff + mypy 现在把关 CI
+- [x] 迁移依赖图 —— `migration-deps`（text / json / mermaid）
 
 **下一步**
 
-- [ ] webview 内的缩放 + 缩略图 + 自动布局（[#4](https://github.com/FROWNINGdev/django-orm-lens/issues/4)）
 - [ ] `.filter()` / `.exclude()` / `.annotate()` 内的 ORM 查询自动补全（[#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3)）
-- [ ] app / 模型的显隐勾选框，用于化繁为简
+- [ ] app / 模型显隐勾选框，为庞大的数据结构化繁为简
+- [ ] DOL 规则引擎移植到 Python CLI —— 一份规则目录，三种使用面
 
 **长期**
 
-- [ ] 迁移依赖关系图
 - [ ] 第三方字段支持（`django-mptt`、`django-taggit`、`django-model-utils`）
 - [ ] JetBrains / PyCharm 插件（如有需求）
 
@@ -458,7 +652,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 <details>
 <summary><b>会把我的代码发到某台服务器上吗？</b></summary>
 <br/>
-不会。每一个字节都留在你的机器上。解析器是纯 TypeScript（扩展）或纯 Python（CLI）。无 LLM 调用、无遥测、无分析、无错误上报。Mermaid 渲染在 VS Code 的 webview 沙箱里运行。
+不会。每一个字节都留在你的机器上。解析器是纯 TypeScript（扩展）或纯 Python（CLI）。无 LLM 调用、无遥测、无分析、无错误上报。Mermaid 渲染器在 VS Code 的 webview 沙箱内运行。
 </details>
 
 <details>
@@ -486,6 +680,12 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 </details>
 
 <details>
+<summary><b>如何在 CI 中拦截数据结构回归？</b></summary>
+<br/>
+三种方式，全部零配置：两个 <a href="#%EF%B8%8F-gate-your-ci">pre-commit 钩子</a>、复合 GitHub Action（<code>uses: FROWNINGdev/django-orm-lens@main</code> 配合 <code>format: github</code> 输出 PR 注解），或将 <code>--format sarif</code> 管道到 <code>github/codeql-action/upload-sarif</code> 送入 Security 标签页。<code>diff</code> / <code>nplusone</code> 在有发现时退出 1，<code>migration-risk</code> 在有严重发现时退出 1。
+</details>
+
+<details>
 <summary><b>有 JetBrains / PyCharm 版本吗？</b></summary>
 <br/>
 暂时没有。PyCharm 的 Django Structure 工具窗口本身就不错，价值增量会小一些。如果有足够多的人提出需求，就值得去做。
@@ -503,39 +703,13 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 
 <br/>
 
-## ✨ 贡献者
-
-感谢这些出色的伙伴（[表情释义](https://allcontributors.org/docs/en/emoji-key)）—— 各类贡献都被计入，不仅仅是代码。翻译、文档、截图、bug 反馈、答疑，都是一等公民。
-
-新来的？请阅读 [CONTRIBUTING.md → "How to become a contributor"](.github/CONTRIBUTING.md#how-to-become-a-contributor-all-skill-levels-welcome) 并浏览 [`good first issue`](https://github.com/FROWNINGdev/django-orm-lens/labels/good%20first%20issue)。
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/FROWNINGdev"><img src="https://avatars.githubusercontent.com/u/218313741?v=4?s=80" width="80px;" alt="frowningdev"/><br /><sub><b>frowningdev</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=FROWNINGdev" title="Code">💻</a> <a href="#doc-FROWNINGdev" title="Documentation">📖</a> <a href="#design-FROWNINGdev" title="Design">🎨</a> <a href="#ideas-FROWNINGdev" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-FROWNINGdev" title="Maintenance">🚧</a> <a href="#review-FROWNINGdev" title="Reviewed Pull Requests">👀</a> <a href="#test-FROWNINGdev" title="Tests">⚠️</a> <a href="#infra-FROWNINGdev" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kingrubic"><img src="https://avatars.githubusercontent.com/u/116256161?v=4?s=80" width="80px;" alt="Bao"/><br /><sub><b>Bao</b></sub></a><br /><a href="https://github.com/FROWNINGdev/django-orm-lens/commits?author=kingrubic" title="Code">💻</a> <a href="#test-kingrubic" title="Tests">⚠️</a></td>
-    </tr>
-  </tbody>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-本项目遵循 [all-contributors](https://allcontributors.org) 规范。想被加入名单，请在任意 issue 或 PR 中评论 `@all-contributors please add @your-username for docs`（或 `code`、`translation`、`design`、`ideas`、`question`、`bug`、`test`、`tutorial`、`example`……）。
-
-<br/>
-
 ## 📜 许可证
 
 MIT © [FROWNINGdev](https://github.com/FROWNINGdev)
 
 <br/>
 
-<div align="center">
+<div align="center" markdown="1">
 
 **为在意自己代码库的开发者而生。**
 

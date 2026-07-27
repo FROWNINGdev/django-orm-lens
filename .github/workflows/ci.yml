@@ -49,3 +49,20 @@ jobs:
       - name: Run pytest
         working-directory: cli
         run: python -m pytest -q
+
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install package + lint tools
+        working-directory: cli
+        run: pip install -e ".[dev]"
+      - name: ruff
+        working-directory: cli
+        run: python -m ruff check django_orm_lens tests
+      - name: mypy
+        working-directory: cli
+        run: python -m mypy django_orm_lens

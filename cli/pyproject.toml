@@ -78,6 +78,9 @@ django_orm_lens = ["py.typed"]
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+# Fixtures are parser *input*, not our code — vendored upstream models
+# (Zulip/Saleor/...) and synthetic edge-case files must never be "fixed".
+extend-exclude = ["tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

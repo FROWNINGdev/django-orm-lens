@@ -9,9 +9,11 @@
 
 # Django ORM Lens
 
-### See your entire Django schema — in your editor, in your terminal, and from your AI agent.
+### The schema intelligence layer for Django.
 
-Every app. Every model. Every field. Every relationship. Grouped, navigable, and one keystroke away from a live ER diagram.
+Your entire model graph — live in your editor sidebar, gating your CI, and answering your AI agent over MCP. All from static parsing: no database, no `runserver`, no working venv.
+
+**Replaces:** `graph_models` + `django-schema-graph` + hand-drawn ER diagrams + grep archaeology.
 
 <br/>
 
@@ -36,32 +38,23 @@ Every app. Every model. Every field. Every relationship. Grouped, navigable, and
 
 ---
 
-## 🎯 Pick your path
-
-Django ORM Lens ships as **three distributions on one core** — pick the one that matches your workflow. Each takes under 60 seconds.
-
-**Editor user (VS Code / Cursor / Windsurf / VSCodium / code-server / Gitpod):** install the extension → open any Django project → sidebar tree + ER diagram appear.
+## ⚡ 10 seconds to first insight
 
 ```bash
-code --install-extension frowningdev.django-orm-lens          # VS Code, Cursor, Windsurf
-codium --install-extension frowningdev.django-orm-lens        # VSCodium, code-server (via Open VSX)
+uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
 ```
 
-**Terminal / CI user:** install from PyPI → run `django-orm-lens` in any directory that contains Django apps.
+Cold clone, broken venv, no settings module — you still get every app, model, field, and relation of the project in your terminal.
 
-```bash
-pip install django-orm-lens
-django-orm-lens               # welcome + commands
-django-orm-lens scan          # scan cwd for apps and models
-```
+**Then pick your surface** — three distributions, one parser core:
 
-**AI coding agent user (Cursor / Aider / Continue / Zed):** install with MCP extras → add one JSON block to your client config.
+| You are | Install | You get |
+|---|---|---|
+| **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Sidebar tree, live ER diagram, hover cards, 16 QuickFix rules |
+| **Terminal / CI user** | `pip install django-orm-lens` | 13 subcommands, SARIF + PR annotations, pre-commit hooks, a GitHub Action |
+| **AI-agent user** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 10 read-only MCP tools answering schema questions from ground truth |
 
-```bash
-pip install "django-orm-lens[mcp]"
-```
-
-Then the MCP config snippet in the [Integrations](#-integrations) section below. Point `DJANGO_ORM_LENS_ROOT` at your Django project's absolute path.
+MCP setup is one JSON block — see [Integrations](#-integrations). Point `DJANGO_ORM_LENS_ROOT` at your Django project's absolute path.
 
 ---
 
@@ -215,7 +208,7 @@ Dark theme. Light theme. Your theme. Follows your icon theme, your font, your ke
 
 <br/>
 
-## 🚀 v0.8 — five new "wow" features
+## 🚀 Power features
 
 <table>
 <tr>
@@ -288,6 +281,29 @@ Stable `TreeItem.id` — refresh no longer collapses the tree. Rich `MarkdownStr
 <img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
 </div>
 
+**Live sample** — real `django-orm-lens er` output, rendered by GitHub right here:
+
+```mermaid
+erDiagram
+  User {
+    CharField display_name
+  }
+  Tag {
+    CharField name
+  }
+  Post {
+    CharField title
+    DateTimeField created_at
+  }
+  Comment {
+    TextField body
+  }
+  Post }o--|| User : "author [CASCADE, as posts]"
+  Post }o--o{ Tag : "tags [as posts]"
+  Comment }o--|| Post : "post [CASCADE, as comments]"
+  Comment }o--|| User : "author [SET_NULL]"
+```
+
 **Also included in the extension:**
 
 - 🕸️ **Live ER diagram** — Mermaid cardinality arrows, edge labels (`CASCADE`, `through Model`, `as related_name`), theme-aware, one-click SVG export
@@ -304,21 +320,26 @@ The same parser that powers the VS Code extension ships as a standalone Python p
 ### CLI
 
 ```bash
-django-orm-lens scan -f json                # every app, every model, every field
-django-orm-lens describe blog.Post          # one model in Markdown
-django-orm-lens hover blog.Post             # compact hover card
-django-orm-lens list | fzf                  # flat app.Model — pipes anywhere
-django-orm-lens er > schema.mmd             # Mermaid ER diagram
-django-orm-lens diff before.json after.json # what a PR changes structurally
-django-orm-lens nplusone --path .           # static N+1 detector (v0.6+)
-django-orm-lens migration-risk --path .     # flag risky migration ops (v0.6+)
+django-orm-lens scan -f json                 # every app, every model, every field
+django-orm-lens describe blog.Post           # one model in Markdown
+django-orm-lens list | fzf                   # flat app.Model — pipes anywhere
+django-orm-lens er > schema.mmd              # ER diagram — Mermaid (default)
+django-orm-lens er -f dbml > schema.dbml     # …or DBML: paste into dbdiagram.io
+django-orm-lens er -f d2 > schema.d2         # …or D2 / plantuml
+django-orm-lens diff before.json after.json  # what a PR changes structurally
+django-orm-lens nplusone --format github     # N+1 findings as PR annotations
+django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
+django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
+django-orm-lens signals                      # sender→signal→handler graph
+django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
+django-orm-lens cascade blog.Author          # what one delete() takes down
 ```
 
 Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
 
 ### MCP server
 
-Register it once with your agent and it exposes five read-only tools:
+Register it once with your agent and it exposes ten read-only tools:
 
 | Tool | Purpose |
 | --- | --- |
@@ -326,7 +347,12 @@ Register it once with your agent and it exposes five read-only tools:
 | `list_models` | Flat `app.Model` list, optional app filter |
 | `describe_model` | Full field / relation / Meta detail for one model |
 | `find_relations` | Inbound + outbound relations for one model |
-| `er_diagram` | Mermaid `erDiagram` for the whole workspace |
+| `cascade_preview` | Blast radius of one `delete()`, grouped by `on_delete` |
+| `er_diagram` | ER diagram — `mermaid` / `dbml` / `d2` / `plantuml` |
+| `describe_migration_dependency` | Per-app migration DAG: roots, leaves, cross-app deps |
+| `suggest_indexes` | `Meta.indexes` proposals from observed QuerySet usage |
+| `signal_graph` | Sender→signal→handler graph from `@receiver` decorators |
+| `nplusone_scan` | Static N+1 findings for the whole workspace |
 
 ```bash
 # Start it directly
@@ -346,6 +372,46 @@ so the agent can self-correct. Optional sandbox via
 
 <br/>
 
+## 🛡️ Gate your CI
+
+Schema regressions are cheapest to catch the moment they enter a PR. Three zero-config ways to block them:
+
+**pre-commit** — two hooks, nothing to install locally:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/FROWNINGdev/django-orm-lens
+    rev: py-v1.4.0
+    hooks:
+      - id: django-orm-lens-nplusone
+      - id: django-orm-lens-migration-risk
+```
+
+**GitHub Action** — findings appear as PR annotations with zero extra permissions:
+
+```yaml
+- uses: FROWNINGdev/django-orm-lens@main
+  with:
+    command: migration-risk      # or: nplusone
+    format: github               # ::error / ::warning annotations on the diff
+```
+
+**SARIF → Code Scanning** — findings land in the repo Security tab:
+
+```yaml
+- run: |
+    pip install django-orm-lens
+    django-orm-lens migration-risk --format sarif --exit-zero > lens.sarif
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: lens.sarif
+```
+
+Exit codes are CI-native: `diff` and `nplusone` exit `1` on findings, `migration-risk` exits `1` on critical findings. Add `--exit-zero` for report-only mode.
+
+<br/>
+
 ## 🔌 Integrations
 
 | Client | How to enable | Status |
@@ -357,6 +423,8 @@ so the agent can self-correct. Optional sandbox via
 | **Continue.dev** | register the MCP server in `~/.continue/config.json` | ✅ (via MCP) |
 | **Zed** | register the MCP server in Zed settings | ✅ (via MCP) |
 | **Any MCP-compatible client** | point `command` at `django-orm-lens-mcp`, set `DJANGO_ORM_LENS_ROOT` | ✅ |
+| **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + two hook ids | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@main` — annotations or SARIF | ✅ |
 | **Discoverable via [MCP Registry](https://registry.modelcontextprotocol.io/)** | official Model Context Protocol server directory | ✅ |
 | **Plain terminal / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
 
@@ -375,33 +443,16 @@ so the agent can self-correct. Optional sandbox via
 
 <br/>
 
-## 🚀 Get started (30 seconds)
+## ⚡ Performance
 
-**In VS Code:**
+The regression suite parses the vendored model graphs of **Zulip, Saleor, Wagtail, django CMS, and Mezzanine** — 59 models across 13,478 lines of real-world `models.py` — in about **20 ms** end-to-end on a laptop (21 ms best-of-3 on the repo's golden-fixture corpus; a `<2 s` guard runs in CI on every matrix cell).
 
-1. `code --install-extension frowningdev.django-orm-lens`
-2. Open a folder with a `manage.py` or `models.py`
-3. Click the **Django ORM Lens** icon in the activity bar
-4. Expand apps → models → fields
-5. Click the **type-hierarchy** icon at the top of the panel → ER diagram opens beside your code
-
-**In a terminal:**
+Reproduce it yourself:
 
 ```bash
-pip install django-orm-lens
-cd my-django-project
-django-orm-lens scan -f table
+git clone https://github.com/FROWNINGdev/django-orm-lens && cd django-orm-lens/cli
+pip install -e . && python -m pytest tests/test_golden_fixtures.py tests/test_golden_snapshots.py -q
 ```
-
-**As an AI agent tool:**
-
-```bash
-pip install "django-orm-lens[mcp]"
-```
-
-…then register `django-orm-lens-mcp` in your agent's MCP config (see the [Integrations](#-integrations) table above).
-
-No settings screen. No sign-in. No telemetry.
 
 <br/>
 
@@ -452,6 +503,10 @@ Django ORM Lens sits at the intersection of **editor tooling** and **AI-agent to
 
 > *`django-schema-graph` has not been updated since 2023-05 and does not test Django 5.x.*
 
+### When you want something else
+
+Honest boundaries: profiling a live request → **django-debug-toolbar**. Historical request profiling → **django-silk**. Query-count assertions inside a test suite → **django-perf-rec**. Production APM on real traffic → **Scout / Sentry**. Django ORM Lens deliberately stays static — it's the layer that works before the app can even boot, and the only one your CI and your AI agent can use on any checkout.
+
 <br/>
 
 ## ⚙️ Configuration
@@ -483,45 +538,20 @@ The defaults are opinionated and sensible. If you need to tweak:
 
 <br/>
 
-## 🔬 Rule catalogue (v0.8)
+## 🔬 Rule catalogue
 
-Sixteen static-analysis checks over `.py` files. All are line-oriented (no Python process required), grouped into four categories, and individually toggle-able. Every rule has a stable `DOL###` code that appears in the Problems panel and links to its docs.
+Sixteen editor-side checks (`DOL001`–`DOL032`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus fifteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
 
-### Queryset
+| Category | Rules | Examples |
+|---|---|---|
+| [Queryset](docs/rules/README.md) | `DOL001`–`DOL007` | `.count() > 0` → `.exists()`, FK access in loops (N+1) |
+| [Model definition](docs/rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` without `on_delete`, `null=True` on string fields |
+| [Datetime](docs/rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
+| [Forms / views](docs/rules/README.md) | `DOL031`–`DOL032` | `locals()` in `render()`, `Meta.fields = '__all__'` |
+| [Migration risks](docs/rules/migrations.md) | 15 rules | NOT NULL add without default, table-locking index builds, irreversible data migrations |
+| [Static N+1](docs/rules/nplusone.md) | 1 analyzer | FK/M2M access in loops without `select_related` / `prefetch_related` |
 
-| Code | Rule | Default | Applicability |
-|---|---|---|---|
-| `DOL001` | `.count() > 0` → `.exists()` | info | safe |
-| `DOL002` | `.count() == 0` → `not .exists()` | info | safe |
-| `DOL003` | `.first() is None` → `not .exists()` | info | safe |
-| `DOL004` | `.first() is not None` → `.exists()` | info | safe |
-| `DOL005` | `.filter().exclude()` → `Q(...) & ~Q(...)` | hint | suggestion |
-| `DOL006` | `for x in list(qs):` → `for x in qs:` | info | safe |
-| `DOL007` | FK attribute access inside for-loop (N+1) | warning | unsafe |
-
-### Model definition
-
-| Code | Rule | Default | Applicability |
-|---|---|---|---|
-| `DOL011` | `CharField / TextField(null=True)` → `blank=True` | warning | suggestion |
-| `DOL012` | Model without `__str__` method | info | suggestion |
-| `DOL013` | `ForeignKey` without `on_delete` | error | suggestion |
-| `DOL014` | `CharField` without `max_length` | error | suggestion |
-| `DOL015` | `TextField(max_length=...)` has no DB effect | hint | suggestion |
-
-### Datetime
-
-| Code | Rule | Default | Applicability |
-|---|---|---|---|
-| `DOL021` | `datetime.now()` → `timezone.now()` | warning | suggestion |
-| `DOL022` | `datetime.utcnow()` (deprecated 3.12) | warning | suggestion |
-
-### Forms / views
-
-| Code | Rule | Default | Applicability |
-|---|---|---|---|
-| `DOL031` | `render(request, tpl, locals())` — explicit dict | warning | suggestion |
-| `DOL032` | `Meta.fields = '__all__'` — audit surface | warning | unsafe |
+→ **[Full rule reference](docs/rules/README.md)** — every code with bad/good examples, QuickFix behaviour, and suppression syntax.
 
 ### Suppress inline
 
@@ -577,7 +607,7 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.3.1** — `through_model` on M2M edges (contributed by [@kingrubic](https://github.com/kingrubic))
 - [x] **v0.3.1** — Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/) + [Glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
 - [x] **v0.6.0** — CLI `nplusone` — static N+1 detector (FK/M2M access inside loops without `select_related`/`prefetch_related`)
-- [x] **v0.6.0** — CLI `migration-risk` — flags 7 classes of production hazards in `migrations/*.py`
+- [x] **v0.6.0** — CLI `migration-risk` — flags risky operations in `migrations/*.py` (15 rules today)
 - [x] **v0.6.0** — CLI `diff` — compare two schema JSON dumps for PR review
 - [x] **v0.6.0** — ER-diagram minimap color-codes nodes by Django app
 - [x] **v0.6.0** — README translations: 🇷🇺 Russian, 🇪🇸 Spanish, 🇨🇳 Chinese
@@ -597,12 +627,22 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.8.0** — Interactive Query Builder: right-click → template → snippet inserted at cursor, grammar-aware (FK gets `.select_related`, `related_name` honoured)
 - [x] **v0.8.0** — Sidebar UX overhaul: stable `TreeItem.id`, `MarkdownString` tooltips with `command:` deep-links, `FileDecorationProvider` badges, `TreeView.badge` on the activity bar, three when-gated `viewsWelcome` states
 
+**Unreleased (on `main`)**
+
+- [x] CI formats: SARIF 2.1.0 + `--format github` PR annotations for `nplusone` and `migration-risk`
+- [x] Four analyzers promoted from MCP-only to the CLI: `suggest-indexes`, `signals`, `migration-deps`, `cascade`
+- [x] `er --format dbml | d2 | plantuml` — community-standard diagram exports (dbdiagram.io, D2, PlantUML)
+- [x] Three new migration-risk rules: `runpython_no_reverse`, `alter_unique_together_lock`, `alter_index_together_deprecated` — 15 total
+- [x] pre-commit hooks (`django-orm-lens-nplusone`, `django-orm-lens-migration-risk`) + composite GitHub Action
+- [x] `docs/rules/` — a documentation page for every rule (19 pages)
+- [x] Golden-snapshot regression suite over 59 real-world models (Zulip / Saleor / Wagtail / django CMS / Mezzanine); ruff + mypy now gate CI
+- [x] Migration dependency graph — `migration-deps` (text / json / mermaid)
+
 **Next**
 
 - [ ] ORM query autocomplete inside `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
 - [ ] App / model toggle checkboxes to declutter huge schemas
-- [ ] Migration dependency graph
-- [ ] pre-commit hook wrapping `migration-risk` + `nplusone`
+- [ ] DOL rule engine ported into the Python CLI — one rule catalogue, three surfaces
 
 **Later**
 
@@ -643,6 +683,12 @@ Any class that looks like a Django model is picked up: subclasses of <code>model
 <summary><b>Which AI agents can use the MCP server?</b></summary>
 <br/>
 Any MCP-compatible client — Cursor, Aider, Continue.dev, Zed, and any other tool that speaks the protocol. Just point <code>command</code> at the installed <code>django-orm-lens-mcp</code> binary. See the <a href="#-integrations">Integrations</a> section.
+</details>
+
+<details>
+<summary><b>How do I block schema regressions in CI?</b></summary>
+<br/>
+Three ways, all zero-config: the two <a href="#%EF%B8%8F-gate-your-ci">pre-commit hooks</a>, the composite GitHub Action (<code>uses: FROWNINGdev/django-orm-lens@main</code> with <code>format: github</code> for PR annotations), or <code>--format sarif</code> piped into <code>github/codeql-action/upload-sarif</code> for the Security tab. <code>diff</code> / <code>nplusone</code> exit 1 on findings, <code>migration-risk</code> exits 1 on critical findings.
 </details>
 
 <details>

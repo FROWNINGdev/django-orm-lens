@@ -7,7 +7,6 @@ GitHub-flavoured Markdown, or a plain ASCII table. Zero third-party deps.
 from __future__ import annotations
 
 import json
-from typing import List
 
 from .models import ParsedModel, WorkspaceIndex
 
@@ -36,7 +35,7 @@ def format_model(model: ParsedModel, fmt: str = "markdown") -> str:
 
 def format_hover(model: ParsedModel) -> str:
     """Compact hover-card markdown — identical spirit to the VS Code hover."""
-    lines: List[str] = []
+    lines: list[str] = []
     bases = ", ".join(model.base_classes) or "models.Model"
     lines.append(f"**{model.app_name}.{model.name}**")
     lines.append(f"_{bases}_")
@@ -62,7 +61,7 @@ def format_hover(model: ParsedModel) -> str:
 def _index_markdown(index: WorkspaceIndex) -> str:
     if not index.apps:
         return "_No Django models found._"
-    out: List[str] = ["# Django models\n"]
+    out: list[str] = ["# Django models\n"]
     for app in index.apps:
         out.append(
             f"## {app.name} ({len(app.models)} model{'s' if len(app.models) != 1 else ''})"
@@ -106,7 +105,7 @@ def _model_markdown(model: ParsedModel) -> str:
 
 def _index_table(index: WorkspaceIndex) -> str:
     header = ("App", "Model", "Fields", "Rels", "File")
-    rows: List[tuple] = []
+    rows: list[tuple] = []
     for app in index.apps:
         for m in app.models:
             scalars = sum(1 for f in m.fields if not f.is_relation)
@@ -125,7 +124,7 @@ def _index_table(index: WorkspaceIndex) -> str:
 
 def _model_table(model: ParsedModel) -> str:
     header = ("Field", "Type", "Rel", "Target")
-    rows: List[tuple] = []
+    rows: list[tuple] = []
     for f in model.fields:
         rows.append(
             (
@@ -139,7 +138,7 @@ def _model_table(model: ParsedModel) -> str:
     return top + _render_table(header, rows)
 
 
-def _render_table(header: tuple, rows: List[tuple]) -> str:
+def _render_table(header: tuple, rows: list[tuple]) -> str:
     # Pad short rows with "" so callers that build partial tuples don't
     # trigger IndexError inside the width-computation genexpr.
     ncols = len(header)

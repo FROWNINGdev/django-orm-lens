@@ -47,7 +47,6 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
 
 from .models import WorkspaceIndex
 from .parser import DEFAULT_EXCLUDES, scan_workspace
@@ -59,7 +58,7 @@ from .parser import DEFAULT_EXCLUDES, scan_workspace
 _CACHE_TTL_MS = 30_000
 _CACHE_MAX = 8
 
-DJANGO_MARKERS: Tuple[str, ...] = ("manage.py", "manage.pyw")
+DJANGO_MARKERS: tuple[str, ...] = ("manage.py", "manage.pyw")
 
 # Windows-reserved base names (case-insensitive). Reject when found as any
 # path component — Windows treats ``C:\foo\CON\bar`` as opening the console
@@ -90,7 +89,7 @@ class WorkspaceError:
     hint: str = ""
     path: str = ""
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "error": self.code,
             "message": self.message,
@@ -104,7 +103,7 @@ class WorkspaceError:
 # ---------------------------------------------------------------------------
 
 
-def _allowlist() -> List[Path]:
+def _allowlist() -> list[Path]:
     """Return the (possibly empty) allowlist of root prefixes.
 
     Populate with a path-separator-delimited list in
@@ -116,7 +115,7 @@ def _allowlist() -> List[Path]:
     if not raw:
         return []
     sep = ";" if os.name == "nt" else ":"
-    out: List[Path] = []
+    out: list[Path] = []
     for chunk in raw.split(sep):
         chunk = chunk.strip()
         if not chunk:
@@ -200,7 +199,7 @@ def _has_django_marker(p: Path) -> bool:
     return False
 
 
-def harden_path(raw: str) -> Union[Path, WorkspaceError]:
+def harden_path(raw: str) -> Path | WorkspaceError:
     """Expand + resolve + validate a raw path from an untrusted source.
 
     Returns the resolved absolute ``Path`` on success, or a
@@ -292,7 +291,7 @@ def harden_path(raw: str) -> Union[Path, WorkspaceError]:
 # ---------------------------------------------------------------------------
 
 
-def resolve_workspace(explicit: Optional[str] = None) -> Union[Path, WorkspaceError]:
+def resolve_workspace(explicit: str | None = None) -> Path | WorkspaceError:
     """Resolve a workspace root using the sync priority chain.
 
     Priority (matches filesystem-server + git-mcp precedent):
@@ -319,7 +318,7 @@ def resolve_workspace(explicit: Optional[str] = None) -> Union[Path, WorkspaceEr
 # ---------------------------------------------------------------------------
 
 
-_INDEX_CACHE: Dict[Tuple[str, int], Tuple[WorkspaceIndex, int]] = {}
+_INDEX_CACHE: dict[tuple[str, int], tuple[WorkspaceIndex, int]] = {}
 
 
 def _manage_py_mtime(p: Path) -> int:

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any
 
 from .models import WorkspaceIndex, find_user_model
 
@@ -64,7 +64,7 @@ def _module_path_from_file(root: Path, path: Path) -> str:
     return ".".join(parts)
 
 
-def _name_of(node: ast.AST) -> Optional[str]:
+def _name_of(node: ast.AST) -> str | None:
     """Best-effort textual dotted name of a Name/Attribute AST node."""
     if isinstance(node, ast.Name):
         return node.id
@@ -76,7 +76,7 @@ def _name_of(node: ast.AST) -> Optional[str]:
     return None
 
 
-def _extract_receiver_call(dec: ast.AST) -> Optional[ast.Call]:
+def _extract_receiver_call(dec: ast.AST) -> ast.Call | None:
     """Return the ``receiver(...)`` Call node if ``dec`` is one, else None.
 
     Accepts both ``@receiver(...)`` and ``@dispatch.receiver(...)`` forms.
@@ -92,7 +92,7 @@ def _extract_receiver_call(dec: ast.AST) -> Optional[ast.Call]:
     return dec
 
 
-def _signal_arg_name(call: ast.Call) -> Optional[str]:
+def _signal_arg_name(call: ast.Call) -> str | None:
     """First positional arg of ``receiver(signal, sender=..., ...)`` as a dotted
     name (``post_save`` or ``orders.signals.order_shipped``)."""
     if not call.args:
@@ -100,7 +100,7 @@ def _signal_arg_name(call: ast.Call) -> Optional[str]:
     return _name_of(call.args[0])
 
 
-def _sender_kwarg(call: ast.Call) -> Optional[str]:
+def _sender_kwarg(call: ast.Call) -> str | None:
     for kw in call.keywords:
         if kw.arg == "sender":
             if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
@@ -109,9 +109,9 @@ def _sender_kwarg(call: ast.Call) -> Optional[str]:
     return None
 
 
-def _iter_signal_definitions(tree: ast.Module) -> List[Tuple[str, int]]:
+def _iter_signal_definitions(tree: ast.Module) -> list[tuple[str, int]]:
     """Yield (var_name, lineno) for every module-level ``x = Signal(...)``."""
-    out: List[Tuple[str, int]] = []
+    out: list[tuple[str, int]] = []
     for node in tree.body:
         if not isinstance(node, ast.Assign):
             continue
@@ -129,10 +129,10 @@ def _iter_signal_definitions(tree: ast.Module) -> List[Tuple[str, int]]:
 
 
 def _resolve_sender(
-    raw: Optional[str],
-    model_index: Dict[str, str],
-    user_model_name: Optional[str] = None,
-) -> Tuple[Optional[str], Optional[str]]:
+    raw: str | None,
+    model_index: dict[str, str],
+    user_model_name: str | None = None,
+) -> tuple[str | None, str | None]:
     """Turn a raw sender token into (canonical, note).
 
     * ``None`` → (None, None) → fires for all models (caller adds a note).
@@ -159,10 +159,10 @@ def _resolve_sender(
     return raw, "sender model not found in workspace"
 
 
-def _build_model_index(workspace: WorkspaceIndex) -> Dict[str, str]:
+def _build_model_index(workspace: WorkspaceIndex) -> dict[str, str]:
     """``Order`` → ``orders.Order``. Last write wins on collisions (rare in
     real Django projects — model names are usually unique per project)."""
-    out: Dict[str, str] = {}
+    out: dict[str, str] = {}
     for app in workspace.apps:
         for m in app.models:
             out[m.name] = f"{app.name}.{m.name}"
@@ -170,8 +170,8 @@ def _build_model_index(workspace: WorkspaceIndex) -> Dict[str, str]:
 
 
 def signal_graph(
-    root: str, index: Optional[WorkspaceIndex] = None
-) -> Dict[str, Any]:
+    root: str, index: WorkspaceIndex | None = None
+) -> dict[str, Any]:
     """Return the sender→signal→handler graph for the workspace.
 
     Shape matches the MCP tool spec: ``edges``, ``custom_signals``,
@@ -187,16 +187,16 @@ def signal_graph(
 
     root_path = Path(root).resolve()
 
-    edges: List[Dict[str, Any]] = []
-    orphan_handlers: List[Dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    orphan_handlers: list[dict[str, Any]] = []
     # custom_signal FQN → definition metadata
-    custom_signals: Dict[str, Dict[str, Any]] = {}
+    custom_signals: dict[str, dict[str, Any]] = {}
     # short var name → FQN, per module (populated pass 1, consumed pass 2)
-    signal_defs_by_module: Dict[str, Dict[str, str]] = {}
+    signal_defs_by_module: dict[str, dict[str, str]] = {}
 
     from .parser import iter_workspace_py_files  # local to avoid cycles
-    py_files: List[Path] = list(iter_workspace_py_files(root_path))
-    parsed: List[Tuple[Path, ast.Module, str]] = []
+    py_files: list[Path] = list(iter_workspace_py_files(root_path))
+    parsed: list[tuple[Path, ast.Module, str]] = []
 
     # Pass 1 — collect Signal() definitions so pass 2 can resolve .send()
     # against them.
@@ -211,7 +211,7 @@ def signal_graph(
             continue
         module_path = _module_path_from_file(root_path, py)
         parsed.append((py, tree, module_path))
-        module_defs: Dict[str, str] = {}
+        module_defs: dict[str, str] = {}
         for var_name, lineno in _iter_signal_definitions(tree):
             fqn = f"{module_path}.{var_name}" if module_path else var_name
             custom_signals[fqn] = {
@@ -225,7 +225,7 @@ def signal_graph(
 
     # Also build a bare-name → FQN map for cross-module short refs
     # (only used when a name is unambiguous across the workspace).
-    bare_signal_map: Dict[str, List[str]] = {}
+    bare_signal_map: dict[str, list[str]] = {}
     for fqn, meta in custom_signals.items():
         bare_signal_map.setdefault(meta["name"], []).append(fqn)
 
@@ -247,7 +247,7 @@ def signal_graph(
                     handler_fqn = (
                         f"{module_path}.{node.name}" if module_path else node.name
                     )
-                    edge: Dict[str, Any] = {
+                    edge: dict[str, Any] = {
                         "signal": signal_name,
                         "sender": sender,
                         "handler": handler_fqn,
@@ -279,21 +279,21 @@ def signal_graph(
                     continue
                 # Try local-module resolution first, then bare-name lookup.
                 local_defs = signal_defs_by_module.get(module_path, {})
-                fqn = local_defs.get(base_name)
-                if fqn is None:
+                sig_fqn = local_defs.get(base_name)
+                if sig_fqn is None:
                     candidates = bare_signal_map.get(base_name.rsplit(".", 1)[-1], [])
                     if len(candidates) == 1:
-                        fqn = candidates[0]
-                if fqn is None:
+                        sig_fqn = candidates[0]
+                if sig_fqn is None:
                     continue
-                custom_signals[fqn]["sent_from"].append(
+                custom_signals[sig_fqn]["sent_from"].append(
                     _rel(root_path, py, node.lineno)
                 )
 
     # Dedup orphan_handlers on (handler,) — a receiver decorated twice for
     # different missing senders shouldn't spam the list.
-    seen_orphans: Set[str] = set()
-    dedup_orphans: List[Dict[str, Any]] = []
+    seen_orphans: set[str] = set()
+    dedup_orphans: list[dict[str, Any]] = []
     for row in orphan_handlers:
         key = row["handler"]
         if key in seen_orphans:

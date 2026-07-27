@@ -25,9 +25,9 @@ from __future__ import annotations
 import ast
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 MIGRATION_FILENAME_RE = re.compile(r"^\d{4}_.+\.py$")
 _MIGRATION_PREFIX_RE = re.compile(r"^(\d+)_")
@@ -58,14 +58,14 @@ _KNOWN_OP_TYPES = frozenset(
 )
 
 
-def _find_migrations_dirs(root: str, app_label: str) -> List[Path]:
+def _find_migrations_dirs(root: str, app_label: str) -> list[Path]:
     """Walk ``root`` and return every ``<app_label>/migrations`` folder found.
 
     A workspace may contain the same app label in multiple locations
     (mono-repos, vendored copies). We union them so the caller sees every
     migration file matching the label.
     """
-    matches: List[Path] = []
+    matches: list[Path] = []
     root_path = Path(root)
     for dirpath, dirnames, _filenames in os.walk(root_path):
         # skip hidden / virtualenv-ish trees for perf and correctness
@@ -80,8 +80,8 @@ def _find_migrations_dirs(root: str, app_label: str) -> List[Path]:
     return matches
 
 
-def _iter_migration_files(migrations_dir: Path) -> List[Path]:
-    files: List[Path] = []
+def _iter_migration_files(migrations_dir: Path) -> list[Path]:
+    files: list[Path] = []
     try:
         for entry in migrations_dir.iterdir():
             if entry.is_file() and MIGRATION_FILENAME_RE.match(entry.name):
@@ -100,7 +100,7 @@ def _literal_or_none(node: ast.AST) -> Any:
         return None
 
 
-def _extract_operation_names(operations_node: ast.AST) -> List[str]:
+def _extract_operation_names(operations_node: ast.AST) -> list[str]:
     """From ``operations = [...]`` return the class name of each element.
 
     Handles the two common Django conventions:
@@ -110,7 +110,7 @@ def _extract_operation_names(operations_node: ast.AST) -> List[str]:
     Anything more exotic (variable reference, unpacked list, computed) is
     silently dropped — this is a static best-effort extractor.
     """
-    names: List[str] = []
+    names: list[str] = []
     if not isinstance(operations_node, (ast.List, ast.Tuple)):
         return names
     for elt in operations_node.elts:
@@ -124,13 +124,13 @@ def _extract_operation_names(operations_node: ast.AST) -> List[str]:
     return names
 
 
-def _extract_dependency_pairs(deps_node: ast.AST) -> List[List[str]]:
+def _extract_dependency_pairs(deps_node: ast.AST) -> list[list[str]]:
     """Extract ``[(app, name), ...]`` from a ``dependencies = [...]`` node.
 
     Returns a list of ``[app, name]`` pairs (list not tuple, so it serialises
     cleanly to JSON via the MCP boundary).
     """
-    pairs: List[List[str]] = []
+    pairs: list[list[str]] = []
     if not isinstance(deps_node, (ast.List, ast.Tuple)):
         return pairs
     for elt in deps_node.elts:
@@ -144,7 +144,7 @@ def _extract_dependency_pairs(deps_node: ast.AST) -> List[List[str]]:
     return pairs
 
 
-def _parse_migration_file(path: Path) -> Optional[Dict[str, Any]]:
+def _parse_migration_file(path: Path) -> dict[str, Any] | None:
     """Parse one migration file. Returns dict or ``None`` on unreadable/invalid."""
     try:
         source = path.read_text(encoding="utf-8", errors="replace")
@@ -156,8 +156,8 @@ def _parse_migration_file(path: Path) -> Optional[Dict[str, Any]]:
         return None
 
     name = path.stem  # e.g. "0042_add_user_email"
-    dependencies: List[List[str]] = []
-    operations: List[str] = []
+    dependencies: list[list[str]] = []
+    operations: list[str] = []
 
     for node in tree.body:
         if not isinstance(node, ast.ClassDef):
@@ -182,13 +182,13 @@ def _parse_migration_file(path: Path) -> Optional[Dict[str, Any]]:
 
 
 def _compute_roots_leaves_cross(
-    migrations: List[Dict[str, Any]], app_label: str
-) -> Tuple[List[str], List[str], List[List[str]]]:
+    migrations: list[dict[str, Any]], app_label: str
+) -> tuple[list[str], list[str], list[list[str]]]:
     names = {m["name"] for m in migrations}
-    roots: List[str] = []
+    roots: list[str] = []
     depended_on_within_app: set = set()
     cross_seen: set = set()
-    cross_app_deps: List[List[str]] = []
+    cross_app_deps: list[list[str]] = []
 
     for m in migrations:
         in_app_deps = [
@@ -210,7 +210,7 @@ def _compute_roots_leaves_cross(
     return roots, leaves, cross_app_deps
 
 
-def describe_migration_dependency(app_label: str, root: str) -> Dict[str, Any]:
+def describe_migration_dependency(app_label: str, root: str) -> dict[str, Any]:
     """Return the migration DAG for a Django app, extracted via pure AST parse.
 
     :param app_label: the Django app name (folder name that contains ``migrations/``)
@@ -226,7 +226,7 @@ def describe_migration_dependency(app_label: str, root: str) -> Dict[str, Any]:
         }
 
     seen_names: set = set()
-    migrations: List[Dict[str, Any]] = []
+    migrations: list[dict[str, Any]] = []
     for migrations_dir in dirs:
         for py in _iter_migration_files(migrations_dir):
             parsed = _parse_migration_file(py)
@@ -270,15 +270,15 @@ class MigrationRisk:
     app: str
     migration: str
     operation: str
-    model: Optional[str]
-    field: Optional[str]
+    model: str | None
+    field: str | None
     rule: str
     description: str
     mitigation: str
     confidence: Confidence
     severity: Severity
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "filePath": self.file_path,
             "lineNumber": self.line_number,
@@ -295,7 +295,7 @@ class MigrationRisk:
         }
 
 
-def _get_kwarg(call: ast.Call, name: str) -> Optional[ast.AST]:
+def _get_kwarg(call: ast.Call, name: str) -> ast.AST | None:
     for kw in call.keywords:
         if kw.arg == name:
             return kw.value
@@ -313,7 +313,7 @@ def _has_kwarg(call: ast.Call, name: str) -> bool:
     return _get_kwarg(call, name) is not None
 
 
-def _call_op_name(call: ast.Call) -> Optional[str]:
+def _call_op_name(call: ast.Call) -> str | None:
     func = call.func
     if isinstance(func, ast.Attribute):
         return func.attr
@@ -322,7 +322,7 @@ def _call_op_name(call: ast.Call) -> Optional[str]:
     return None
 
 
-def _field_call(node: Optional[ast.AST]) -> Optional[ast.Call]:
+def _field_call(node: ast.AST | None) -> ast.Call | None:
     """Return the underlying field constructor Call node, if any.
 
     ``AddField(field=models.CharField(max_length=10))`` — we want the
@@ -333,7 +333,7 @@ def _field_call(node: Optional[ast.AST]) -> Optional[ast.Call]:
     return None
 
 
-def _field_type(call: ast.Call) -> Optional[str]:
+def _field_type(call: ast.Call) -> str | None:
     """Return the constructor name of a field call (e.g. ``CharField``)."""
     return _call_op_name(call)
 
@@ -349,12 +349,12 @@ def _migration_prefix(name: str) -> int:
         return -1
 
 
-def _find_all_migration_apps(project_root: str) -> List[Tuple[str, Path]]:
+def _find_all_migration_apps(project_root: str) -> list[tuple[str, Path]]:
     """Walk ``project_root`` and yield ``(app_label, migrations_dir)`` pairs.
 
     Skips hidden, virtualenv-ish, and vendored trees.
     """
-    out: List[Tuple[str, Path]] = []
+    out: list[tuple[str, Path]] = []
     root_path = Path(project_root)
     for dirpath, dirnames, _filenames in os.walk(root_path):
         dirnames[:] = [
@@ -368,7 +368,7 @@ def _find_all_migration_apps(project_root: str) -> List[Tuple[str, Path]]:
     return out
 
 
-def _build_current_schema(project_root: str) -> Dict[str, Dict[str, set]]:
+def _build_current_schema(project_root: str) -> dict[str, dict[str, set]]:
     """Return ``{app_name: {model_name_lower: {field_names}}}`` from parser.
 
     Failures are swallowed — cross-reference rule is best-effort.
@@ -377,7 +377,7 @@ def _build_current_schema(project_root: str) -> Dict[str, Dict[str, set]]:
         from .parser import scan_workspace  # local import to avoid cycles
     except ImportError:
         return {}
-    schema: Dict[str, Dict[str, set]] = {}
+    schema: dict[str, dict[str, set]] = {}
     try:
         index = scan_workspace(project_root)
     except (OSError, ValueError, SyntaxError):
@@ -409,7 +409,7 @@ class MigrationRiskAnalyzer:
         app: str,
         migration_name: str,
         migration_index: int,
-        current_schema: Optional[Dict[str, Dict[str, set]]] = None,
+        current_schema: dict[str, dict[str, set]] | None = None,
     ) -> None:
         self.file_path = file_path
         self.app = app
@@ -418,12 +418,12 @@ class MigrationRiskAnalyzer:
         # our heuristic that the table is already populated in production.
         self.migration_index = migration_index
         self.current_schema = current_schema or {}
-        self.findings: List[MigrationRisk] = []
+        self.findings: list[MigrationRisk] = []
 
     # ------------------------------------------------------------------
     # Entry
     # ------------------------------------------------------------------
-    def analyze(self) -> List[MigrationRisk]:
+    def analyze(self) -> list[MigrationRisk]:
         try:
             source = self.file_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -481,8 +481,8 @@ class MigrationRiskAnalyzer:
         mitigation: str,
         confidence: Confidence,
         severity: Severity,
-        model: Optional[str] = None,
-        field: Optional[str] = None,
+        model: str | None = None,
+        field: str | None = None,
     ) -> None:
         self.findings.append(
             MigrationRisk(
@@ -505,7 +505,7 @@ class MigrationRiskAnalyzer:
         """Heuristic: anything after 0001_initial → assume the table has rows."""
         return self.migration_index > 0
 
-    def _model_field_names(self, model_lower: str) -> Optional[set]:
+    def _model_field_names(self, model_lower: str) -> set | None:
         app_schema = self.current_schema.get(self.app)
         if not app_schema:
             return None
@@ -847,7 +847,103 @@ class MigrationRiskAnalyzer:
             )
 
     # ------------------------------------------------------------------
+    # Rule: RunPython without reverse_code
+    # ------------------------------------------------------------------
+    def _check_RunPython(self, call: ast.Call) -> None:
+        # Signature: RunPython(code, reverse_code=None, ...). A data
+        # migration without a reverse makes ``migrate <app> zero`` /
+        # rollback deploys fail at exactly the wrong moment.
+        reverse_node = _get_kwarg(call, "reverse_code")
+        has_reverse_positional = len(call.args) >= 2
+        if reverse_node is None and not has_reverse_positional:
+            self._add(
+                call,
+                "RunPython",
+                rule="runpython_no_reverse",
+                description=(
+                    "RunPython without reverse_code cannot be rolled back; "
+                    "migrating backwards past this data migration will fail."
+                ),
+                mitigation=(
+                    "Pass reverse_code=migrations.RunPython.noop when the "
+                    "forward step is safe to leave in place, or a real "
+                    "inverse function when it is not."
+                ),
+                confidence="medium",
+                severity="warning",
+            )
+
+    # ------------------------------------------------------------------
+    # Rule: AlterUniqueTogether on a populated table
+    # ------------------------------------------------------------------
+    def _check_AlterUniqueTogether(self, call: ast.Call) -> None:
+        if not self._table_likely_non_empty():
+            return
+        # Removing the constraint is safe. Django's MigrationWriter emits the
+        # cleared form as ``unique_together=set()`` (a Call node), hand-written
+        # migrations use ``[]`` / ``()`` / ``{}`` literals — accept all four.
+        ut_node = _get_kwarg(call, "unique_together")
+        if isinstance(ut_node, (ast.Set, ast.List, ast.Tuple)) and not ut_node.elts:
+            return
+        if (
+            isinstance(ut_node, ast.Call)
+            and isinstance(ut_node.func, ast.Name)
+            and ut_node.func.id == "set"
+            and not ut_node.args
+            and not ut_node.keywords
+        ):
+            return
+        model = _kwarg_literal(call, "name")
+        self._add(
+            call,
+            "AlterUniqueTogether",
+            rule="alter_unique_together_lock",
+            description=(
+                f"AlterUniqueTogether on '{model}' builds and validates a "
+                f"unique index under an ACCESS EXCLUSIVE lock; existing "
+                f"duplicate rows make the migration fail mid-deploy."
+            ),
+            mitigation=(
+                "Deduplicate rows first, then prefer "
+                "AddConstraint(UniqueConstraint) — on Postgres create the "
+                "unique index CONCURRENTLY (RunSQL + SeparateDatabaseAndState) "
+                "for large tables. unique_together is soft-deprecated in "
+                "favour of UniqueConstraint."
+            ),
+            confidence="medium",
+            severity="warning",
+            model=model,
+        )
+
+    # ------------------------------------------------------------------
+    # Rule: AlterIndexTogether is removed in Django 5.1
+    # ------------------------------------------------------------------
+    def _check_AlterIndexTogether(self, call: ast.Call) -> None:
+        model = _kwarg_literal(call, "name")
+        self._add(
+            call,
+            "AlterIndexTogether",
+            rule="alter_index_together_deprecated",
+            description=(
+                f"AlterIndexTogether on '{model}' uses index_together, "
+                f"deprecated since Django 4.2 and removed in 5.1 — this "
+                f"migration will not run on modern Django."
+            ),
+            mitigation=(
+                "Squash or rewrite the operation as Meta.indexes with "
+                "AddIndex / RenameIndex (see the Django 4.2 release notes "
+                "migration path)."
+            ),
+            confidence="high",
+            severity="info",
+            model=model,
+        )
+
+    # ------------------------------------------------------------------
     # No-op stubs so dispatch never AttributeErrors on known ops.
+    # CreateModel introduces a brand-new (empty) table, and
+    # AddIndexConcurrently / RemoveIndex are the *safe* variants — none of
+    # them warrants a finding.
     # ------------------------------------------------------------------
     def _check_CreateModel(self, call: ast.Call) -> None:
         return
@@ -858,20 +954,11 @@ class MigrationRiskAnalyzer:
     def _check_RemoveIndex(self, call: ast.Call) -> None:
         return
 
-    def _check_RunPython(self, call: ast.Call) -> None:
-        return
-
-    def _check_AlterUniqueTogether(self, call: ast.Call) -> None:
-        return
-
-    def _check_AlterIndexTogether(self, call: ast.Call) -> None:
-        return
-
 
 def analyze_migration_risks(
     project_root: str,
-    current_schema: Optional[Dict[str, Dict[str, set]]] = None,
-) -> List[MigrationRisk]:
+    current_schema: dict[str, dict[str, set]] | None = None,
+) -> list[MigrationRisk]:
     """Walk every ``<app>/migrations/*.py`` under ``project_root`` and return
     all flagged risks.
 
@@ -886,11 +973,11 @@ def analyze_migration_risks(
     if current_schema is None:
         current_schema = _build_current_schema(project_root)
 
-    findings: List[MigrationRisk] = []
+    findings: list[MigrationRisk] = []
     apps = _find_all_migration_apps(project_root)
 
     # Group by app so we know each migration's numeric index within its app.
-    by_app: Dict[str, List[Tuple[Path, List[Path]]]] = {}
+    by_app: dict[str, list[tuple[Path, list[Path]]]] = {}
     for app_label, mig_dir in apps:
         files = _iter_migration_files(mig_dir)
         by_app.setdefault(app_label, []).append((mig_dir, files))
@@ -898,7 +985,7 @@ def analyze_migration_risks(
     for app_label, dirs in by_app.items():
         # Flatten + dedupe by filename (mono-repos may vendor the same app).
         seen: set = set()
-        ordered_files: List[Path] = []
+        ordered_files: list[Path] = []
         for _mig_dir, files in dirs:
             for f in files:
                 if f.name in seen:

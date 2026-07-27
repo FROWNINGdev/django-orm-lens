@@ -1,0 +1,64 @@
+{
+  "apps": [
+    {
+      "models": [
+        {
+          "appName": "blog",
+          "baseClasses": [
+            "Displayable",
+            "Ownable",
+            "RichText",
+            "AdminThumbMixin"
+          ],
+          "fields": [
+            {
+              "args": "\"BlogCategory\",\n        verbose_name=_(\"Categories\"),\n        blank=True,\n        related_name=\"blogposts\",",
+              "isRelation": true,
+              "lineNumber": 16,
+              "name": "categories",
+              "relatedModel": "BlogCategory",
+              "relatedName": "blogposts",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "verbose_name=_(\"Allow comments\"), default=True",
+              "isRelation": false,
+              "lineNumber": 22,
+              "name": "allow_comments",
+              "type": "BooleanField"
+            },
+            {
+              "args": "verbose_name=_(\"Featured Image\"),\n        upload_to=upload_to(\"blog.BlogPost.featured_image\", \"blog\"),\n        format=\"Image\",\n        max_length=255,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 25,
+              "name": "featured_image",
+              "type": "FileField"
+            },
+            {
+              "args": "\"self\", verbose_name=_(\"Related posts\"), blank=True",
+              "isRelation": true,
+              "lineNumber": 33,
+              "name": "related_posts",
+              "relatedModel": "self",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            }
+          ],
+          "filePath": "mezzanine/blog/models.py",
+          "lineNumber": 11,
+          "meta": {
+            "ordering": "(\"-publish_date\",)",
+            "verbose_name": "_(\"Blog post\")",
+            "verbose_name_plural": "_(\"Blog posts\")"
+          },
+          "name": "BlogPost"
+        }
+      ],
+      "name": "blog",
+      "path": "mezzanine/blog"
+    }
+  ],
+  "scannedAt": 0,
+  "scannedFiles": 1
+}

@@ -20,8 +20,8 @@ import shutil
 import tempfile
 import time
 import unittest
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from django_orm_lens.workspace import (
     _CACHE_MAX,
@@ -32,7 +32,6 @@ from django_orm_lens.workspace import (
     harden_path,
     resolve_workspace,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -1,0 +1,71 @@
+name: "django-orm-lens"
+description: >-
+  Static Django schema gates for CI — N+1 detection, migration risk flags,
+  schema scans and diffs. No database, no Django boot, works on any checkout.
+author: "FROWNINGdev"
+branding:
+  icon: "layers"
+  color: "green"
+
+inputs:
+  command:
+    description: >-
+      Subcommand to run: nplusone | migration-risk | scan | list | er | diff |
+      suggest-indexes | signals | migration-deps | cascade
+    required: false
+    default: "nplusone"
+  path:
+    description: "Workspace root to analyze"
+    required: false
+    default: "."
+  format:
+    description: >-
+      Output format for nplusone / migration-risk. "github" prints workflow
+      commands that become PR annotations with zero extra permissions;
+      "sarif" pairs with github/codeql-action/upload-sarif for the Security
+      tab. Other commands keep their own default format.
+    required: false
+    default: "github"
+  args:
+    description: "Extra CLI arguments appended verbatim (e.g. --severity all)"
+    required: false
+    default: ""
+  version:
+    description: "django-orm-lens version to install from PyPI (default: latest)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    # Inputs are passed via env, never interpolated into the script body —
+    # ${{ }} inside run: is literal text substitution and a script-injection
+    # vector the moment a caller wires an input from untrusted data.
+    - name: Install django-orm-lens
+      shell: bash
+      env:
+        DOL_VERSION: ${{ inputs.version }}
+      run: |
+        if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
+        if [ -n "$DOL_VERSION" ]; then
+          "$PY" -m pip install --quiet "django-orm-lens==$DOL_VERSION"
+        else
+          "$PY" -m pip install --quiet django-orm-lens
+        fi
+
+    - name: Run django-orm-lens ${{ inputs.command }}
+      shell: bash
+      env:
+        DOL_COMMAND: ${{ inputs.command }}
+        DOL_PATH: ${{ inputs.path }}
+        DOL_FORMAT: ${{ inputs.format }}
+        DOL_ARGS: ${{ inputs.args }}
+      run: |
+        FORMAT_ARGS=""
+        case "$DOL_COMMAND" in
+          nplusone|n-plus-one|migration-risk)
+            FORMAT_ARGS="--format $DOL_FORMAT"
+            ;;
+        esac
+        # DOL_ARGS is intentionally word-split: it carries extra CLI flags.
+        django-orm-lens "$DOL_COMMAND" --path "$DOL_PATH" $FORMAT_ARGS $DOL_ARGS

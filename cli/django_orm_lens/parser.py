@@ -24,9 +24,9 @@ import os
 import re
 import sys
 import time
+from collections.abc import Iterable, Sequence
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .models import (
     ParsedApp,
@@ -35,7 +35,7 @@ from .models import (
     WorkspaceIndex,
 )
 
-RELATION_TYPES: Tuple[str, ...] = ("ForeignKey", "ManyToManyField", "OneToOneField")
+RELATION_TYPES: tuple[str, ...] = ("ForeignKey", "ManyToManyField", "OneToOneField")
 
 # ``(?:\s*\[[^\]]*\])?`` — optional PEP-695 generic type parameter list
 # introduced in Python 3.12, e.g. ``class Container[T](models.Model):``.
@@ -160,7 +160,7 @@ def _build_body_regexes(indent: int):
     return result
 
 
-def _dotted_name(node: ast.AST) -> Optional[str]:
+def _dotted_name(node: ast.AST) -> str | None:
     """Best-effort textual dotted name of a Name/Attribute AST node.
 
     Returns e.g. ``"models.CASCADE"`` for ``ast.Attribute(value=Name("models"),
@@ -177,7 +177,7 @@ def _dotted_name(node: ast.AST) -> Optional[str]:
     return None
 
 
-def _parse_call_args(args_block: str) -> Tuple[Optional[List[ast.AST]], Optional[Dict[str, ast.AST]]]:
+def _parse_call_args(args_block: str) -> tuple[list[ast.expr] | None, dict[str, ast.expr] | None]:
     """Parse a Django field's raw arg text via ``ast.parse``.
 
     ``args_block`` is the content returned by :func:`_read_balanced_args` —
@@ -211,14 +211,14 @@ def _parse_call_args(args_block: str) -> Tuple[Optional[List[ast.AST]], Optional
     return posargs, kwargs
 
 
-def _node_to_str(node: ast.AST) -> Optional[str]:
+def _node_to_str(node: ast.AST) -> str | None:
     """String-constant or dotted-name value of ``node``, else ``None``."""
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
     return _dotted_name(node)
 
 
-def _extract_related(args_block: str) -> Optional[str]:
+def _extract_related(args_block: str) -> str | None:
     """Model reference from a FK/O2O/M2M field call.
 
     Recognises both positional (``ForeignKey('User', ...)``) and keyword
@@ -227,7 +227,7 @@ def _extract_related(args_block: str) -> Optional[str]:
     as-is; downstream :func:`resolve_related_tail` normalises them.
     """
     posargs, kwargs = _parse_call_args(args_block)
-    if posargs is None:
+    if posargs is None or kwargs is None:
         return _extract_related_regex(args_block)
     val = kwargs.get("to")
     if val is None and posargs:
@@ -242,14 +242,14 @@ def _extract_related(args_block: str) -> Optional[str]:
     return raw
 
 
-def _extract_on_delete(args_block: str) -> Optional[str]:
+def _extract_on_delete(args_block: str) -> str | None:
     """``on_delete`` policy tail (``CASCADE`` / ``SET_NULL`` / ...).
 
     Handles bare identifiers, ``models.`` prefixed forms, and the callable
     ``SET(default)`` form — all return the last dotted segment.
     """
     posargs, kwargs = _parse_call_args(args_block)
-    if posargs is None:
+    if posargs is None or kwargs is None:
         return _extract_on_delete_regex(args_block)
     od = kwargs.get("on_delete")
     if od is None:
@@ -265,9 +265,9 @@ def _extract_on_delete(args_block: str) -> Optional[str]:
     return None
 
 
-def _extract_related_name(args_block: str) -> Optional[str]:
+def _extract_related_name(args_block: str) -> str | None:
     posargs, kwargs = _parse_call_args(args_block)
-    if posargs is None:
+    if posargs is None or kwargs is None:
         return _extract_related_name_regex(args_block)
     val = kwargs.get("related_name")
     if isinstance(val, ast.Constant) and isinstance(val.value, str):
@@ -275,9 +275,9 @@ def _extract_related_name(args_block: str) -> Optional[str]:
     return None
 
 
-def _extract_through_model(args_block: str) -> Optional[str]:
+def _extract_through_model(args_block: str) -> str | None:
     posargs, kwargs = _parse_call_args(args_block)
-    if posargs is None:
+    if posargs is None or kwargs is None:
         return _extract_through_model_regex(args_block)
     val = kwargs.get("through")
     if val is None:
@@ -292,7 +292,7 @@ def _extract_through_model(args_block: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-def _extract_related_regex(args_block: str) -> Optional[str]:
+def _extract_related_regex(args_block: str) -> str | None:
     stripped = args_block.strip()
     m = re.match(
         r"^(?:to\s*=\s*)?(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_.]*))",
@@ -308,7 +308,7 @@ def _extract_related_regex(args_block: str) -> Optional[str]:
     return raw.strip("'\"")
 
 
-def _extract_on_delete_regex(args_block: str) -> Optional[str]:
+def _extract_on_delete_regex(args_block: str) -> str | None:
     m = re.search(r"on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)", args_block)
     if m:
         return m.group(1)
@@ -317,14 +317,14 @@ def _extract_on_delete_regex(args_block: str) -> Optional[str]:
     return None
 
 
-def _extract_related_name_regex(args_block: str) -> Optional[str]:
+def _extract_related_name_regex(args_block: str) -> str | None:
     m = re.search(r"related_name\s*=\s*(?:'([^']+)'|\"([^\"]+)\")", args_block)
     if not m:
         return None
     return m.group(1) or m.group(2)
 
 
-def _extract_through_model_regex(args_block: str) -> Optional[str]:
+def _extract_through_model_regex(args_block: str) -> str | None:
     m = re.search(
         r"\bthrough\s*=\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_.]*))",
         args_block,
@@ -339,7 +339,7 @@ def _read_balanced_args(lines: Sequence[str], start: int):
         return "", start
     open_idx = lines[start].index("(")
     depth = 0
-    parts: List[str] = []
+    parts: list[str] = []
     for i in range(start, len(lines)):
         src = lines[i][open_idx:] if i == start else lines[i]
         for ch in src:
@@ -355,7 +355,7 @@ def _read_balanced_args(lines: Sequence[str], start: int):
     return "".join(parts).lstrip("("), len(lines) - 1
 
 
-def _looks_like_model(base_classes: List[str]) -> bool:
+def _looks_like_model(base_classes: list[str]) -> bool:
     for b in base_classes:
         tail = b.split(".")[-1]
         if NON_MODEL_TAIL.match(tail):
@@ -374,7 +374,7 @@ def _looks_like_model(base_classes: List[str]) -> bool:
     return False
 
 
-def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
+def parse_models_file(file_path: str, content: str) -> list[ParsedModel]:
     """Parse a single models.py-style file. Returns 0..N Django model classes.
 
     Two-pass: (1) collect every class def with base classes + Meta,
@@ -391,7 +391,7 @@ def parse_models_file(file_path: str, content: str) -> List[ParsedModel]:
     return _resolve_and_filter(_collect_defs(file_path, content))
 
 
-def _collect_defs(file_path: str, content: str) -> List[ParsedModel]:
+def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
     """Pass 1 only: collect every class def (name, bases, fields, Meta).
 
     No transitive resolution or abstract filtering — callers combine the
@@ -409,7 +409,7 @@ def _collect_defs(file_path: str, content: str) -> List[ParsedModel]:
     # it's visually 4 columns — tab-indented models used to have zero fields
     # detected. Line numbers are preserved (per-line expansion only).
     lines = [line.expandtabs(4) for line in content.splitlines()]
-    all_defs: List[ParsedModel] = []
+    all_defs: list[ParsedModel] = []
     parent = os.path.basename(os.path.dirname(file_path))
     if parent == "models":
         app_name = os.path.basename(os.path.dirname(os.path.dirname(file_path)))
@@ -511,7 +511,7 @@ def _collect_defs(file_path: str, content: str) -> List[ParsedModel]:
     return all_defs
 
 
-def _resolve_and_filter(all_defs: List[ParsedModel]) -> List[ParsedModel]:
+def _resolve_and_filter(all_defs: list[ParsedModel]) -> list[ParsedModel]:
     """Pass 2: transitive model resolution + abstract drop over ``all_defs``.
 
     ``all_defs`` may come from a single file (``parse_models_file``) or the
@@ -533,7 +533,7 @@ def _resolve_and_filter(all_defs: List[ParsedModel]) -> List[ParsedModel]:
                     changed = True
                     break
 
-    result: List[ParsedModel] = []
+    result: list[ParsedModel] = []
     for m in all_defs:
         if m.name not in is_model_name:
             continue
@@ -560,7 +560,7 @@ def _iter_python_files(root: Path, excludes: Sequence[str]) -> Iterable[Path]:
                 yield full
 
 
-def _app_dir_for(fs_path: str) -> Tuple[str, str]:
+def _app_dir_for(fs_path: str) -> tuple[str, str]:
     parent = os.path.dirname(fs_path)
     parent_name = os.path.basename(parent)
     if parent_name == "models":
@@ -618,7 +618,7 @@ def scan_workspace(
     only bases found within the same file (see issue #20).
     """
     root_path = Path(root).resolve()
-    all_defs: List[ParsedModel] = []
+    all_defs: list[ParsedModel] = []
     scanned_files = 0
     for py in _iter_python_files(root_path, exclude_globs):
         scanned_files += 1

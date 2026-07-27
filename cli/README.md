@@ -53,9 +53,22 @@ django-orm-lens hover blog.Post
 # Flat list — pipes into fzf, grep, etc.
 django-orm-lens list | fzf
 
-# Emit a Mermaid ER diagram
+# ER diagram — Mermaid (default), DBML, D2, or PlantUML
 django-orm-lens er > schema.mmd
-django-orm-lens er -o schema.mmd
+django-orm-lens er -f dbml > schema.dbml     # paste into dbdiagram.io
+django-orm-lens er -f d2 > schema.d2         # render: d2 schema.d2 schema.svg
+django-orm-lens er -f plantuml > schema.puml
+
+# Diff two schema dumps (exit 1 on changes — CI-friendly)
+django-orm-lens diff before.json after.json
+
+# Static analyzers — text, json, sarif, or github annotation output
+django-orm-lens nplusone --format github     # N+1 findings as PR annotations
+django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
+django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
+django-orm-lens signals                      # sender→signal→handler graph
+django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
+django-orm-lens cascade blog.Author          # delete blast radius by on_delete
 ```
 
 Every command accepts `--path <dir>` and repeatable `--exclude <glob>`. Defaults
@@ -65,7 +78,7 @@ skip `migrations/`, `venv/`, `.venv/`, `env/`, and `node_modules/`.
 
 ## MCP server — for AI coding agents
 
-The MCP server exposes five read-only tools that any MCP-compatible agent can
+The MCP server exposes ten read-only tools that any MCP-compatible agent can
 call while it edits your Django project:
 
 | Tool | Purpose |
@@ -74,7 +87,12 @@ call while it edits your Django project:
 | `list_models` | Flat `app.Model` list, optional app filter |
 | `describe_model` | Full field / relation / Meta detail for one model |
 | `find_relations` | Inbound + outbound relations for one model |
-| `er_diagram` | Mermaid `erDiagram` string for the whole workspace |
+| `cascade_preview` | Blast radius of one `delete()`, grouped by `on_delete` |
+| `er_diagram` | ER diagram — `mermaid` / `dbml` / `d2` / `plantuml` |
+| `describe_migration_dependency` | Per-app migration DAG: roots, leaves, cross-app deps |
+| `suggest_indexes` | `Meta.indexes` proposals from observed QuerySet usage |
+| `signal_graph` | Sender→signal→handler graph from `@receiver` decorators |
+| `nplusone_scan` | Static N+1 findings for the whole workspace |
 
 ### Start the server manually
 
@@ -121,6 +139,30 @@ project to scan:
 
 The tool signatures include `workspace_root: str = ""` as an optional
 parameter, so any agent inspecting `tools/list` sees it and can supply it.
+
+---
+
+## CI gates
+
+`diff` and `nplusone` exit `1` on findings; `migration-risk` exits `1` on
+critical findings (`--exit-zero` for report-only). Two annotation-ready
+formats: `--format github` prints `::warning`/`::error` workflow commands
+(PR annotations with no extra permissions), `--format sarif` emits
+SARIF 2.1.0 for `github/codeql-action/upload-sarif`.
+
+pre-commit users get two ready-made hooks:
+
+```yaml
+repos:
+  - repo: https://github.com/FROWNINGdev/django-orm-lens
+    rev: py-v1.4.0
+    hooks:
+      - id: django-orm-lens-nplusone
+      - id: django-orm-lens-migration-risk
+```
+
+GitHub Actions users get a composite action:
+`uses: FROWNINGdev/django-orm-lens@main` with `command:` / `format:` inputs.
 
 ---
 

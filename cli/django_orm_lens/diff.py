@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 # Field attributes that are treated as "constraints" for change detection.
 # ``lineNumber`` is deliberately excluded — moving a field up or down in a
 # ``models.py`` is not a schema change.
-_CONSTRAINT_KEYS: Tuple[str, ...] = (
+_CONSTRAINT_KEYS: tuple[str, ...] = (
     "type",
     "args",
     "onDelete",
@@ -33,7 +33,7 @@ _CONSTRAINT_KEYS: Tuple[str, ...] = (
 
 # Attributes that identify a relation target — used to detect "the same
 # relation now points somewhere else".
-_RELATION_TARGET_KEYS: Tuple[str, ...] = (
+_RELATION_TARGET_KEYS: tuple[str, ...] = (
     "relatedModel",
     "relationKind",
     "onDelete",
@@ -48,7 +48,7 @@ class FieldChange:
 
     model: str
     name: str
-    changes: Dict[str, Dict[str, Any]]
+    changes: dict[str, dict[str, Any]]
 
     def to_dict(self) -> dict:
         return {"model": self.model, "name": self.name, "changes": self.changes}
@@ -60,7 +60,7 @@ class RelationChange:
 
     model: str
     name: str
-    changes: Dict[str, Dict[str, Any]]
+    changes: dict[str, dict[str, Any]]
 
     def to_dict(self) -> dict:
         return {"model": self.model, "name": self.name, "changes": self.changes}
@@ -100,14 +100,14 @@ class ModelRelationRef:
 class DiffResult:
     """The full delta between two schema dumps."""
 
-    added_models: List[str] = field(default_factory=list)
-    removed_models: List[str] = field(default_factory=list)
-    added_fields: List[ModelFieldRef] = field(default_factory=list)
-    removed_fields: List[ModelFieldRef] = field(default_factory=list)
-    changed_fields: List[FieldChange] = field(default_factory=list)
-    added_relations: List[ModelRelationRef] = field(default_factory=list)
-    removed_relations: List[ModelRelationRef] = field(default_factory=list)
-    changed_relations: List[RelationChange] = field(default_factory=list)
+    added_models: list[str] = field(default_factory=list)
+    removed_models: list[str] = field(default_factory=list)
+    added_fields: list[ModelFieldRef] = field(default_factory=list)
+    removed_fields: list[ModelFieldRef] = field(default_factory=list)
+    changed_fields: list[FieldChange] = field(default_factory=list)
+    added_relations: list[ModelRelationRef] = field(default_factory=list)
+    removed_relations: list[ModelRelationRef] = field(default_factory=list)
+    changed_relations: list[RelationChange] = field(default_factory=list)
 
     def is_empty(self) -> bool:
         """True when the two schemas are functionally identical."""
@@ -137,7 +137,7 @@ class DiffResult:
         }
 
 
-def _index_models(schema: dict) -> Dict[str, dict]:
+def _index_models(schema: dict) -> dict[str, dict]:
     """Flatten ``{apps: [{name, models: [...]}, ...]}`` to ``{app.Model: model_dict}``.
 
     ``schema`` accepts either the full workspace dump or a bare
@@ -146,7 +146,7 @@ def _index_models(schema: dict) -> Dict[str, dict]:
     unrelated JSON file surfaces as "everything removed" instead of a
     traceback.
     """
-    out: Dict[str, dict] = {}
+    out: dict[str, dict] = {}
     apps = schema.get("apps") if isinstance(schema, dict) else None
     if not isinstance(apps, list):
         return out
@@ -163,10 +163,10 @@ def _index_models(schema: dict) -> Dict[str, dict]:
     return out
 
 
-def _split_fields(model: dict) -> Tuple[Dict[str, dict], Dict[str, dict]]:
+def _split_fields(model: dict) -> tuple[dict[str, dict], dict[str, dict]]:
     """Return ``(scalars_by_name, relations_by_name)`` for a model dict."""
-    scalars: Dict[str, dict] = {}
-    relations: Dict[str, dict] = {}
+    scalars: dict[str, dict] = {}
+    relations: dict[str, dict] = {}
     for f in model.get("fields", []) or []:
         if not isinstance(f, dict):
             continue
@@ -178,9 +178,9 @@ def _split_fields(model: dict) -> Tuple[Dict[str, dict], Dict[str, dict]]:
     return scalars, relations
 
 
-def _delta(old: dict, new: dict, keys: Tuple[str, ...]) -> Dict[str, Dict[str, Any]]:
+def _delta(old: dict, new: dict, keys: tuple[str, ...]) -> dict[str, dict[str, Any]]:
     """Return ``{key: {"old": ..., "new": ...}}`` for each key that differs."""
-    out: Dict[str, Dict[str, Any]] = {}
+    out: dict[str, dict[str, Any]] = {}
     for k in keys:
         ov = old.get(k)
         nv = new.get(k)
@@ -277,7 +277,7 @@ def _diff_text(result: DiffResult) -> str:
     if result.is_empty():
         return "No schema changes."
 
-    lines: List[str] = []
+    lines: list[str] = []
 
     def section(title: str) -> None:
         if lines:
@@ -318,9 +318,9 @@ def _diff_text(result: DiffResult) -> str:
             lines.append(f"  - {r.model}.{r.name} -> {r.target} ({r.kind})")
     if result.changed_relations:
         section("Changed relations:")
-        for c in result.changed_relations:
-            lines.append(f"  ~ {c.model}.{c.name}")
-            for key, delta in c.changes.items():
+        for rc in result.changed_relations:
+            lines.append(f"  ~ {rc.model}.{rc.name}")
+            for key, delta in rc.changes.items():
                 lines.append(f"      {key}: {delta['old']!r} -> {delta['new']!r}")
 
     return "\n".join(lines)

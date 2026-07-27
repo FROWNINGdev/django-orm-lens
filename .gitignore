@@ -22,6 +22,8 @@ PROJECT-GAPS.md
 cli/dist/
 cli/build/
 cli/*.egg-info/
+# build metadata of the root pre-commit shim (pyproject.toml at repo root)
+*.egg-info/
 **/__pycache__/
 **/*.py[cod]
 **/.pytest_cache/

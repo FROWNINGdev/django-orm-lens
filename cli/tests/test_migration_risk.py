@@ -9,16 +9,15 @@ file, multi-risk file, and confidence differentiation.
 from __future__ import annotations
 
 import unittest
+from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Iterable, List
 
 from django_orm_lens.migrations_parser import (
     MigrationRisk,
     MigrationRiskAnalyzer,
     analyze_migration_risks,
 )
-
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -33,14 +32,14 @@ def _write(app_dir: Path, name: str, body: str) -> None:
         init.write_text("", encoding="utf-8")
 
 
-def _by_rule(findings: Iterable[MigrationRisk]) -> Dict[str, List[MigrationRisk]]:
-    out: Dict[str, List[MigrationRisk]] = {}
+def _by_rule(findings: Iterable[MigrationRisk]) -> dict[str, list[MigrationRisk]]:
+    out: dict[str, list[MigrationRisk]] = {}
     for f in findings:
         out.setdefault(f.rule, []).append(f)
     return out
 
 
-def _empty_schema() -> Dict[str, Dict[str, set]]:
+def _empty_schema() -> dict[str, dict[str, set]]:
     """Explicitly opt out of cross-reference so tests don't accidentally pick
     up the analyzer's own package models. Callers that need cross-ref
     supply their own schema."""

@@ -7,7 +7,7 @@ extension emit the same camelCase JSON schema.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Optional
+from typing import Any, Literal
 
 RelationKind = Literal["ForeignKey", "ManyToManyField", "OneToOneField"]
 
@@ -19,11 +19,11 @@ class ParsedField:
     args: str
     is_relation: bool
     line_number: int
-    related_model: Optional[str] = None
-    relation_kind: Optional[RelationKind] = None
-    on_delete: Optional[str] = None
-    related_name: Optional[str] = None
-    through_model: Optional[str] = None
+    related_model: str | None = None
+    relation_kind: RelationKind | None = None
+    on_delete: str | None = None
+    related_name: str | None = None
+    through_model: str | None = None
 
     def to_dict(self) -> dict:
         out = {
@@ -52,9 +52,9 @@ class ParsedModel:
     app_name: str
     file_path: str
     line_number: int
-    base_classes: List[str]
-    fields: List[ParsedField] = field(default_factory=list)
-    meta: Dict[str, str] = field(default_factory=dict)
+    base_classes: list[str]
+    fields: list[ParsedField] = field(default_factory=list)
+    meta: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -72,7 +72,7 @@ class ParsedModel:
 class ParsedApp:
     name: str
     path: str
-    models: List[ParsedModel] = field(default_factory=list)
+    models: list[ParsedModel] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -84,7 +84,7 @@ class ParsedApp:
 
 @dataclass
 class WorkspaceIndex:
-    apps: List[ParsedApp] = field(default_factory=list)
+    apps: list[ParsedApp] = field(default_factory=list)
     scanned_at: int = 0
     # Number of models.py-style files inspected in the scan that produced
     # this index — surfaced so ``--verbose`` can print a summary without a
@@ -106,7 +106,7 @@ class WorkspaceIndex:
 _USER_BASE_MARKERS = ("AbstractUser", "AbstractBaseUser")
 
 
-def find_user_model(index: "WorkspaceIndex") -> Optional["ParsedModel"]:
+def find_user_model(index: WorkspaceIndex) -> ParsedModel | None:
     """Return the workspace's Django User model, or ``None``.
 
     Heuristic: 1) first model whose bases include ``AbstractUser`` /
@@ -126,7 +126,7 @@ def find_user_model(index: "WorkspaceIndex") -> Optional["ParsedModel"]:
     return None
 
 
-def find_user_model_from_dict(payload: dict) -> Optional[dict]:
+def find_user_model_from_dict(payload: dict) -> dict | None:
     """Same as :func:`find_user_model` but for a ``WorkspaceIndex.to_dict()``
     payload — returns the raw model dict, or ``None``."""
     apps = payload.get("apps") or []
@@ -143,8 +143,8 @@ def find_user_model_from_dict(payload: dict) -> Optional[dict]:
 
 
 def find_model(
-    index: "WorkspaceIndex", ref: str
-) -> Optional["ParsedModel"]:
+    index: WorkspaceIndex, ref: str
+) -> ParsedModel | None:
     """Look up a model in ``index`` by ``"app.Model"`` or bare ``"Model"``.
 
     Prefers a dotted match (unambiguous across apps); otherwise falls back
@@ -168,8 +168,8 @@ def find_model(
 
 
 def resolve_related_tail(
-    related_model: Optional[str], user_model_name: Optional[str]
-) -> Optional[str]:
+    related_model: str | None, user_model_name: str | None
+) -> str | None:
     """Turn ``related_model`` into the target model name used by schema lookups.
 
     Substitutes ``settings.AUTH_USER_MODEL`` / bare ``AUTH_USER_MODEL`` with
@@ -182,3 +182,57 @@ def resolve_related_tail(
     if tail == "AUTH_USER_MODEL" and user_model_name:
         return user_model_name
     return tail
+
+
+def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
+    """Preview what ``<Model>.delete()`` does to the rest of the schema.
+
+    Groups every inbound relation by its ``on_delete`` behaviour:
+    ``cascade_kills`` (rows deleted with the target), ``set_null``
+    (FK nulled/reset), ``protected`` (delete blocked by PROTECT/RESTRICT).
+    Static source analysis — ``count_hint`` stays ``"unknown"`` because we
+    never touch a database.
+
+    Shared by the CLI ``cascade`` command and the MCP ``cascade_preview``
+    tool so both surfaces answer identically. Returns an ``"error"`` key
+    (instead of raising) when ``ref`` doesn't resolve, matching the
+    analyzer-module convention.
+    """
+    m = find_model(index, ref)
+    if m is None:
+        return {"target": ref, "error": "model not found in workspace"}
+    target_app = None
+    for app in index.apps:
+        if m in app.models:
+            target_app = app.name
+            break
+    out: dict[str, Any] = {
+        "target": f"{target_app}.{m.name}" if target_app else m.name,
+        "cascade_kills": [],
+        "set_null": [],
+        "protected": [],
+    }
+    user_model = find_user_model(index)
+    user_name = user_model.name if user_model is not None else None
+    for app in index.apps:
+        for other in app.models:
+            if other is m:
+                continue
+            for f in other.fields:
+                if not f.is_relation or not f.related_model:
+                    continue
+                if resolve_related_tail(f.related_model, user_name) != m.name:
+                    continue
+                on_delete = (f.on_delete or "").upper()
+                entry = {
+                    "model": f"{app.name}.{other.name}",
+                    "via_field": f.name,
+                }
+                if on_delete == "CASCADE":
+                    entry["count_hint"] = "unknown"
+                    out["cascade_kills"].append(entry)
+                elif on_delete in ("SET_NULL", "SET_DEFAULT", "SET"):
+                    out["set_null"].append(entry)
+                elif on_delete in ("PROTECT", "RESTRICT"):
+                    out["protected"].append(entry)
+    return out

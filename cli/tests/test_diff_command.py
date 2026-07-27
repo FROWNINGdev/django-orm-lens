@@ -13,7 +13,6 @@ from django_orm_lens.cli import main
 from django_orm_lens.diff import diff_schemas, format_diff
 from django_orm_lens.parser import scan_workspace
 
-
 # --- Hand-written fixture schemas ------------------------------------------
 
 def _schema(*models: dict) -> dict:

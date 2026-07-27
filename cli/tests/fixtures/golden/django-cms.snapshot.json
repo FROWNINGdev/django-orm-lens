@@ -1,0 +1,189 @@
+{
+  "apps": [
+    {
+      "models": [
+        {
+          "appName": "cms",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "_(\"slug\"), max_length=255, db_index=True",
+              "isRelation": false,
+              "lineNumber": 1109,
+              "name": "slug",
+              "type": "SlugField"
+            },
+            {
+              "args": "_(\"Path\"), max_length=255, db_index=True, null=True",
+              "isRelation": false,
+              "lineNumber": 1110,
+              "name": "path",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"language\"), max_length=15, db_index=True",
+              "isRelation": false,
+              "lineNumber": 1111,
+              "name": "language",
+              "type": "CharField"
+            },
+            {
+              "args": "Page,\n        on_delete=models.CASCADE,\n        verbose_name=_(\"page\"),\n        related_name=\"urls\",",
+              "isRelation": true,
+              "lineNumber": 1112,
+              "name": "page",
+              "onDelete": "CASCADE",
+              "relatedModel": "Page",
+              "relatedName": "urls",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 1118,
+              "name": "managed",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "cms/models/pagemodel.py",
+          "lineNumber": 1108,
+          "meta": {
+            "app_label": "\"cms\"",
+            "constraints": "[",
+            "default_permissions": "[]"
+          },
+          "name": "PageUrl"
+        },
+        {
+          "appName": "cms",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "_(\"slot\"), max_length=255, db_index=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 34,
+              "name": "slot",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"width\"), null=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 36,
+              "name": "default_width",
+              "type": "PositiveSmallIntegerField"
+            },
+            {
+              "args": "ContentType,\n        blank=True,\n        null=True,\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 37,
+              "name": "content_type",
+              "onDelete": "SET_NULL",
+              "relatedModel": "ContentType",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 43,
+              "name": "object_id",
+              "type": "PositiveIntegerField"
+            }
+          ],
+          "filePath": "cms/models/placeholdermodel.py",
+          "lineNumber": 26,
+          "meta": {
+            "app_label": "\"cms\"",
+            "default_permissions": "[]",
+            "permissions": "((\"use_structure\", \"Can use Structure mode\"),)"
+          },
+          "name": "Placeholder"
+        },
+        {
+          "appName": "cms",
+          "baseClasses": [
+            "models.Model",
+            "metaclass=PluginModelBase"
+          ],
+          "fields": [
+            {
+              "args": "Placeholder, on_delete=models.CASCADE, editable=False, null=True",
+              "isRelation": true,
+              "lineNumber": 166,
+              "name": "placeholder",
+              "onDelete": "CASCADE",
+              "relatedModel": "Placeholder",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "'self', on_delete=models.CASCADE, blank=True, null=True, editable=False",
+              "isRelation": true,
+              "lineNumber": 169,
+              "name": "parent",
+              "onDelete": "CASCADE",
+              "relatedModel": "self",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"position\"), default=1, editable=False",
+              "isRelation": false,
+              "lineNumber": 172,
+              "name": "position",
+              "type": "SmallIntegerField"
+            },
+            {
+              "args": "_(\"language\"), max_length=15, blank=False, db_index=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 174,
+              "name": "language",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"plugin_name\"), max_length=50, db_index=True, editable=False",
+              "isRelation": false,
+              "lineNumber": 176,
+              "name": "plugin_type",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"creation date\"), editable=False, default=timezone.now",
+              "isRelation": false,
+              "lineNumber": 178,
+              "name": "creation_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "auto_now=True",
+              "isRelation": false,
+              "lineNumber": 180,
+              "name": "changed_date",
+              "type": "DateTimeField"
+            }
+          ],
+          "filePath": "cms/models/pluginmodel.py",
+          "lineNumber": 153,
+          "meta": {
+            "app_label": "'cms'",
+            "indexes": "[",
+            "ordering": "('position',)",
+            "unique_together": "('placeholder', 'language', 'position')",
+            "verbose_name": "_(\"plugin\")",
+            "verbose_name_plural": "_(\"plugins\")"
+          },
+          "name": "CMSPlugin"
+        }
+      ],
+      "name": "cms",
+      "path": "cms"
+    }
+  ],
+  "scannedAt": 0,
+  "scannedFiles": 3
+}

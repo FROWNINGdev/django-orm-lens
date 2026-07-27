@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import unittest
 
-from django_orm_lens.parser import parse_models_file
 from django_orm_lens.mcp_server import (
     _rel_matches_target,
     _workspace_user_model,
 )
-
+from django_orm_lens.parser import parse_models_file
 
 SAMPLE = '''
 from django.db import models
