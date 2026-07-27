@@ -382,7 +382,7 @@ Schema regressions are cheapest to catch the moment they enter a PR. Three zero-
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.4.0
+    rev: py-v1.5.0
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk
@@ -627,7 +627,7 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] **v0.8.0** — Interactive Query Builder: right-click → template → snippet inserted at cursor, grammar-aware (FK gets `.select_related`, `related_name` honoured)
 - [x] **v0.8.0** — Sidebar UX overhaul: stable `TreeItem.id`, `MarkdownString` tooltips with `command:` deep-links, `FileDecorationProvider` badges, `TreeView.badge` on the activity bar, three when-gated `viewsWelcome` states
 
-**Unreleased (on `main`)**
+**v1.5.0** — the "one core, three surfaces" wave
 
 - [x] CI formats: SARIF 2.1.0 + `--format github` PR annotations for `nplusone` and `migration-risk`
 - [x] Four analyzers promoted from MCP-only to the CLI: `suggest-indexes`, `signals`, `migration-deps`, `cascade`
