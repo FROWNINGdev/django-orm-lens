@@ -51,6 +51,7 @@ from .models import (
 from .parser import DEFAULT_EXCLUDES, _iter_python_files, scan_workspace
 from .query_analyzer import scan_for_nplusone, suggest_indexes
 from .signals_parser import signal_graph
+from .stats import STATS_QUERY, ProductionStats, StatsError
 
 
 def _add_scan_flags(p: argparse.ArgumentParser) -> None:
@@ -436,6 +437,17 @@ def _migration_deps_mermaid(result: dict) -> str:
     return "\n".join(lines)
 
 
+def _cmd_stats_sql(_args: argparse.Namespace) -> int:
+    """Print the query that produces a --stats file.
+
+    Printed rather than executed on purpose: django-orm-lens never holds a
+    database credential. The operator runs this against a replica or a
+    read-only role and hands over the JSON.
+    """
+    print(STATS_QUERY, end="")
+    return 0
+
+
 def _cmd_impact(args: argparse.Namespace) -> int:
     """Every reference to a model or field name, grouped by Django layer."""
     findings = scan_impact(args.path, args.name)
@@ -481,8 +493,19 @@ def _cmd_blast_radius(args: argparse.Namespace) -> int:
             r for r in risks if _SEVERITY_ORDER.get(r.severity, 99) <= threshold
         ]
 
+    stats = None
+    if args.stats:
+        try:
+            stats = ProductionStats.from_file(args.stats)
+        except StatsError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
+        print(f"using production stats: {stats.describe()}", file=sys.stderr)
+
     index = None
-    if not args.no_cascade:
+    # Resolving Meta.db_table needs the parsed workspace, so --stats wants the
+    # index too, not just --cascade.
+    if not args.no_cascade or stats is not None:
         index = _load_index(args)
 
     report = analyze_blast_radius(
@@ -490,6 +513,8 @@ def _cmd_blast_radius(args: argparse.Namespace) -> int:
         index=index,
         only_migrations=args.only or None,
         risks=risks,
+        stats=stats,
+        cascade=not args.no_cascade,
     )
 
     if args.format == "json":
@@ -840,11 +865,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip the cascade preview (avoids the extra workspace parse)",
     )
     blast.add_argument(
+        "--stats",
+        metavar="FILE",
+        help=(
+            "Production table statistics as JSON — turns 'probably populated' "
+            "into an estimated row count. Generate it with "
+            "`django-orm-lens stats-sql`; the tool never connects to a database"
+        ),
+    )
+    blast.add_argument(
         "--exit-zero",
         action="store_true",
         help="Always exit 0 even when critical risks are present",
     )
     blast.set_defaults(func=_cmd_blast_radius)
+
+    ssql = sub.add_parser(
+        "stats-sql",
+        help="Print the read-only SQL that produces a --stats file",
+    )
+    ssql.set_defaults(func=_cmd_stats_sql)
 
     mcp = sub.add_parser(
         "mcp",
@@ -873,6 +913,7 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  cascade <model>    What delete() cascades to, grouped by on_delete")
     print("  impact <name>      What still references a model or field, by layer")
     print("  blast-radius       Migration risks joined with what still reads them")
+    print("  stats-sql          Read-only SQL that produces a --stats file")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
     print("run `django-orm-lens <command> --help` for options.")

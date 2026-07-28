@@ -103,6 +103,36 @@ Notes on behaviour, so nothing surprises you in a live run:
 - Updating works by matching the marker `<!-- django-orm-lens: blast-radius -->`, which the markdown renderer always emits as its first line.
 - `github-token: ${{ github.token }}` is enough; no PAT, no app.
 
+## Production statistics (optional)
+
+Everything above is static, which leaves one honest gap: source code cannot tell a table with forty million rows from an empty one. `migration-risk` papers over it with a heuristic — *anything after `0001_` is assumed populated* — right often enough to be useful, wrong often enough to be annoying.
+
+`--stats` closes the gap, and **django-orm-lens still never connects to a database**. You run one read-only query yourself and hand over the result:
+
+```bash
+django-orm-lens stats-sql > stats.sql
+psql -At -d "$DATABASE_URL" -f stats.sql > stats.json     # a replica is fine
+django-orm-lens blast-radius --path . --stats stats.json
+```
+
+The report then carries the real size:
+
+```
+!! blog.post.author  [RemoveField]
+     critical: remove_field_still_referenced (high)  blog/migrations/0002_drop_author.py:7
+     blog_post: ~41 000 000 rows, 12.0 GB, 4 index(es) (estimated)
+```
+
+Why a file rather than a connection string:
+
+- No credential ever enters CI config, so there is nothing to leak.
+- The query is a single read of `pg_stat_user_tables` plus `pg_total_relation_size`. It takes no locks and reads no user data — only table names and counts.
+- `stats.json` can be committed, reviewed and diffed like any other input.
+
+**These are estimates, and the tool always says so.** `n_live_tup` is maintained by the stats collector and refreshed by `VACUUM` / `ANALYZE`; autovacuum triggers `ANALYZE` once roughly 20% of a table's rows have changed, so a busy table drifts between runs. Right after `ANALYZE` it is typically within a couple of percent. That is ample for the decision this informs: telling forty million rows from four hundred.
+
+A table missing from `stats.json` is reported as **unknown**, never as zero — a model production has never seen must not read as "safe to drop". `Meta.db_table` is honoured when resolving a model to its table; otherwise Django's `<app>_<model>` default applies.
+
 ## Example
 
 ```

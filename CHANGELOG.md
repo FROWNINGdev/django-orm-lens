@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrows the scan to a PR's changed migration files. Exit code `1` on
   remaining critical risks, matching `migration-risk`. Available through the
   GitHub Action as `command: blast-radius`.
+- **`blast-radius --stats` and `stats-sql`** — optional production table
+  statistics, with **no database connection**. `stats-sql` prints a read-only
+  query (`pg_stat_user_tables` + `pg_total_relation_size`, no locks, no user
+  data); you run it against a replica and pass the JSON to `--stats`. The
+  report then says `blog_post: ~41 000 000 rows, 12.0 GB, 4 index(es)`
+  instead of leaning on the "anything after `0001_` is populated" heuristic.
+  A credential never enters CI config and there is nothing to leak; the file
+  can be committed and reviewed like any other input. Numbers are always
+  labelled as estimates — `n_live_tup` drifts between `ANALYZE` runs — and a
+  table absent from the file is reported as **unknown**, never as zero, so a
+  model production has never seen cannot read as "safe to drop".
+  `Meta.db_table` is honoured when resolving a model to its table.
 - **`blast-radius` as a real PR bot** — the Action gained `comment: true`,
   which posts the markdown report and then *updates that same comment* on
   every later push, so a twenty-push PR carries one report rather than

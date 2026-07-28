@@ -30,7 +30,8 @@ from typing import Any
 
 from .impact import ImpactFinding, group_by_layer, scan_impact
 from .migrations_parser import MigrationRisk, analyze_migration_risks
-from .models import WorkspaceIndex, cascade_preview
+from .models import WorkspaceIndex, cascade_preview, find_model
+from .stats import ProductionStats, TableStats
 
 # Operations that can break running code. `AddField` is excluded on purpose:
 # adding a column cannot orphan a reader, so its risks are reported without a
@@ -60,6 +61,9 @@ class Target:
     risks: list[MigrationRisk] = dataclasses.field(default_factory=list)
     impact: list[ImpactFinding] = dataclasses.field(default_factory=list)
     cascade: dict[str, Any] | None = None
+    table_stats: TableStats | None = None
+    """Only set when the caller supplied a --stats file *and* the table
+    appeared in it. Absent means unknown, never zero."""
 
     @property
     def label(self) -> str:
@@ -109,6 +113,7 @@ class Target:
                 },
             },
             "cascade": self.cascade,
+            "tableStats": self.table_stats.to_dict() if self.table_stats else None,
         }
 
 
@@ -178,6 +183,8 @@ def analyze_blast_radius(
     index: WorkspaceIndex | None = None,
     only_migrations: Sequence[str] | None = None,
     risks: Iterable[MigrationRisk] | None = None,
+    stats: ProductionStats | None = None,
+    cascade: bool = True,
 ) -> BlastRadiusReport:
     """Join migration risks, code references and cascade fallout.
 
@@ -188,6 +195,11 @@ def analyze_blast_radius(
     :param only_migrations: restrict to these migration files (a PR's changed
         paths). ``None`` scans every migration in the workspace.
     :param risks: pre-computed risks, mostly for tests.
+    :param stats: optional production table statistics. Turns "this table is
+        probably populated" into an estimated row count. See :mod:`.stats`.
+    :param cascade: set ``False`` to skip cascade previews while still using
+        ``index`` for other lookups — ``--stats`` needs the index to resolve
+        ``Meta.db_table``, but that must not silently re-enable cascade.
     """
     root_path = Path(root).resolve()
     all_risks = (
@@ -239,10 +251,18 @@ def analyze_blast_radius(
         if needle not in scanned:
             scanned[needle] = scan_impact(root_path, needle)
         target.impact = scanned[needle]
-        if index is not None and target.model and not target.field:
+        if cascade and index is not None and target.model and not target.field:
             ref = f"{target.app}.{target.model}"
             preview = cascade_preview(index, ref)
             target.cascade = None if "error" in preview else preview
+        if stats is not None and target.model:
+            # Meta.db_table wins over Django's <app>_<model> default, so the
+            # lookup needs the parsed model when we have one.
+            meta = None
+            if index is not None:
+                parsed = find_model(index, f"{target.app}.{target.model}")
+                meta = parsed.meta if parsed else None
+            target.table_stats = stats.for_model(target.app, target.model, meta)
 
     for target in by_key.values():
         target.risks.sort(key=_risk_sort_key)
@@ -289,6 +309,8 @@ def format_text(report: BlastRadiusReport, root: str | Path = ".") -> str:
             out.append(f"     {r.severity}: {r.rule} ({r.confidence})  {loc}")
             out.append(f"       {r.description}")
             out.append(f"       fix: {r.mitigation}")
+        if t.table_stats:
+            out.append(f"     {t.table_stats.summary()}")
         if t.cascade:
             out.append(f"     {_cascade_line(t.cascade)}")
         total = counts["certain"] + counts["likely"] + counts["possibly"]
@@ -361,6 +383,11 @@ def format_markdown(report: BlastRadiusReport, root: str | Path = ".") -> str:
             out.append(f"- **{r.severity}** `{r.rule}` ({r.confidence}) — `{loc}`")
             out.append(f"  {r.description}")
             out.append(f"  _Fix:_ {r.mitigation}")
+        if t.table_stats:
+            ts = t.table_stats
+            note = " — **this locks a large table**" if ts.is_large else ""
+            note = " — table is empty in production" if ts.is_empty else note
+            out.append(f"- {ts.summary()}{note}")
         if t.cascade:
             out.append(f"- {_cascade_line(t.cascade)}")
         total = counts["certain"] + counts["likely"] + counts["possibly"]
