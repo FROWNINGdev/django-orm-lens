@@ -50,7 +50,26 @@ jobs:
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce publish --no-dependencies --packagePath "${{ env.VSIX_PATH }}"
+        # The Marketplace accepts an upload and then times out answering often
+        # enough that it has to be planned for: v0.10.0 published, the request
+        # timed out at 3 minutes, the step failed, and every step after it —
+        # Open VSX, the artifact, the GitHub Release — was skipped even though
+        # the version was live. A re-run then says "already exists" and fails
+        # again, so the pipeline can never finish without a human. Treat that
+        # one message as success; everything else still fails the job.
+        run: |
+          set +e
+          out=$(npx --yes @vscode/vsce publish --no-dependencies --packagePath "$VSIX_PATH" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          if [ "$rc" -ne 0 ]; then
+            if echo "$out" | grep -qi "already exists"; then
+              echo "::notice::$VERSION is already on the Marketplace - continuing"
+            else
+              exit "$rc"
+            fi
+          fi
 
       - name: Publish to Open VSX (VSCodium / Cursor / OSS builds)
         # Skips gracefully when OVSX_PAT isn't set — lets the rest of the
@@ -59,7 +78,19 @@ jobs:
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         if: env.OVSX_PAT != ''
-        run: npx --yes ovsx publish "${{ env.VSIX_PATH }}" -p "$OVSX_PAT"
+        run: |
+          set +e
+          out=$(npx --yes ovsx publish "$VSIX_PATH" -p "$OVSX_PAT" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          if [ "$rc" -ne 0 ]; then
+            if echo "$out" | grep -qiE "already exists|already published"; then
+              echo "::notice::$VERSION is already on Open VSX - continuing"
+            else
+              exit "$rc"
+            fi
+          fi
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v7
