@@ -184,12 +184,18 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
 
   useEffect(() => {
     const onMsg = (event: MessageEvent<ExtensionMessage>) => {
-      // Origin check — CodeQL js/missing-origin-check. Legitimate messages
-      // in a VS Code webview arrive from the same-window host frame; the
-      // `source` field is the webview's own window. Any postMessage from an
-      // arbitrary embedded frame or opener would have a different source
-      // and must be rejected before we touch the payload.
-      if (event.source !== window) return;
+      // Origin check — CodeQL js/missing-origin-check. This compares
+      // `origin`, not `source`. Comparing against `window` was wrong: a
+      // legitimate `index` push measured as matching neither `window` nor
+      // `window.parent` (see #55), so every message the extension host sent
+      // was dropped and an open panel never updated.
+      //
+      // `e.origin === window.origin` is what the VS Code maintainers
+      // recommend over hardcoding `vscode-webview:` — the scheme differs
+      // between desktop and vscode.dev, and the webview's own origin is
+      // correct in both.
+      // https://github.com/microsoft/vscode-discussions/discussions/1061
+      if (event.origin !== window.origin) return;
       const data = event.data;
       if (!data || typeof data !== 'object') return;
       if (data.type === 'index') {
