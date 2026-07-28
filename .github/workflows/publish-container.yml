@@ -1,18 +1,14 @@
 name: Publish container image to GHCR
 
-# The image bakes in a published PyPI version, so it must not start before
-# that version exists. A `py-v*` push trigger raced the PyPI workflow and
-# lost on py-v1.6.0: pip resolved against an index whose newest release was
-# still 1.5.1 and the build failed outright. Chaining off the PyPI run
-# removes the race — the same fix already applied to the MCP Registry
-# workflow. `v*` (extension releases) keeps its push trigger: those tags
-# publish nothing to PyPI, so there is no upstream run to wait for.
+# The image installs a published PyPI version, so the build must not start
+# before that version is resolvable. Chaining off the PyPI workflow was tried
+# and rejected: on a workflow_run event GITHUB_REF is the default branch, so
+# the tag — and with it the version to pin — is simply not available. The wait
+# below fixes the actual cause instead.
 on:
-  workflow_run:
-    workflows: ['Publish Python package to PyPI']
-    types: [completed]
   push:
     tags:
+      - 'py-v*'
       - 'v*'
   workflow_dispatch:
     inputs:
@@ -23,11 +19,6 @@ on:
 
 jobs:
   publish:
-    # workflow_run also fires for failed and cancelled upstream runs; the other
-    # two trigger types have no upstream run to inspect and must pass freely.
-    if: >-
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
