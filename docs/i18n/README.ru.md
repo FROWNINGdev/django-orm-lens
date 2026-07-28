@@ -542,7 +542,7 @@ Django ORM Lens находится на пересечении **инструм�
 | [Определение модели](../rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` без `on_delete`, `null=True` на строковых полях |
 | [Datetime](../rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
 | [Формы / представления](../rules/README.md) | `DOL031`–`DOL032` | `locals()` в `render()`, `Meta.fields = '__all__'` |
-| [Риски миграций](../rules/migrations.md) | 15 правил | Добавление NOT NULL без default, блокирующие таблицу построения индексов, необратимые data-миграции |
+| [Риски миграций](../rules/migrations.md) | 16 правил | Добавление NOT NULL без default, блокирующие таблицу построения индексов, необратимые data-миграции |
 | [Статический N+1](../rules/nplusone.md) | 1 анализатор | Доступ к FK/M2M в циклах без `select_related` / `prefetch_related` |
 
 → **[Полный справочник правил](../rules/README.md)** — каждый код с примерами «плохо/хорошо», поведением QuickFix и синтаксисом подавления.

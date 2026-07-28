@@ -52,5 +52,5 @@ Ruff-style bulk selection is also available: `djangoOrmLens.rulesSelect` (e.g. `
 
 These run from the Python CLI, not the editor. Both exit non-zero on findings (see each page for exact semantics) and emit `--format sarif` (SARIF 2.1.0 for GitHub Code Scanning) or `--format github` (workflow commands for zero-setup PR annotations).
 
-- **[Migration risk rules](migrations.md)** — 15 rules over `<app>/migrations/*.py` flagging operations that are dangerous on production databases. Run with `django-orm-lens migration-risk`.
+- **[Migration risk rules](migrations.md)** — 16 rules over `<app>/migrations/*.py` flagging operations that are dangerous on production databases. Run with `django-orm-lens migration-risk`.
 - **[Static N+1 detector](nplusone.md)** — flags FK / O2O / M2M / reverse-manager access inside for-loops when the source queryset has no matching `select_related` / `prefetch_related`. Run with `django-orm-lens nplusone`.

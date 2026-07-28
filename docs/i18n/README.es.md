@@ -542,7 +542,7 @@ Dieciséis comprobaciones del lado del editor (`DOL001`–`DOL032`) con códigos
 | [Definición de modelos](../rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` sin `on_delete`, `null=True` en campos de cadena |
 | [Datetime](../rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
 | [Formularios / vistas](../rules/README.md) | `DOL031`–`DOL032` | `locals()` en `render()`, `Meta.fields = '__all__'` |
-| [Riesgos de migración](../rules/migrations.md) | 15 reglas | Añadir NOT NULL sin default, construcción de índices que bloquea la tabla, migraciones de datos irreversibles |
+| [Riesgos de migración](../rules/migrations.md) | 16 reglas | Añadir NOT NULL sin default, construcción de índices que bloquea la tabla, migraciones de datos irreversibles |
 | [N+1 estático](../rules/nplusone.md) | 1 analizador | Acceso a FK/M2M en bucles sin `select_related` / `prefetch_related` |
 
 → **[Referencia completa de reglas](../rules/README.md)** — cada código con ejemplos malos/buenos, comportamiento del QuickFix y sintaxis de supresión.
