@@ -214,6 +214,26 @@ Dark theme. Light theme. Your theme. Follows your icon theme, your font, your ke
 <tr>
 <td width="50%" valign="top">
 
+### 💥 Blast radius
+
+The review-time question a schema change actually raises: **what does this hit?** Every destructive migration operation becomes a target carrying its risks, every place in the codebase that still reads it, and — for whole-model operations — the cascade fallout.
+
+`migration-risk`, `impact` and `cascade` each answer a third of that; nobody joins them by hand, so the tool does. `--format markdown` is a postable PR comment; `--stats` turns "probably populated" into `~41 000 000 rows, 12.0 GB` from a read-only query you run yourself, with no database credential anywhere near CI.
+
+</td>
+<td width="50%" valign="top">
+
+### 🧭 Schema drift
+
+`makemigrations --check` without booting Django. Each app's migrations are replayed in order into the field set they imply, then compared against what `models.py` declares.
+
+Django's own check needs a working settings module, an importable app registry and every dependency installed — unavailable on a cold clone or a broken venv, which is exactly when the answer is cheapest to act on. Only the dangerous direction fails the build: a field declared but never migrated means the column will not exist, and the first query touching it errors.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
 ### 🎯 Inline QuickFixes (16 rules)
 
 Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL032`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()` and a dozen more.
@@ -336,7 +356,10 @@ django-orm-lens cascade blog.Author          # what one delete() takes down
 django-orm-lens impact author                # what still references a field
 django-orm-lens blast-radius -f markdown     # risks + who still reads them
 django-orm-lens drift                        # migrations vs models, no boot
+django-orm-lens stats-sql                    # read-only SQL for --stats
 ```
+
+> **`impact`, `blast-radius`, `drift` and `stats-sql` are on `main`, not yet on PyPI.** `pip install django-orm-lens` gets you everything above them; the four newest need `pip install "django-orm-lens @ git+https://github.com/FROWNINGdev/django-orm-lens#subdirectory=cli"` until the next release.
 
 Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
 
@@ -377,7 +400,35 @@ so the agent can self-correct. Optional sandbox via
 
 ## 🛡️ Gate your CI
 
-Schema regressions are cheapest to catch the moment they enter a PR. Three zero-config ways to block them:
+Schema regressions are cheapest to catch the moment they enter a PR. Four zero-config ways to block them:
+
+**Blast-radius PR bot** — the whole schema review as one comment, updated in place on every push instead of a new comment each time:
+
+```yaml
+name: Schema review
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write        # only for `comment: true`
+
+jobs:
+  blast-radius:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: FROWNINGdev/django-orm-lens@action-v1
+        with:
+          command: blast-radius
+          only-changed: true          # scope to migrations this PR touches
+          comment: true               # post once, then update in place
+          github-token: ${{ github.token }}
+```
+
+The comment goes up **before** the job fails, so a blocked PR still explains why. `only-changed` reads the PR's file list from the API rather than `git diff`, because `actions/checkout` defaults to `fetch-depth: 1` and the base commit is not in the local history. On `push` events both flags skip with a notice instead of failing, so one workflow covers both triggers.
+
+> `blast-radius` and `drift` reach the Action through PyPI, so they work there once the next release ships. Until then, add `install: false` and install the source yourself — [this repo's own workflow](.github/workflows/schema-review.yml) does exactly that, and is what verifies the Action on every PR.
+
 
 **pre-commit** — two hooks, nothing to install locally:
 
@@ -411,7 +462,7 @@ repos:
     sarif_file: lens.sarif
 ```
 
-Exit codes are CI-native: `diff` and `nplusone` exit `1` on findings, `migration-risk` exits `1` on critical findings. Add `--exit-zero` for report-only mode.
+Exit codes are CI-native: `diff` and `nplusone` exit `1` on findings, `migration-risk` and `blast-radius` exit `1` on critical findings, `drift` exits `1` when a field is declared but never migrated. Add `--exit-zero` for report-only mode.
 
 <br/>
 
