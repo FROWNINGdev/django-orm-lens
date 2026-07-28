@@ -1,0 +1,30 @@
+name: Schema review
+
+# Dogfooding: the repo runs its own blast-radius on every PR that touches a
+# migration. Uses the checked-out action (`./`) rather than the published tag,
+# so a change to action.yml is exercised in the same PR that makes it — a tag
+# can only ever prove what was already released.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  blast-radius:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The repo has no Django app of its own; the fixture app is the closest
+      # real target and exercises every code path the action uses.
+      - uses: ./
+        with:
+          command: blast-radius
+          path: cli/tests/fixtures/blast_radius
+          args: --severity all --exit-zero
+          only-changed: true
+          comment: true
+          github-token: ${{ github.token }}
