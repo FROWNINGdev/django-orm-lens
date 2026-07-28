@@ -19,6 +19,27 @@ importing Django or spinning up your app.
 Companion to the [Django ORM Lens VS Code
 extension](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens).
 
+## Paid-tier capabilities, free and MIT
+
+Schema review is a paid category nearly everywhere. A bot that reviews every
+pull request, analysis that follows a value across files, a registry that
+catches schema drift, index advice grounded in real table statistics — those
+normally sit behind a per-seat or per-database subscription.
+
+All of it is here, MIT-licensed, with no tier gate, no seat count, no account
+and no telemetry:
+
+| Capability usually sold as a paid tier | Here |
+|---|---|
+| PR review bot — posts once, then updates in place | `blast-radius` + the GitHub Action |
+| Analysis that follows a queryset across functions | `nplusone` |
+| Schema registry / drift detection | `drift` |
+| Index proposals from production table statistics | `suggest-indexes` + `--stats` |
+| Blast radius of a destructive migration | `blast-radius` |
+| Cross-layer impact of removing a field | `impact` |
+
+**There is no Pro tier, and none is planned.**
+
 ---
 
 ## Install

@@ -1,7 +1,7 @@
 {
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
-  "description": "See your entire Django schema in your editor. Live sidebar of every app, model, field and relationship, one keystroke to an interactive ER diagram. Static analysis — no DB, no Django boot.",
+  "description": "See your entire Django schema in your editor, and gate it in CI. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
   "version": "0.10.0",
   "preview": false,
   "galleryBanner": {
@@ -61,7 +61,14 @@
     "vscodium",
     "sidebar",
     "navigation",
-    "migration"
+    "migration",
+    "free",
+    "open source",
+    "code review",
+    "pull request",
+    "schema drift",
+    "impact analysis",
+    "blast radius"
   ],
   "activationEvents": [
     "onStartupFinished",

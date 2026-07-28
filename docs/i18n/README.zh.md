@@ -56,6 +56,27 @@ uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
 
 MCP 配置只需一段 JSON —— 参见 [Integrations](#-integrations)。将 `DJANGO_ORM_LENS_ROOT` 指向你的 Django 项目的绝对路径。
 
+
+---
+
+## 🆓 别处收费的能力，这里免费且遵循 MIT 协议
+
+模式审查几乎在哪里都是付费品类。逐个审查拉取请求的机器人、能跨文件追踪取值的分析、发现模式与迁移不一致的注册表、基于真实表统计给出的索引建议 —— 这些通常都在按席位或按数据库计费的订阅背后。
+
+这里全都有，采用 MIT 协议：没有分级、不数席位、无需账号、不含遥测。
+
+| 通常需要付费的能力 | 这里 |
+|---|---|
+| PR 审查机器人 —— 只发一条，之后原地更新 | [`blast-radius`](../rules/blast-radius.md) + Action |
+| 跨函数追踪 queryset 的分析 | [`nplusone`](../rules/nplusone.md) |
+| 模式注册表与漂移检测 | [`drift`](../rules/drift.md) |
+| 依据真实表统计提出索引建议 | `suggest-indexes` + `--stats` |
+| 破坏性迁移的影响范围 | [`blast-radius`](../rules/blast-radius.md) |
+| 删除字段会波及什么 —— 按 Django 分层 | `impact` |
+
+**没有 Pro 版本，也没有相关计划。** 如果它替你省下一个下午，点个 star 就是全部的请求。
+
+
 ---
 
 ## 📊 项目动态

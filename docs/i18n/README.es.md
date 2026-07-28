@@ -56,6 +56,27 @@ Un clon en frío, un venv roto, sin módulo de settings — aun así obtienes ca
 
 La configuración de MCP es un solo bloque JSON — consulta [Integraciones](#-integrations). Apunta `DJANGO_ORM_LENS_ROOT` a la ruta absoluta de tu proyecto Django.
 
+
+---
+
+## 🆓 Capacidades de plan de pago, gratis y con licencia MIT
+
+Revisar el esquema es una categoría de pago casi en todas partes. Un bot que revisa cada pull request, un análisis que sigue un valor entre archivos, un registro que detecta la deriva del esquema, propuestas de índices basadas en estadísticas reales de las tablas — normalmente todo eso vive detrás de una suscripción por asiento o por base de datos.
+
+Aquí está todo, con licencia MIT: sin niveles, sin contar asientos, sin cuenta y sin telemetría.
+
+| Capacidad que suele venderse | Aquí |
+|---|---|
+| Bot de revisión de PR — publica una vez y luego actualiza el mismo comentario | [`blast-radius`](../rules/blast-radius.md) + la Action |
+| Análisis que sigue un queryset a través de funciones | [`nplusone`](../rules/nplusone.md) |
+| Registro de esquema y detección de deriva | [`drift`](../rules/drift.md) |
+| Propuestas de índices a partir de estadísticas reales | `suggest-indexes` + `--stats` |
+| Radio de impacto de una migración destructiva | [`blast-radius`](../rules/blast-radius.md) |
+| Qué se rompe al eliminar un campo, por capa de Django | `impact` |
+
+**No hay plan Pro, ni está previsto.** Si la herramienta te ahorra una tarde, una estrella es todo lo que pedimos.
+
+
 ---
 
 ## 📊 Tracción
