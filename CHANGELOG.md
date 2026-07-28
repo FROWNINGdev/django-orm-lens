@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.7.0] - 2026-07-28
+
 ### Added
 
 - **`blast-radius`** — the review-time question the tool could not answer

@@ -51,7 +51,7 @@ Cold clone, broken venv, no settings module — you still get every app, model, 
 | You are | Install | You get |
 |---|---|---|
 | **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Sidebar tree, live ER diagram, hover cards, 16 QuickFix rules |
-| **Terminal / CI user** | `pip install django-orm-lens` | 13 subcommands, SARIF + PR annotations, pre-commit hooks, a GitHub Action |
+| **Terminal / CI user** | `pip install django-orm-lens` | 17 subcommands, SARIF + PR annotations, pre-commit hooks, a GitHub Action |
 | **AI-agent user** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 10 read-only MCP tools answering schema questions from ground truth |
 
 MCP setup is one JSON block — see [Integrations](#-integrations). Point `DJANGO_ORM_LENS_ROOT` at your Django project's absolute path.
@@ -359,7 +359,7 @@ django-orm-lens drift                        # migrations vs models, no boot
 django-orm-lens stats-sql                    # read-only SQL for --stats
 ```
 
-> **`impact`, `blast-radius`, `drift` and `stats-sql` are on `main`, not yet on PyPI.** `pip install django-orm-lens` gets you everything above them; the four newest need `pip install "django-orm-lens @ git+https://github.com/FROWNINGdev/django-orm-lens#subdirectory=cli"` until the next release.
+> `impact`, `blast-radius`, `drift` and `stats-sql` ship in **py-1.7.0** and later.
 
 Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
 
@@ -427,7 +427,7 @@ jobs:
 
 The comment goes up **before** the job fails, so a blocked PR still explains why. `only-changed` reads the PR's file list from the API rather than `git diff`, because `actions/checkout` defaults to `fetch-depth: 1` and the base commit is not in the local history. On `push` events both flags skip with a notice instead of failing, so one workflow covers both triggers.
 
-> `blast-radius` and `drift` reach the Action through PyPI, so they work there once the next release ships. Until then, add `install: false` and install the source yourself — [this repo's own workflow](.github/workflows/schema-review.yml) does exactly that, and is what verifies the Action on every PR.
+> The Action installs from PyPI, so `blast-radius` and `drift` need **py-1.7.0** or later — pin it with `version: 1.7.0` if your workflow must not drift. To run an unreleased build instead, add `install: false` and install the source yourself; [this repo's own workflow](.github/workflows/schema-review.yml) does exactly that, and is what verifies the Action on every PR.
 
 
 **pre-commit** — two hooks, nothing to install locally:
@@ -436,7 +436,7 @@ The comment goes up **before** the job fails, so a blocked PR still explains why
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.6.0
+    rev: py-v1.7.0
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk
