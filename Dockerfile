@@ -11,7 +11,27 @@ LABEL org.opencontainers.image.source="https://github.com/FROWNINGdev/django-orm
 LABEL org.opencontainers.image.licenses="MIT"
 
 ARG PKG_VERSION
-RUN pip install --no-cache-dir "django-orm-lens[mcp]${PKG_VERSION:+==${PKG_VERSION}}"
+
+# Retry the install rather than trusting a pre-flight check.
+#
+# Right after a release, PyPI's simple index is served from Fastly and its
+# edges do not all update together. On py-v1.6.0 the workflow's wait step
+# polled the index and correctly saw 1.6.0 — and pip inside this build, on a
+# different edge, still resolved 1.5.1 as newest and failed with "No matching
+# distribution found". A check from one network path cannot promise what
+# another path will see, so waiting longer would not have helped.
+#
+# `pip show` afterwards is the real gate: if every attempt failed we must not
+# produce an image that silently lacks the package.
+RUN set -eu; \
+    for attempt in 1 2 3 4 5 6; do \
+      if pip install --no-cache-dir "django-orm-lens[mcp]${PKG_VERSION:+==${PKG_VERSION}}"; then \
+        break; \
+      fi; \
+      echo "pip attempt ${attempt} failed - PyPI edge may still be stale, retrying in 30s"; \
+      sleep 30; \
+    done; \
+    pip show django-orm-lens > /dev/null
 
 # Run as a non-root user. The tool only reads static project files, so root
 # is not needed at any point. Any path-traversal or unsafe file-read bug in
