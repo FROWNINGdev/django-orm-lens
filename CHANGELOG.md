@@ -45,16 +45,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Layer detection no longer reads the checkout path (CLI)** — impact
-  analysis classifies a file by matching patterns like `/tests/` and
-  `/views.py` against its path, and it was matching the *absolute* path. A
-  project checked out under any directory called `tests` (or `api`, `forms`,
-  …) had every one of its files classified into that layer — `views.py`
-  reported as `tests`, and so on. The CLI analyzer now classifies on the path
-  relative to the workspace root, so only the project's own layout counts.
-  Caught by the first end-to-end run of `blast-radius`, whose fixture lives
-  under `cli/tests/`. **The VS Code extension still carries this bug**
-  (`src/impactAnalysis.ts`); the fix lands there separately.
+- **Layer detection no longer reads the checkout path** — impact analysis
+  classifies a file by matching patterns like `/tests/` and `/views.py`
+  against its path, and it was matching the *absolute* path. A project
+  checked out under any directory called `tests` (or `api`, `forms`, …) had
+  every one of its files classified into that layer — `views.py` reported as
+  `tests`, and so on, in the Impact Analysis panel. Classification now runs
+  on the path relative to the workspace root, so only the project's own
+  layout counts. Fixed in both implementations: the CLI analyzer and the
+  VS Code extension (`layerOf`, which the extension feeds from
+  `workspace.asRelativePath`). Caught by the first end-to-end run of
+  `blast-radius`, whose fixture happens to live under `cli/tests/`.
 - **DOL005 and DOL006 documentation** — DOL005 claimed the `Q(...)` rewrite
   buys "one pass for the query planner"; Django already compiles the chained
   form into a single query, so the rule is a legibility hint and now says so.

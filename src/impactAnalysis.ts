@@ -94,6 +94,25 @@ export function detectLayer(filePath: string): Layer {
   return 'other';
 }
 
+/**
+ * Classify a file by where it sits *inside the workspace*.
+ *
+ * Absolute paths are the wrong input for `detectLayer`: the layer patterns
+ * match anywhere in the string, so a project checked out under `~/tests/shop`
+ * or `services/tests/api` had every one of its files classified as `tests` —
+ * `views.py` reported as a test, and so on. Everything above the workspace
+ * root is the developer's machine layout, not the project's, so callers pass
+ * the workspace-relative path here instead.
+ *
+ * Mirrors `layer_of()` in cli/django_orm_lens/impact.py. Change both together.
+ */
+export function layerOf(relativePath: string): Layer {
+  const rel = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  // Leading slash so patterns anchored on `/models.py` still match a file
+  // sitting directly at the workspace root.
+  return detectLayer(`/${rel}`);
+}
+
 /** Glob patterns per layer — order matters (models first for early wins). */
 export const LAYER_GLOBS: Record<Exclude<Layer, 'other'>, string[]> = {
   models: ['**/models.py', '**/models/*.py'],
@@ -198,8 +217,12 @@ export function scanFileText(
   filePath: string,
   text: string,
   needle: string,
+  knownLayer?: Layer,
 ): Finding[] {
-  const layer = detectLayer(filePath);
+  // Callers that know the workspace root pass the layer they computed from
+  // the relative path — see `layerOf`. Falling back to the absolute path
+  // keeps the pure-function tests and any ad-hoc caller working.
+  const layer = knownLayer ?? detectLayer(filePath);
   const lines = text.split(/\r?\n/);
   const out: Finding[] = [];
   const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -308,7 +331,11 @@ export async function scanImpact(
         try {
           const buf = await vscode.workspace.fs.readFile(uri);
           const text = Buffer.from(buf).toString('utf8');
-          const hits = scanFileText(fp, text, needle);
+          // Classify on the workspace-relative path, never the absolute one:
+          // a checkout under a directory called `tests` must not make every
+          // file in the project a test.
+          const rel = vscode.workspace.asRelativePath(uri, false);
+          const hits = scanFileText(fp, text, needle, layerOf(rel));
           findings.push(...hits);
         } catch {
           // Unreadable file — skip silently, don't fail the whole scan.

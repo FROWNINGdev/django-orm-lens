@@ -11,6 +11,7 @@ Module._load = function (request, parent, isMain) {
 const {
   classifyLine,
   detectLayer,
+  layerOf,
   scanFileText,
   sortFindings,
 } = require('../out/impactAnalysis');
@@ -134,4 +135,42 @@ test('sortFindings orders by layer, then confidence, then path', () => {
   assert.equal(findings[0].confidence, 'certain');
   assert.equal(findings[1].confidence, 'likely');
   assert.equal(findings[2].layer, 'tests');
+});
+
+test('layerOf classifies on the workspace-relative path, not the checkout path', () => {
+  // Regression: detectLayer matches its patterns anywhere in the string, so a
+  // project living under a directory called `tests` used to have every one of
+  // its files reported as the tests layer.
+  assert.equal(detectLayer('/home/dev/tests/shop/blog/views.py'), 'tests');
+  assert.equal(layerOf('blog/views.py'), 'views');
+  assert.equal(layerOf('blog/serializers.py'), 'serializers');
+  assert.equal(layerOf('blog/admin.py'), 'admin');
+});
+
+test('layerOf still honours a tests directory inside the project', () => {
+  assert.equal(layerOf('blog/tests/test_views.py'), 'tests');
+  assert.equal(layerOf('blog/migrations/0002_x.py'), 'migrations');
+});
+
+test('layerOf normalises separators and a leading slash', () => {
+  // String.raw, not a plain literal: in 'blog\views.py' the \v is a vertical
+  // tab escape, so the test would assert on a string with no backslash in it.
+  assert.equal(layerOf(String.raw`blog\views.py`), 'views');
+  assert.equal(layerOf('/blog/views.py'), 'views');
+  assert.equal(layerOf('models.py'), 'models');
+});
+
+test('scanFileText accepts a pre-computed layer', () => {
+  const text = 'qs = Post.objects.filter(author__id=1)\n';
+  // Absolute path says `tests`; the caller-supplied layer must win.
+  const found = scanFileText('/home/dev/tests/shop/blog/views.py', text, 'author', 'views');
+  assert.equal(found.length, 1);
+  assert.equal(found[0].layer, 'views');
+  assert.equal(found[0].confidence, 'certain');
+});
+
+test('scanFileText without a layer falls back to the path', () => {
+  const text = 'qs = Post.objects.filter(author__id=1)\n';
+  const found = scanFileText('/repo/blog/views.py', text, 'author');
+  assert.equal(found[0].layer, 'views');
 });
