@@ -70,15 +70,38 @@ Annotations point at the **migration line** — the line a reviewer can act on �
 ::error file=blog/migrations/0002_drop_author.py,line=7,title=django-orm-lens: remove_field_still_referenced (2 certain reference(s))::…
 ```
 
-To post the report as a comment instead:
+### As a PR comment
+
+`comment: true` posts the markdown report and **updates that same comment** on every later push, so a twenty-push PR carries one report rather than twenty. `only-changed: true` narrows the report to the migrations this PR actually touches, and exits early when it touches none.
 
 ```yaml
-- run: |
-    django-orm-lens blast-radius --path . --format markdown --exit-zero > report.md
-    gh pr comment "$PR" --body-file report.md
-  env:
-    GH_TOKEN: ${{ github.token }}
+name: Schema review
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write        # only needed for `comment: true`
+
+jobs:
+  blast-radius:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: FROWNINGdev/django-orm-lens@action-v1
+        with:
+          command: blast-radius
+          only-changed: true
+          comment: true
+          github-token: ${{ github.token }}
 ```
+
+Notes on behaviour, so nothing surprises you in a live run:
+
+- The comment is posted **before** the job fails, so a blocked PR still carries the explanation of why. The exit code is preserved — critical risks still fail the check.
+- The changed-file list comes from the API, not `git diff`: `actions/checkout` defaults to `fetch-depth: 1`, so the base commit is not in the local history and a diff would be wrong or empty.
+- On a `push` event both flags are skipped with a notice rather than failing — the same workflow can run on pushes without special-casing.
+- Updating works by matching the marker `<!-- django-orm-lens: blast-radius -->`, which the markdown renderer always emits as its first line.
+- `github-token: ${{ github.token }}` is enough; no PAT, no app.
 
 ## Example
 

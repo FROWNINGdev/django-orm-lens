@@ -38,6 +38,26 @@ inputs:
     description: "django-orm-lens version to install from PyPI (default: latest)"
     required: false
     default: ""
+  only-changed:
+    description: >-
+      blast-radius only. Restrict the report to migration files this pull
+      request touches, instead of every migration in the workspace. Needs
+      github-token. Ignored outside pull_request events.
+    required: false
+    default: "false"
+  comment:
+    description: >-
+      blast-radius only. Post the markdown report as a pull-request comment,
+      updating the previous one in place rather than adding a new comment on
+      every push. Needs github-token and `permissions: pull-requests: write`.
+    required: false
+    default: "false"
+  github-token:
+    description: >-
+      Token for only-changed / comment. `${{ github.token }}` is enough —
+      it needs `pull-requests: write` only when comment is enabled.
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -64,6 +84,11 @@ runs:
         DOL_PATH: ${{ inputs.path }}
         DOL_FORMAT: ${{ inputs.format }}
         DOL_ARGS: ${{ inputs.args }}
+        DOL_ONLY_CHANGED: ${{ inputs.only-changed }}
+        DOL_COMMENT: ${{ inputs.comment }}
+        DOL_REPO: ${{ github.repository }}
+        DOL_PR: ${{ github.event.pull_request.number }}
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
         FORMAT_ARGS=""
         case "$DOL_COMMAND" in
@@ -71,5 +96,64 @@ runs:
             FORMAT_ARGS="--format $DOL_FORMAT"
             ;;
         esac
-        # DOL_ARGS is intentionally word-split: it carries extra CLI flags.
-        django-orm-lens "$DOL_COMMAND" --path "$DOL_PATH" $FORMAT_ARGS $DOL_ARGS
+
+        IS_BLAST=false
+        case "$DOL_COMMAND" in
+          blast-radius|blast) IS_BLAST=true ;;
+        esac
+
+        # --- only-changed: scope the report to this PR's migrations ---------
+        # The PR file list comes from the API rather than `git diff`, because
+        # actions/checkout defaults to depth 1 and the base commit is simply
+        # not in the local history.
+        ONLY_ARGS=""
+        if [ "$DOL_ONLY_CHANGED" = "true" ] && [ "$IS_BLAST" = true ]; then
+          if [ -z "${DOL_PR:-}" ]; then
+            echo "::notice::only-changed ignored — not a pull_request event"
+          elif [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::only-changed needs github-token"; exit 1
+          else
+            CHANGED=$(gh api "repos/$DOL_REPO/pulls/$DOL_PR/files" --paginate \
+              --jq '.[] | select(.status != "removed") | .filename' \
+              | grep -E '(^|/)migrations/[^/]+\.py$' || true)
+            if [ -z "$CHANGED" ]; then
+              echo "::notice::no migration files changed in this PR — nothing to review"
+              exit 0
+            fi
+            while IFS= read -r f; do
+              [ -n "$f" ] && ONLY_ARGS="$ONLY_ARGS --only $f"
+            done <<< "$CHANGED"
+          fi
+        fi
+
+        # --- run ------------------------------------------------------------
+        # DOL_ARGS and ONLY_ARGS are intentionally word-split: they carry flags.
+        if [ "$DOL_COMMENT" = "true" ] && [ "$IS_BLAST" = true ]; then
+          REPORT="$RUNNER_TEMP/django-orm-lens-blast-radius.md"
+          RC=0
+          django-orm-lens "$DOL_COMMAND" --path "$DOL_PATH" --format markdown \
+            $ONLY_ARGS $DOL_ARGS > "$REPORT" || RC=$?
+          cat "$REPORT"
+
+          if [ -z "${DOL_PR:-}" ]; then
+            echo "::notice::comment skipped — not a pull_request event"
+          elif [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::comment needs github-token"; exit 1
+          else
+            # Reuse our own previous comment so a 20-push PR keeps one report,
+            # not twenty. The marker is the first line of the rendered report.
+            EXISTING=$(gh api "repos/$DOL_REPO/issues/$DOL_PR/comments" --paginate \
+              --jq '.[] | select(.body | startswith("<!-- django-orm-lens: blast-radius -->")) | .id' \
+              | head -n 1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api -X PATCH "repos/$DOL_REPO/issues/comments/$EXISTING" \
+                -F body=@"$REPORT" --silent
+            else
+              gh api -X POST "repos/$DOL_REPO/issues/$DOL_PR/comments" \
+                -F body=@"$REPORT" --silent
+            fi
+          fi
+          exit $RC
+        fi
+
+        django-orm-lens "$DOL_COMMAND" --path "$DOL_PATH" $FORMAT_ARGS $ONLY_ARGS $DOL_ARGS

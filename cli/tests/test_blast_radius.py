@@ -14,6 +14,7 @@ import unittest
 from pathlib import Path
 
 from django_orm_lens.blast_radius import (
+    COMMENT_MARKER,
     DESTRUCTIVE_OPERATIONS,
     analyze_blast_radius,
     format_markdown,
@@ -100,9 +101,17 @@ class RenderingTest(unittest.TestCase):
 
     def test_markdown_is_a_postable_pr_comment(self) -> None:
         out = format_markdown(self.report, FIXTURE)
-        self.assertTrue(out.startswith("### Django ORM Lens — blast radius"))
+        self.assertIn("### Django ORM Lens — blast radius", out)
         self.assertIn("<details>", out)
         self.assertIn("| Layer | Confidence | Location | Code |", out)
+
+    def test_markdown_starts_with_the_upsert_marker(self) -> None:
+        # CI finds its own previous comment by this exact first line; if it
+        # moves or changes, the bot starts posting a new comment per push.
+        for report in (self.report, analyze_blast_radius(FIXTURE, risks=[])):
+            out = format_markdown(report, FIXTURE)
+            self.assertEqual(out.splitlines()[0], COMMENT_MARKER)
+            self.assertEqual(out.count(COMMENT_MARKER), 1)
 
     def test_markdown_escapes_pipes_so_the_table_survives(self) -> None:
         out = format_markdown(self.report, FIXTURE)

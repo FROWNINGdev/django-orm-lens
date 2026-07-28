@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrows the scan to a PR's changed migration files. Exit code `1` on
   remaining critical risks, matching `migration-risk`. Available through the
   GitHub Action as `command: blast-radius`.
+- **`blast-radius` as a real PR bot** — the Action gained `comment: true`,
+  which posts the markdown report and then *updates that same comment* on
+  every later push, so a twenty-push PR carries one report rather than
+  twenty. Matching is by the `<!-- django-orm-lens: blast-radius -->` marker
+  the renderer emits as its first line. `only-changed: true` narrows the
+  report to migrations the PR actually touches and exits early when it
+  touches none; the file list comes from the API rather than `git diff`,
+  because `actions/checkout` defaults to `fetch-depth: 1` and the base commit
+  is simply not in the local history. The comment is posted *before* the job
+  fails, so a blocked PR still carries the explanation — the exit code is
+  preserved either way. On `push` events both flags skip with a notice
+  instead of failing, so one workflow covers both triggers.
 - **`impact <name>`** — "what still references this field or model?", grouped
   by Django layer with a `certain` / `likely` / `possibly` confidence tag.
   The analysis existed only inside the VS Code extension; it now ships in the
