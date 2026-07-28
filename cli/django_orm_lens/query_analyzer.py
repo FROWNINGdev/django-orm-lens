@@ -695,6 +695,113 @@ class _QuerySetTracker(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def _iter_returns(node: ast.AST) -> Iterable[ast.Return]:
+    """Yield ``return`` statements belonging to *this* function only.
+
+    ``ast.walk`` would happily hand back a nested helper's returns and
+    attribute them to the outer function, which is exactly the sort of
+    quietly-wrong resolution this detector must not do.
+    """
+    stack = list(getattr(node, "body", []))
+    while stack:
+        cur = stack.pop()
+        if isinstance(
+            cur, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+        ):
+            continue
+        if isinstance(cur, ast.Return):
+            yield cur
+        for field_name in ("body", "orelse", "finalbody", "handlers"):
+            stack.extend(getattr(cur, field_name, []) or [])
+
+
+def _helper_call_name(node: ast.AST) -> tuple[str | None, bool]:
+    """Innermost callee of a call chain, when it is a plain helper.
+
+    Returns ``(name, already_in_chain)``:
+
+    * ``recent()`` / ``recent().select_related(...)`` → ``("recent", False)``.
+      A bare-``Name`` call has no attribute to name it, so
+      :func:`_collect_call_chain_methods` never records it — the caller must
+      not drop a chain element for it.
+    * ``self.get_queryset()`` → ``("get_queryset", True)``. This one *is*
+      recorded as the first chain element, so the caller drops it before
+      splicing the helper's own chain in.
+    * ``Post.objects.filter()`` → ``(None, False)``. Model-rooted chains are
+      resolved the normal way and must not come through here.
+    """
+    cursor: ast.AST = node
+    while isinstance(cursor, ast.Call):
+        func = cursor.func
+        if isinstance(func, ast.Name):
+            return func.id, False
+        if isinstance(func, ast.Attribute):
+            if isinstance(func.value, ast.Name) and func.value.id in ("self", "cls"):
+                return func.attr, True
+            cursor = func.value
+            continue
+        break
+    return None, False
+
+
+class _ReturnedQuerySetTracker(ast.NodeVisitor):
+    """Maps a function or method name to the QuerySet chain it returns.
+
+    This is what lifts the detector out of one function at a time. The shape
+    it exists for is ordinary Django::
+
+        def recent():
+            return Post.objects.filter(published=True)
+
+        for post in recent():          # <- source is a call, not a chain
+            print(post.author.name)    # <- still an N+1
+
+    Resolution is by bare name and deliberately shallow: one hop, same
+    module, first return that yields a chain. ``self.get_queryset()`` matches
+    a ``get_queryset`` defined anywhere in the file, which is right for the
+    overwhelmingly common one-view-per-name case.
+    """
+
+    def __init__(self) -> None:
+        # name -> (chain, model_root_name_or_None)
+        self.returns: dict[str, tuple[list[tuple[str, ast.Call]], str | None]] = {}
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        if node.name not in self.returns:
+            resolved = self._resolve(node)
+            if resolved is not None:
+                self.returns[node.name] = resolved
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self.visit_FunctionDef(node)  # type: ignore[arg-type]
+
+    @staticmethod
+    def _resolve(
+        node: ast.FunctionDef,
+    ) -> tuple[list[tuple[str, ast.Call]], str | None] | None:
+        local = _QuerySetTracker()
+        for stmt in getattr(node, "body", []):
+            local.visit(stmt)
+        for ret in _iter_returns(node):
+            if ret.value is None:
+                continue
+            # `return Post.objects.filter(...)`
+            chain = _collect_call_chain_methods(ret.value)
+            model_root = _chain_model_root(chain)
+            if chain and (
+                model_root is not None
+                or _chain_source_method(chain) in _QS_SOURCE_METHODS
+            ):
+                return (chain, model_root)
+            # `qs = Post.objects.all(); ...; return qs`
+            if isinstance(ret.value, ast.Name):
+                binding = local.bindings.get(ret.value.id)
+                if binding is not None:
+                    return binding
+        return None
+
+
 class NPlusOneScanner(ast.NodeVisitor):
     """AST scanner that emits :class:`NPlusOneFinding` records for a file.
 
@@ -723,11 +830,17 @@ class NPlusOneScanner(ast.NodeVisitor):
         # QuerySet name bindings from the module scope. We refresh this at
         # every function/class boundary for a mild scope-awareness.
         self._tracker = _QuerySetTracker()
+        # Module-wide map of helper name -> the QuerySet chain it returns, so
+        # `for p in recent():` is analysable and not silently skipped.
+        self._returns = _ReturnedQuerySetTracker()
 
     # -- entry points ------------------------------------------------------
 
     def visit_Module(self, node: ast.Module) -> None:
         self._tracker.visit(node)
+        # Whole-module pass first: a loop may call a helper defined further
+        # down the file, and textual order must not decide what we can see.
+        self._returns.visit(node)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -780,6 +893,19 @@ class NPlusOneScanner(ast.NodeVisitor):
         elif isinstance(iter_node, ast.Call):
             chain = _collect_call_chain_methods(iter_node)
             model_root = _chain_model_root(chain)
+            if model_root is None:
+                # The chain does not root at a model, so it may be a call to a
+                # helper that returns one: `for p in recent():` or
+                # `for p in self.get_queryset():`. Splice the helper's chain in
+                # front of whatever the caller appended, so a
+                # `.select_related()` added on either side still counts and we
+                # do not report an N+1 the caller already fixed.
+                helper, in_chain = _helper_call_name(iter_node)
+                resolved = self._returns.returns.get(helper) if helper else None
+                if resolved is not None:
+                    helper_chain, model_root = resolved
+                    chain = helper_chain + (chain[1:] if in_chain else chain)
+                    qs_var = f"{helper}()"
         else:
             return
 

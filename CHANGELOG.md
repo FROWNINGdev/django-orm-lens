@@ -21,6 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrows the scan to a PR's changed migration files. Exit code `1` on
   remaining critical risks, matching `migration-risk`. Available through the
   GitHub Action as `command: blast-radius`.
+- **`nplusone` now resolves across functions** — the detector used to give up
+  whenever a loop's source was a call rather than an inline chain or a local
+  variable, which is how a large share of real Django code is written: the
+  queryset is built in a helper or in `get_queryset()`, and the loop lives
+  elsewhere. `for post in recent():` is now analysed. Resolution is one hop
+  within the module and covers `helper()`, `self.get_queryset()`,
+  `cls.build()`, a helper returning a local binding, a return from inside an
+  `if`, and a helper defined *after* its caller. Fixes count from either side
+  of the call — `select_related` inside the helper and
+  `recent().select_related(...)` applied by the caller are both silent, since
+  the two chains are spliced before the check. A nested `def`'s return is
+  never attributed to the function enclosing it, and a call to a name the
+  module does not define is left alone rather than assigned an invented
+  model.
 - **`blast-radius --stats` and `stats-sql`** — optional production table
   statistics, with **no database connection**. `stats-sql` prints a read-only
   query (`pg_stat_user_tables` + `pg_total_relation_size`, no locks, no user

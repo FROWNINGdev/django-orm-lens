@@ -12,6 +12,28 @@ The scanner resolves the loop source two ways: inline chains (`for p in Post.obj
 
 Accesses already covered by a `select_related(...)` / `prefetch_related(...)` clause in the chain are not flagged — string arguments are matched by their first lookup segment, a bare `.select_related()` counts as covering every FK, and `Prefetch("lookup", ...)` objects are understood. Each finding includes a rendered `suggested_fix`, e.g. `.select_related("author").prefetch_related("tags")`.
 
+## Across functions
+
+The scanner also resolves a loop whose source is a **call**, not a chain — the shape a large share of real Django code actually uses:
+
+```python
+def recent():
+    return Post.objects.filter(published=True)
+
+for post in recent():        # source is a call
+    print(post.author.name)  # still an N+1
+```
+
+Resolution is one hop within the same module, by name. It covers `helper()`, `self.get_queryset()` and `cls.build()`, a helper that returns a local binding (`qs = Post.objects.all(); return qs`), a return from inside an `if`, and a helper defined *after* its caller — textual order does not decide what the scanner can see.
+
+Deliberate limits, so the tool does not guess:
+
+- A nested `def`'s return is never attributed to the function enclosing it.
+- A call to a name the module does not define — `fetch_from_cache()` — is left alone rather than assigned an invented model.
+- A helper returning a list, an int, or anything that is not a QuerySet chain is not a queryset source.
+
+Fixes count from **either side of the call**. `recent()` with `select_related` inside the helper is silent, and so is `recent().select_related("author")` applied by the caller — the helper's chain and the caller's are spliced before the check. A false positive on a queryset the author already fixed is worse than a miss, because it teaches people to ignore the tool.
+
 ## Confidence levels
 
 - **high** — the loop source resolved to a model known to the parsed workspace schema, and the accessed attribute is a declared `ForeignKey` / `OneToOneField` / `ManyToManyField` or a computed reverse relation (`related_name` or default `<model>_set`). The unambiguous `<attr>_set` reverse-manager idiom also counts as high even without schema resolution.
