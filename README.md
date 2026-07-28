@@ -325,7 +325,7 @@ django-orm-lens describe blog.Post           # one model in Markdown
 django-orm-lens list | fzf                   # flat app.Model — pipes anywhere
 django-orm-lens er > schema.mmd              # ER diagram — Mermaid (default)
 django-orm-lens er -f dbml > schema.dbml     # …or DBML: paste into dbdiagram.io
-django-orm-lens er -f d2 > schema.d2         # …or D2 / plantuml
+django-orm-lens er -f d2 > schema.d2         # …or D2 / plantuml / dot
 django-orm-lens diff before.json after.json  # what a PR changes structurally
 django-orm-lens nplusone --format github     # N+1 findings as PR annotations
 django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
@@ -348,7 +348,7 @@ Register it once with your agent and it exposes ten read-only tools:
 | `describe_model` | Full field / relation / Meta detail for one model |
 | `find_relations` | Inbound + outbound relations for one model |
 | `cascade_preview` | Blast radius of one `delete()`, grouped by `on_delete` |
-| `er_diagram` | ER diagram — `mermaid` / `dbml` / `d2` / `plantuml` |
+| `er_diagram` | ER diagram — `mermaid` / `dbml` / `d2` / `plantuml` / `dot` |
 | `describe_migration_dependency` | Per-app migration DAG: roots, leaves, cross-app deps |
 | `suggest_indexes` | `Meta.indexes` proposals from observed QuerySet usage |
 | `signal_graph` | Sender→signal→handler graph from `@receiver` decorators |
@@ -631,7 +631,7 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 
 - [x] CI formats: SARIF 2.1.0 + `--format github` PR annotations for `nplusone` and `migration-risk`
 - [x] Four analyzers promoted from MCP-only to the CLI: `suggest-indexes`, `signals`, `migration-deps`, `cascade`
-- [x] `er --format dbml | d2 | plantuml` — community-standard diagram exports (dbdiagram.io, D2, PlantUML)
+- [x] `er --format dbml | d2 | plantuml | dot` — community-standard diagram exports (dbdiagram.io, D2, PlantUML, Graphviz — `dot` contributed by [@JJordan0C](https://github.com/JJordan0C))
 - [x] Three new migration-risk rules: `runpython_no_reverse`, `alter_unique_together_lock`, `alter_index_together_deprecated` — 15 total
 - [x] pre-commit hooks (`django-orm-lens-nplusone`, `django-orm-lens-migration-risk`) + composite GitHub Action
 - [x] `docs/rules/` — a documentation page for every rule (19 pages)

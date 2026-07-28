@@ -5,6 +5,21 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`er --format dot`** — Graphviz DOT export alongside Mermaid, DBML, D2 and
+  PlantUML, exposed through both the CLI and the MCP `er_diagram` tool. Apps
+  become `subgraph cluster_*` blocks and model bodies are HTML tables rather
+  than record labels, so field names containing `|` or `<` cannot break the
+  render. Useful in particular for projects migrating from
+  `django-extensions graph_models`, which emits the same format.
+  Contributed by [@JJordan0C](https://github.com/JJordan0C) in
+  [#53](https://github.com/FROWNINGdev/django-orm-lens/pull/53) — the project's
+  first outside contribution. Closes
+  [#48](https://github.com/FROWNINGdev/django-orm-lens/issues/48).
+
 ## [py-1.6.0] - 2026-07-28
 
 ### Added
