@@ -2,6 +2,8 @@
 
 Mỗi trang dưới đây mô tả một quy tắc cụ thể (hiện tại danh mục chứa 7 quy tắc): mã quy tắc, độ nghiêm trọng mặc định, khả năng áp dụng, các ví dụ về code sai/đúng, và cách bỏ qua (suppress) nếu cần.
 
+> The remaining rules — `DOL011`–`DOL032`, plus `migrations.md` and `nplusone.md` — are not translated yet; see the [English reference](../../../rules/README.md). This note is in English because it was written by someone who does not speak Vietnamese; a translation of it is welcome.
+
 ## Queryset
 
 | Mã | Tóm tắt | Mức độ | Áp dụng |

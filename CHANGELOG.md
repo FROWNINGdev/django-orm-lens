@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [#53](https://github.com/FROWNINGdev/django-orm-lens/pull/53) — the project's
   first outside contribution. Closes
   [#48](https://github.com/FROWNINGdev/django-orm-lens/issues/48).
+- **Vietnamese rule reference** — `docs/i18n/rules/vi/` covers the queryset
+  family `DOL001`–`DOL007`, the first translation of the rule pages into any
+  language. Code samples, rule codes and suppression syntax stay identical to
+  the English source so they remain copy-pasteable and greppable. Contributed
+  by [@RinZ27](https://github.com/RinZ27) in
+  [#54](https://github.com/FROWNINGdev/django-orm-lens/pull/54), against
+  [#52](https://github.com/FROWNINGdev/django-orm-lens/issues/52).
+
+### Fixed
+
+- **DOL005 and DOL006 documentation** — DOL005 claimed the `Q(...)` rewrite
+  buys "one pass for the query planner"; Django already compiles the chained
+  form into a single query, so the rule is a legibility hint and now says so.
+  DOL006 claimed `list(qs)` builds "a second in-memory copy of every row"; it
+  does not duplicate the model instances, and dropping the wrapper does not
+  give you streaming — that still needs an explicit `.iterator()`. Both had
+  been wrong since the rules shipped, and surfaced during review of #54.
 
 ## [py-1.6.0] - 2026-07-28
 

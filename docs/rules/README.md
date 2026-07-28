@@ -1,7 +1,6 @@
 # Rule reference
 
-🌐 [Tiếng Việt](../i18n/rules/vi/README.md)
-
+🌐 [Tiếng Việt](../i18n/rules/vi/README.md) — queryset rules (`DOL001`–`DOL007`)
 
 Django ORM Lens ships two rule surfaces:
 
