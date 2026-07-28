@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrows the scan to a PR's changed migration files. Exit code `1` on
   remaining critical risks, matching `migration-risk`. Available through the
   GitHub Action as `command: blast-radius`.
+- **`drift`** — `makemigrations --check` without booting Django. Each app's
+  migrations are replayed in numeric order into the field set they imply, and
+  compared against what `models.py` declares. Django's own check needs a
+  working settings module, an importable app registry and every dependency
+  installed, so it is unavailable on a cold clone or a broken venv — exactly
+  when acting on the answer is cheapest. Only the dangerous direction fails
+  the build: a field declared but never migrated (the column will not exist,
+  and the first query touching it errors), or a model with no `CreateModel`
+  anywhere. Columns present in the migrations but absent from `models.py` are
+  reported without blocking, because static analysis cannot see fields
+  injected by mixins or metaclass-resolved abstract bases, and failing on
+  those would teach people to pass `--exit-zero` permanently.
 - **`nplusone` now resolves across functions** — the detector used to give up
   whenever a loop's source was a call rather than an inline chain or a local
   variable, which is how a large share of real Django code is written: the

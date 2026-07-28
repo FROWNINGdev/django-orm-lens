@@ -36,6 +36,7 @@ from .ci_formats import (
     nplusone_sarif,
 )
 from .diff import diff_schemas, format_diff
+from .drift import detect_drift, format_drift
 from .er_formats import ER_BUILDERS
 from .formatters import format_hover, format_index, format_model
 from .impact import group_by_layer, scan_impact
@@ -435,6 +436,20 @@ def _migration_deps_mermaid(result: dict) -> str:
     if externals:
         lines.append("  classDef external stroke-dasharray: 5 5;")
     return "\n".join(lines)
+
+
+def _cmd_drift(args: argparse.Namespace) -> int:
+    """Do the migrations still describe the models? No Django boot required."""
+    report = detect_drift(args.path)
+    if args.format == "json":
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        print(format_drift(report))
+    if args.exit_zero:
+        return 0
+    # Only the "declared but never migrated" direction fails the build — see
+    # ModelDrift.is_blocking for why the other side stays advisory.
+    return 1 if report.blocking_count else 0
 
 
 def _cmd_stats_sql(_args: argparse.Namespace) -> int:
@@ -880,6 +895,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     blast.set_defaults(func=_cmd_blast_radius)
 
+    drift = sub.add_parser(
+        "drift",
+        help=(
+            "Do the migrations still describe the models? "
+            "Static makemigrations --check, no Django boot"
+        ),
+    )
+    _add_scan_flags(drift)
+    drift.add_argument("--format", "-f", choices=("text", "json"), default="text")
+    drift.add_argument(
+        "--exit-zero",
+        action="store_true",
+        help="Always exit 0 even when a model has unmigrated fields",
+    )
+    drift.set_defaults(func=_cmd_drift)
+
     ssql = sub.add_parser(
         "stats-sql",
         help="Print the read-only SQL that produces a --stats file",
@@ -913,6 +944,7 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  cascade <model>    What delete() cascades to, grouped by on_delete")
     print("  impact <name>      What still references a model or field, by layer")
     print("  blast-radius       Migration risks joined with what still reads them")
+    print("  drift              Do the migrations still describe the models?")
     print("  stats-sql          Read-only SQL that produces a --stats file")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()

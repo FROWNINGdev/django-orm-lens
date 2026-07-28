@@ -335,6 +335,7 @@ django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
 django-orm-lens cascade blog.Author          # what one delete() takes down
 django-orm-lens impact author                # what still references a field
 django-orm-lens blast-radius -f markdown     # risks + who still reads them
+django-orm-lens drift                        # migrations vs models, no boot
 ```
 
 Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
