@@ -1004,6 +1004,82 @@ def analyze_migration_risks(
             )
             findings.extend(analyzer.analyze())
 
+        # Graph-level rule, so it lives here rather than in the per-file
+        # analyzer: Django refuses to run an app whose migration graph has more
+        # than one leaf, with "Conflicting migrations detected; multiple leaf
+        # nodes in the migration graph". It happens whenever two branches each
+        # add a migration on the same parent and both get merged.
+        #
+        # Catching it statically is the point: `makemigrations --merge` only
+        # reports this once you have a working settings module and database,
+        # which is exactly what nobody has on a fresh clone or in a CI job that
+        # has not booted Django yet.
+        parsed = [m for m in (_parse_migration_file(p) for p in ordered_files) if m]
+        if len(parsed) > 1:
+            # `app_label` comes from the directory name, but Django lets an app
+            # declare `AppConfig.label` different from its package — and the
+            # dependency tuples use the *label*. Leafness computed against the
+            # wrong label sees no in-app edges at all and calls every migration
+            # a leaf, which would report a critical conflict for a perfectly
+            # linear history.
+            #
+            # Recover the real label: whichever label appears in a dependency
+            # pointing at a migration file that exists in this directory. If
+            # that is ambiguous, or nothing references us, stay silent — a
+            # false "your migrations conflict" is worse than a missed one.
+            local_names = {m["name"] for m in parsed}
+            candidates = {
+                dep[0]
+                for m in parsed
+                for dep in m["dependencies"]
+                if dep[1] in local_names
+            }
+            effective_label = (
+                app_label
+                if app_label in candidates
+                else next(iter(candidates))
+                if len(candidates) == 1
+                else None
+            )
+            leaves = (
+                _compute_roots_leaves_cross(parsed, effective_label)[1]
+                if effective_label
+                else []
+            )
+            if len(leaves) > 1:
+                by_name = {p.stem: p for p in ordered_files}
+                others = sorted(leaves)
+                for leaf in others:
+                    rest = [n for n in others if n != leaf]
+                    leaf_path = by_name.get(leaf)
+                    findings.append(
+                        MigrationRisk(
+                            file_path=str(leaf_path) if leaf_path else "",
+                            line_number=1,
+                            app=app_label,
+                            migration=leaf,
+                            operation="(migration graph)",
+                            model=None,
+                            field=None,
+                            rule="conflicting_migration_leaves",
+                            description=(
+                                f"App '{app_label}' has {len(others)} leaf migrations "
+                                f"({', '.join(others)}). Django will refuse to migrate "
+                                f"this app: 'Conflicting migrations detected; multiple "
+                                f"leaf nodes in the migration graph'. This one conflicts "
+                                f"with {', '.join(rest)}."
+                            ),
+                            mitigation=(
+                                "Run `python manage.py makemigrations --merge` to "
+                                "generate a merge migration that depends on every leaf. "
+                                "If the branches touched the same table, review the "
+                                "merged result by hand before applying it."
+                            ),
+                            confidence="high",
+                            severity="critical",
+                        )
+                    )
+
     # Deterministic order for consumers (formatters, CI diff, tests).
     severity_order = {"critical": 0, "warning": 1, "info": 2}
     findings.sort(

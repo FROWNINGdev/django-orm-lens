@@ -350,3 +350,43 @@ html, body, #dol-root {
   height: 2px;
   border-radius: 1px;
 }
+
+/* Toggling an app or model off should read as that thing leaving, not as the
+   diagram reloading. Nodes that survive a toggle keep their coordinates (the
+   layout is skipped entirely when the new set is a subset), so the only motion
+   left to smooth is a node appearing or disappearing.
+
+   `transform` is transitioned as well for the case where the layout *does*
+   re-run — showing a hidden app back — so surviving nodes glide to their new
+   spot instead of jumping.
+
+   React Flow drives panning and zooming through the viewport transform, not
+   through per-node transforms, so animating nodes here does not make dragging
+   the canvas feel laggy. */
+.react-flow__node {
+  animation: dol-node-in 160ms ease-out;
+  transition: transform 220ms ease-out;
+}
+
+.react-flow__edge {
+  animation: dol-edge-in 200ms ease-out;
+}
+
+@keyframes dol-node-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; }
+}
+
+@keyframes dol-edge-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Users who ask the OS for reduced motion get the result without the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__node,
+  .react-flow__edge {
+    animation: none;
+    transition: none;
+  }
+}

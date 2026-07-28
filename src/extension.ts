@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { findUserModel, resolveRelatedTail, scanWorkspace } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
-import { showGraph } from './graphWebview';
+import { isGraphOpen, showGraph } from './graphWebview';
 import { DjangoHoverProvider } from './hoverProvider';
 import { DjangoCodeLensProvider } from './codeLensProvider';
 import { registerCodeFixes } from './codeActionProvider';
@@ -128,8 +128,33 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const treeView = vscode.window.createTreeView('djangoOrmLens.models', {
     treeDataProvider: treeProvider,
+    manageCheckboxStateManually: true,
   });
   context.subscriptions.push(treeView);
+
+  // Unchecking an app or model hides it from the ER diagram, so huge schemas
+  // can be narrowed to the part being worked on. VS Code batches the event, so
+  // a single change may carry several items; the diagram is refreshed once
+  // afterwards rather than per item.
+  context.subscriptions.push(
+    treeView.onDidChangeCheckboxState((e) => {
+      for (const [node, state] of e.items) {
+        treeProvider.setHidden(
+          node.id,
+          state === vscode.TreeItemCheckboxState.Unchecked
+        );
+      }
+      if (isGraphOpen()) {
+        // Full re-render rather than a postMessage push. The message channel
+        // into the webview is not reliably reachable — measured: a legitimate
+        // update arrived with `source` matching neither `window` nor
+        // `window.parent`, so the webview's origin check dropped it. Until
+        // that is understood, correctness beats smoothness: reassigning the
+        // HTML always delivers the new state.
+        showGraph(context, treeProvider.applyVisibility(currentIndex));
+      }
+    })
+  );
 
   // File decorations — badge letters `!` / `~` on field rows whose Django
   // kwargs trip DOL011/013/014/015 patterns. Matches how the built-in Git
@@ -253,7 +278,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('djangoOrmLens.showGraph', async () => {
       if (currentIndex.apps.length === 0) await refresh();
-      showGraph(context, currentIndex);
+      showGraph(context, treeProvider.applyVisibility(currentIndex));
     })
   );
 

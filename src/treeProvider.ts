@@ -30,6 +30,13 @@ import {
  */
 
 const FILTER_STATE_KEY = 'djangoOrmLens.filter';
+/**
+ * Ids the user has unchecked in the tree. Stored rather than the inverse so a
+ * newly added app or model is visible by default — a project that grows should
+ * not silently hide its new models because they were absent when the set was
+ * written.
+ */
+const HIDDEN_STATE_KEY = 'djangoOrmLens.hidden';
 
 /* -----------------------------  helpers  ----------------------------- */
 
@@ -284,12 +291,87 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   /** Reverse map: node id → parent node. Filled during buildTree(). */
   private parentById = new Map<string, TreeNode>();
   private nodeById = new Map<string, TreeNode>();
+  /** Unchecked ids: `app` or `app/Model`. See HIDDEN_STATE_KEY. */
+  private hidden = new Set<string>();
 
   constructor(private readonly memento?: vscode.Memento) {
     if (memento) {
       const persisted = memento.get<string>(FILTER_STATE_KEY, '');
       if (persisted) this.filter = persisted;
+      this.hidden = new Set(memento.get<string[]>(HIDDEN_STATE_KEY, []));
     }
+  }
+
+  /**
+   * True when this node, or the app containing it, is unchecked. Checking the
+   * ancestor is what makes unchecking an app hide its models without having to
+   * write every child id into the set.
+   */
+  isHidden(id: string): boolean {
+    if (this.hidden.has(id)) return true;
+    const appId = id.split('/')[0];
+    return appId !== id && this.hidden.has(appId);
+  }
+
+  /** Apply a checkbox change. Unchecking an app cascades to its models. */
+  setHidden(id: string, hidden: boolean) {
+    if (hidden) this.hidden.add(id);
+    else {
+      this.hidden.delete(id);
+      // Re-checking an app must also clear any of its models that were
+      // individually unchecked, otherwise the app reads as visible while some
+      // children stay hidden with no checkbox left to explain why.
+      if (!id.includes('/')) {
+        for (const h of [...this.hidden]) {
+          if (h.startsWith(id + '/')) this.hidden.delete(h);
+        }
+      }
+    }
+    this.memento?.update(HIDDEN_STATE_KEY, [...this.hidden]);
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  /** Clear every checkbox back to visible. */
+  showAll() {
+    if (this.hidden.size === 0) return;
+    this.hidden.clear();
+    this.memento?.update(HIDDEN_STATE_KEY, []);
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  get hiddenCount(): number {
+    return this.hidden.size;
+  }
+
+  /**
+   * The index with unchecked apps and models removed, for the ER diagram.
+   * Relations pointing at a hidden model are dropped too — an edge to a node
+   * that is not rendered would otherwise leave a dangling arrow.
+   */
+  applyVisibility(index: WorkspaceIndex): WorkspaceIndex {
+    if (this.hidden.size === 0) return index;
+    const visibleModel = (appName: string, modelName: string) =>
+      !this.isHidden(appName) && !this.isHidden(`${appName}/${modelName}`);
+    const apps = index.apps
+      .filter((app) => !this.isHidden(app.name))
+      .map((app) => ({
+        ...app,
+        models: app.models
+          .filter((m) => visibleModel(app.name, m.name))
+          .map((m) => ({
+            ...m,
+            fields: m.fields.filter((f) => {
+              if (!f.isRelation || !f.relatedModel) return true;
+              const target = f.relatedModel.includes('.')
+                ? f.relatedModel
+                : `${m.appName}.${f.relatedModel}`;
+              const [ta, tm] = target.split('.');
+              return visibleModel(ta, tm);
+            }),
+          })),
+      }))
+      .filter((app) => app.models.length > 0);
+    return { ...index, apps };
   }
 
   setIndex(index: WorkspaceIndex) {
@@ -375,6 +457,11 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       item.contextValue = 'djangoOrmLensModel';
     } else if (element.contextValue) {
       item.contextValue = element.contextValue;
+    }
+    if (element.kind === 'app' || element.kind === 'model') {
+      item.checkboxState = this.isHidden(element.id)
+        ? vscode.TreeItemCheckboxState.Unchecked
+        : vscode.TreeItemCheckboxState.Checked;
     }
     if (element.filePath && typeof element.lineNumber === 'number') {
       item.command = {

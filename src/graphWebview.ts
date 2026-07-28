@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
@@ -196,11 +197,33 @@ function renderInto(context: vscode.ExtensionContext, target: vscode.WebviewPane
     'webview',
     'graph.js'
   );
-  const scriptUri = target.webview.asWebviewUri(scriptFileUri).toString();
+  // Cache-bust on the bundle's mtime. `asWebviewUri` returns the same URI for
+  // every render, so the iframe happily reuses a cached graph.js and a rebuilt
+  // bundle never reaches the panel — during development that looks exactly
+  // like the new code doing nothing. Keyed on mtime rather than a per-render
+  // nonce so an unchanged bundle still gets cached normally.
+  let stamp = '';
+  try {
+    stamp = String(fs.statSync(scriptFileUri.fsPath).mtimeMs);
+  } catch {
+    // Bundle missing is a build problem, not a render problem — let the
+    // webview load and show its own failure rather than throwing here.
+  }
+  const scriptUri =
+    target.webview.asWebviewUri(scriptFileUri).toString() +
+    (stamp ? `?v=${encodeURIComponent(stamp)}` : '');
   const payload = currentIndex
     ? buildIndexPayload(currentIndex)
     : { apps: [], scannedAt: 0, theme: resolveTheme() };
   target.webview.html = html(target.webview.cspSource, makeNonce(), scriptUri, payload);
+}
+
+/**
+ * Whether the ER panel is currently open. Lets callers skip re-rendering work
+ * when nothing is on screen to receive it.
+ */
+export function isGraphOpen(): boolean {
+  return panel !== undefined;
 }
 
 export function showGraph(context: vscode.ExtensionContext, index: WorkspaceIndex) {
@@ -230,7 +253,7 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
       filePath?: string;
       lineNumber?: number;
       format?: 'png' | 'svg';
-      payload?: string;
+      payload?: unknown;
     }) => {
       if (!panel) return;
       if (msg.type === 'ready') {
