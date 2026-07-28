@@ -548,7 +548,7 @@ Sixteen editor-side checks (`DOL001`–`DOL032`) with Ruff-style codes, per-rule
 | [Model definition](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` without `on_delete`, `null=True` on string fields |
 | [Datetime](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
 | [Forms / views](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL031`–`DOL032` | `locals()` in `render()`, `Meta.fields = '__all__'` |
-| [Migration risks](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/migrations.md) | 15 rules | NOT NULL add without default, table-locking index builds, irreversible data migrations |
+| [Migration risks](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/migrations.md) | 16 rules | NOT NULL add without default, table-locking index builds, irreversible data migrations |
 | [Static N+1](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/nplusone.md) | 1 analyzer | FK/M2M access in loops without `select_related` / `prefetch_related` |
 
 → **[Full rule reference](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md)** — every code with bad/good examples, QuickFix behaviour, and suppression syntax.

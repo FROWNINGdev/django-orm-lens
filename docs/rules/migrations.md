@@ -1,6 +1,6 @@
 # Migration risk rules
 
-`django-orm-lens migration-risk --path .` statically analyzes every `<app>/migrations/*.py` in the workspace via `ast.parse` — no Django boot, no database connection, no execution of the migration. It implements **15 rules** over the `operations = [...]` list of each `Migration` class. Every finding carries a severity (`critical` | `warning` | `info`) and a confidence (`high` | `medium` | `low`), plus the description and mitigation shown below.
+`django-orm-lens migration-risk --path .` statically analyzes every `<app>/migrations/*.py` in the workspace via `ast.parse` — no Django boot, no database connection, no execution of the migration. It implements **16 rules** over the `operations = [...]` list of each `Migration` class. Every finding carries a severity (`critical` | `warning` | `info`) and a confidence (`high` | `medium` | `low`), plus the description and mitigation shown below.
 
 Usage and CI semantics:
 
@@ -129,3 +129,17 @@ Adds/changes `unique_together` on a populated table: Postgres builds and validat
 Uses `index_together`, deprecated since Django 4.2 and removed in 5.1 — this migration will not run on modern Django at all.
 
 **Mitigation:** Squash or rewrite the operation as `Meta.indexes` with `AddIndex` / `RenameIndex` (see the Django 4.2 release notes migration path).
+
+## conflicting_migration_leaves
+
+**Operation:** `(migration graph)` · **Severity:** critical · **Confidence:** high
+
+The app's migration graph has more than one leaf — two or more migrations that nothing else in the app depends on. This is what happens when two branches each add a migration on the same parent and both get merged. Django refuses to run the app at all: *"Conflicting migrations detected; multiple leaf nodes in the migration graph."*
+
+Unlike every other rule here, this one is a property of the whole graph rather than of a single operation, so it is reported once per conflicting leaf — each finding names the migrations it collides with, and every offending file gets annotated in a pull request.
+
+The check reads the `dependencies` tuples only, so it fires on a fresh clone and in CI, before anything has a settings module or a database. `makemigrations --merge` cannot tell you this until you already have both.
+
+**Mitigation:** Run `python manage.py makemigrations --merge` to generate a merge migration depending on every leaf. If the branches touched the same table, review the merged result by hand before applying it.
+
+**Note on app labels:** `dependencies` carries the Django app *label*, which `AppConfig.label` may set to something other than the package directory name. The rule recovers the real label from the dependencies themselves and stays silent when that is ambiguous — a false "your migrations conflict" would be worse than a missed one.

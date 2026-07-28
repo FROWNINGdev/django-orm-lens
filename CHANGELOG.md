@@ -5,6 +5,32 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`conflicting_migration_leaves`** (migration-risk rule 16) — flags an app
+  whose migration graph has more than one leaf, the state Django rejects with
+  "Conflicting migrations detected; multiple leaf nodes in the migration
+  graph". Two branches each adding a migration on the same parent produce it.
+  Detected from the `dependencies` tuples alone, so it fires on a cold clone
+  and in CI rather than waiting for someone to run `migrate` against a real
+  database. Reported once per conflicting leaf, and inherits the existing
+  SARIF and GitHub-annotation output. The Django app *label* is recovered from
+  the dependencies, since `AppConfig.label` may differ from the package
+  directory; the rule stays silent when that is ambiguous.
+- **Sidebar visibility toggles** — checkboxes on apps and models. Unchecking
+  hides the item from the ER diagram, cascading from an app to its models, and
+  relations pointing at a hidden model are dropped so no edge dangles. The
+  state persists per workspace, and stores what is *hidden* rather than what is
+  visible, so a model added later shows up instead of silently disappearing.
+
+### Fixed
+
+- The ER webview reloaded a cached `graph.js`: the script URI never changed
+  between builds, so a rebuilt bundle could not reach the panel. Cache-busted
+  on the bundle's mtime.
+
 ## [py-1.5.1] - 2026-07-28
 
 ### Fixed
