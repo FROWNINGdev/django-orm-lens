@@ -1,4 +1,4 @@
-"""Tests for the DBML / D2 / PlantUML ER-diagram emitters.
+"""Tests for the DBML / D2 / PlantUML / Graphviz DOT ER-diagram emitters.
 
 The community-standard export formats must draw the *same graph* the
 Mermaid builder draws: identical relation resolution (including
@@ -17,7 +17,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from django_orm_lens.cli import main
-from django_orm_lens.er_formats import build_d2, build_dbml, build_plantuml
+from django_orm_lens.er_formats import build_d2, build_dbml, build_dot, build_plantuml
 from django_orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -67,6 +67,24 @@ class MiniappAllFormatsTest(unittest.TestCase):
         self.assertIn('entity "orders.Order" as orders_Order {', puml)
         self.assertIn("orders_Order }o--|| users_User : user / CASCADE", puml)
 
+    def test_dot_clusters_tables_and_edges(self) -> None:
+        dot = build_dot(self.index)
+        self.assertTrue(dot.startswith("digraph django_orm_lens {"))
+        self.assertIn('subgraph "cluster_orders" {', dot)
+        self.assertIn('"orders.Order" [label=<<TABLE', dot)
+        self.assertIn(
+            '"orders.Order" -> "users.User" '
+            '[label="user → id / ForeignKey / CASCADE", dir="both", '
+            'arrowtail="crow", arrowhead="tee"];',
+            dot,
+        )
+
+    def test_dot_never_leaks_absolute_paths(self) -> None:
+        dot = build_dot(self.index)
+        self.assertNotIn("C:/", dot)
+        self.assertNotIn("C:\\", dot)
+        self.assertNotIn(str(MINIAPP.resolve()), dot)
+
     def test_same_edge_set_as_mermaid(self) -> None:
         """Every format must draw the same number of relations."""
         _, mermaid_out, _ = _run(["er", "--path", str(MINIAPP)])
@@ -80,7 +98,13 @@ class MiniappAllFormatsTest(unittest.TestCase):
             for line in build_dbml(self.index).splitlines()
             if line.startswith("Ref: ")
         ]
+        dot_edges = [
+            line
+            for line in build_dot(self.index).splitlines()
+            if " -> " in line
+        ]
         self.assertEqual(len(mermaid_edges), len(dbml_refs))
+        self.assertEqual(len(mermaid_edges), len(dot_edges))
         self.assertGreater(len(dbml_refs), 0)
 
 
@@ -108,6 +132,9 @@ class SyntheticSchemaTest(unittest.TestCase):
         self.assertNotIn("id AutoField [pk]", dbml)
         puml = build_plantuml(idx)
         self.assertIn("* jti : CharField", puml)
+        dot = build_dot(idx)
+        self.assertIn("<B>jti</B></TD><TD>CharField · PK", dot)
+        self.assertNotIn("<B>id</B></TD><TD>AutoField · PK", dot)
 
     def test_self_fk_and_m2m_through(self) -> None:
         idx = self._index_for(
@@ -153,7 +180,7 @@ class SyntheticSchemaTest(unittest.TestCase):
             "    poll = models.ForeignKey(\n"
             "        'polls.Poll', on_delete=models.CASCADE)\n"
         )
-        for text in (build_dbml(idx), build_d2(idx), build_plantuml(idx)):
+        for text in (build_dbml(idx), build_d2(idx), build_plantuml(idx), build_dot(idx)):
             self.assertNotIn("polls.Poll", text)
 
     def test_fk_ref_targets_explicit_pk_column(self) -> None:
@@ -178,6 +205,8 @@ class SyntheticSchemaTest(unittest.TestCase):
         d2 = build_d2(idx)
         self.assertIn("blog.Order.product -> blog.Product.sku", d2)
         self.assertNotIn("blog.Product.id", d2)
+        dot = build_dot(idx)
+        self.assertIn("product → sku / ForeignKey / PROTECT", dot)
 
 
 class CliWiringTest(unittest.TestCase):
@@ -187,6 +216,7 @@ class CliWiringTest(unittest.TestCase):
             ("dbml", "Table orders.Order {"),
             ("d2", "shape: sql_table"),
             ("plantuml", "@startuml"),
+            ("dot", "digraph django_orm_lens"),
         ):
             code, out, _ = _run(["er", "--path", str(MINIAPP), "--format", fmt])
             self.assertEqual(code, 0, f"{fmt} exited {code}")

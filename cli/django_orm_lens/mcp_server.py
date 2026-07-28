@@ -7,7 +7,7 @@ Exposes ten read-only tools that any MCP-compatible AI agent can call:
 * ``describe_model`` — full field/relation/Meta detail for one model
 * ``find_relations`` — inbound + outbound relations for one model
 * ``cascade_preview`` — group inbound relations by on_delete behavior
-* ``er_diagram``     — workspace ER diagram (mermaid / dbml / d2 / plantuml)
+* ``er_diagram``     — workspace ER diagram (mermaid / dbml / d2 / plantuml / dot)
 * ``describe_migration_dependency`` — per-app migration DAG from static AST parse
 * ``suggest_indexes`` — proposed ``Meta.indexes`` from workspace QuerySet usage
 * ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` decorators
@@ -226,7 +226,7 @@ def _tool_er_diagram(args: dict[str, Any]) -> str:
     builder = ER_BUILDERS.get(fmt)
     if builder is None:
         raise ValueError(
-            f"unknown diagram_format {fmt!r}; use mermaid | dbml | d2 | plantuml"
+            f"unknown diagram_format {fmt!r}; use mermaid | dbml | d2 | plantuml | dot"
         )
     return builder(idx)
 
@@ -352,7 +352,7 @@ TOOLS: dict[str, dict[str, Any]] = {
         "description": (
             "Emit an ER diagram for the whole workspace. diagram_format "
             "picks the language: mermaid (default, renders on GitHub), "
-            "dbml (dbdiagram.io), d2, or plantuml." + _WORKSPACE_HINT
+            "dbml (dbdiagram.io), d2, plantuml, or Graphviz dot." + _WORKSPACE_HINT
         ),
     },
     "describe_migration_dependency": {

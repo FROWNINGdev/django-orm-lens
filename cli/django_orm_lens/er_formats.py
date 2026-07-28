@@ -1,7 +1,7 @@
-"""Alternative ER-diagram serializers — DBML, D2, PlantUML.
+"""Alternative ER-diagram serializers — DBML, D2, PlantUML, Graphviz DOT.
 
 ``er --format mermaid`` stays the default (GitHub renders Mermaid inline in
-READMEs, issues, and PRs). These three cover the interchange formats the
+READMEs, issues, and PRs). These four cover the interchange formats the
 wider database-tooling community actually shares diagrams in:
 
 * **DBML** — the dbdiagram.io / dbdocs.io language. Paste the output into
@@ -12,8 +12,10 @@ wider database-tooling community actually shares diagrams in:
   Apps become nested containers, so big schemas stay readable.
 * **PlantUML** — the long-standing IDE/enterprise staple with crow's-foot
   notation via the ``entity`` syntax.
+* **Graphviz DOT** — the established graph interchange language emitted by
+  ``django-extensions graph_models``. Render locally with ``dot -Tsvg``.
 
-All three emitters walk the same :class:`~django_orm_lens.models.WorkspaceIndex`
+All four emitters walk the same :class:`~django_orm_lens.models.WorkspaceIndex`
 the Mermaid builder uses, resolve ``settings.AUTH_USER_MODEL`` identically,
 and skip relations whose target model lives outside the workspace — every
 format draws the same graph.
@@ -26,6 +28,8 @@ refs always point at a declared column.
 
 from __future__ import annotations
 
+import html
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -304,10 +308,101 @@ def build_plantuml(index: WorkspaceIndex) -> str:
     return "\n".join(lines) + "\n"
 
 
+# ---------------------------------------------------------------------------
+# Graphviz DOT
+# ---------------------------------------------------------------------------
+
+
+def _dot_quote(value: str) -> str:
+    """Return a quoted DOT string with JSON-compatible escaping."""
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _dot_table(model: ParsedModel) -> str:
+    """Graphviz HTML label for one model and its fields."""
+    pk = _pk_field(model)
+    rows = [
+        '<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">',
+        (
+            '<TR><TD COLSPAN="2" BGCOLOR="#e8eef7">'
+            f"<B>{html.escape(model.name)}</B></TD></TR>"
+        ),
+    ]
+    if pk is None:
+        rows.append("<TR><TD ALIGN=\"LEFT\"><B>id</B></TD><TD>AutoField · PK</TD></TR>")
+    for field in model.fields:
+        if field.is_relation:
+            continue
+        name = html.escape(field.name)
+        field_type = html.escape(field.type)
+        if pk is not None and field.name == pk.name:
+            name = f"<B>{name}</B>"
+            field_type += " · PK"
+        rows.append(
+            f'<TR><TD ALIGN="LEFT">{name}</TD><TD>{field_type}</TD></TR>'
+        )
+    for field in model.fields:
+        if not field.is_relation:
+            continue
+        rows.append(
+            '<TR><TD ALIGN="LEFT">'
+            f"{html.escape(field.name)}</TD><TD>"
+            f"{html.escape(field.relation_kind or 'ForeignKey')} · FK</TD></TR>"
+        )
+    rows.append("</TABLE>")
+    return "<" + "".join(rows) + ">"
+
+
+def build_dot(index: WorkspaceIndex) -> str:
+    """Graphviz DOT diagram with app clusters and crow's-foot-style edges."""
+    lines: list[str] = [
+        "digraph django_orm_lens {",
+        '  graph [rankdir="LR", compound="true", fontname="Helvetica"];',
+        '  node [shape="plain", fontname="Helvetica"];',
+        '  edge [fontname="Helvetica", fontsize="10"];',
+        "",
+    ]
+    for app in index.apps:
+        lines.append(f"  subgraph {_dot_quote(f'cluster_{app.name}')} {{")
+        lines.append(f"    label={_dot_quote(app.name)};")
+        lines.append('    color="#b8c2cc";')
+        lines.append('    style="rounded";')
+        for model in app.models:
+            qualified = f"{app.name}.{model.name}"
+            lines.append(
+                f"    {_dot_quote(qualified)} [label={_dot_table(model)}];"
+            )
+        lines.append("  }")
+        lines.append("")
+
+    for edge in _collect_edges(index):
+        if edge.kind == "ManyToManyField":
+            arrowtail, arrowhead = "crow", "crow"
+        elif edge.kind == "OneToOneField":
+            arrowtail, arrowhead = "tee", "tee"
+        else:
+            arrowtail, arrowhead = "crow", "tee"
+        label_parts = [f"{edge.field} → {edge.target_pk}", edge.kind]
+        if edge.on_delete:
+            label_parts.append(edge.on_delete)
+        if edge.through:
+            label_parts.append(f"through {edge.through}")
+        lines.append(
+            f"  {_dot_quote(edge.src)} -> {_dot_quote(edge.target)} "
+            f"[label={_dot_quote(' / '.join(label_parts))}, dir=\"both\", "
+            f"arrowtail={_dot_quote(arrowtail)}, "
+            f"arrowhead={_dot_quote(arrowhead)}];"
+        )
+
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
 # Registry used by the CLI and the MCP server — mermaid is handled by the
 # original builder in cli.py and stays the default.
 ER_BUILDERS = {
     "dbml": build_dbml,
     "d2": build_d2,
     "plantuml": build_plantuml,
+    "dot": build_dot,
 }
