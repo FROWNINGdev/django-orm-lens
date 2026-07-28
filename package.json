@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "See your entire Django schema in your editor. Live sidebar of every app, model, field and relationship, one keystroke to an interactive ER diagram. Static analysis — no DB, no Django boot.",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "preview": false,
   "galleryBanner": {
     "color": "#0c4b33",

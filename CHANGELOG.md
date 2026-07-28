@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-29
+
+Extension release. Everything here has been on `main` for some time; the
+webview and security work shipped to the CLI in earlier `py-*` releases while
+the extension binary stayed at 0.9.0, so this is the build that actually puts
+it in front of editor users.
+
+### Fixed
+
+- **Impact Analysis grouped whole projects under the wrong layer.** Layer
+  detection matched patterns like `/tests/` and `/views.py` anywhere in a
+  file's **absolute** path, so a project checked out under any directory
+  called `tests` — or a monorepo with `services/tests/` above it — had every
+  one of its files reported as that layer: `views.py` as a test, `admin.py`
+  as a test. Classification now runs on the path relative to the workspace
+  root, via `layerOf` fed from `workspace.asRelativePath`, so only the
+  project's own layout counts. The CLI half of this fix shipped in py-1.7.0;
+  this is the editor half.
+- **Webview messages are validated by origin rather than by source.**
+- **Security review follow-ups** — the findings from the full-repo review and
+  the open CodeQL alerts, carried over from `6262963` and `984aa22`.
+
+### Added
+
+- **Conflicting leaf migrations are detected** — two migrations claiming the
+  same parent, which Django only complains about at `migrate` time.
+
 ## [py-1.7.0] - 2026-07-28
 
 ### Added
