@@ -5,7 +5,7 @@
 Django ORM Lens ships two rule surfaces:
 
 1. **Editor rules (`DOL###`)** — 16 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `Django ORM Lens`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
-2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install django-orm-lens`) for terminals and pipelines: [`migration-risk`](migrations.md) and [`nplusone`](nplusone.md).
+2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install django-orm-lens`) for terminals and pipelines: [`migration-risk`](migrations.md), [`nplusone`](nplusone.md), and [`blast-radius`](blast-radius.md) — which joins migration risks with the code that still references what they change.
 
 ## Severity and applicability
 

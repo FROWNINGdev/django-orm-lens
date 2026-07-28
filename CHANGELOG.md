@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`blast-radius`** — the review-time question the tool could not answer
+  before: *what does this schema change actually hit?* Every destructive
+  migration operation (`RemoveField`, `DeleteModel`, `RenameField`,
+  `RenameModel`, `AlterField`) becomes a target carrying its migration risks,
+  every place in the codebase that still references it, and — for whole-model
+  operations — the cascade fallout. The three analyzers behind it already
+  shipped separately; nobody joined them by hand, so the tool does it now.
+  `--format markdown` emits a ready-to-post PR comment, `--format github`
+  emits annotations naming the reference count in the title, and `--only`
+  narrows the scan to a PR's changed migration files. Exit code `1` on
+  remaining critical risks, matching `migration-risk`. Available through the
+  GitHub Action as `command: blast-radius`.
+- **`impact <name>`** — "what still references this field or model?", grouped
+  by Django layer with a `certain` / `likely` / `possibly` confidence tag.
+  The analysis existed only inside the VS Code extension; it now ships in the
+  CLI too, which is what makes `blast-radius` possible in CI.
 - **`er --format dot`** — Graphviz DOT export alongside Mermaid, DBML, D2 and
   PlantUML, exposed through both the CLI and the MCP `er_diagram` tool. Apps
   become `subgraph cluster_*` blocks and model bodies are HTML tables rather
@@ -29,6 +45,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Layer detection no longer reads the checkout path (CLI)** — impact
+  analysis classifies a file by matching patterns like `/tests/` and
+  `/views.py` against its path, and it was matching the *absolute* path. A
+  project checked out under any directory called `tests` (or `api`, `forms`,
+  …) had every one of its files classified into that layer — `views.py`
+  reported as `tests`, and so on. The CLI analyzer now classifies on the path
+  relative to the workspace root, so only the project's own layout counts.
+  Caught by the first end-to-end run of `blast-radius`, whose fixture lives
+  under `cli/tests/`. **The VS Code extension still carries this bug**
+  (`src/impactAnalysis.ts`); the fix lands there separately.
 - **DOL005 and DOL006 documentation** — DOL005 claimed the `Q(...)` rewrite
   buys "one pass for the query planner"; Django already compiles the chained
   form into a single query, so the rule is a legibility hint and now says so.

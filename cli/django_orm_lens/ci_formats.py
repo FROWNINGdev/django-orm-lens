@@ -214,3 +214,44 @@ def migration_risks_github(
             f"::{_esc_data(msg)}"
         )
     return "\n".join(lines)
+
+
+def blast_radius_github(report: Any, root: str | None = None) -> str:
+    """GitHub Actions annotations for a blast-radius report.
+
+    Annotates the migration line itself — that is the line a reviewer can act
+    on — and folds the reference count into the message so the consequence is
+    visible without opening a second tab. ``certain`` references against a
+    destructive operation are the signal worth interrupting for, so they are
+    named in the annotation title too.
+
+    ``report`` is typed ``Any`` to keep this module free of an import cycle:
+    :mod:`.blast_radius` imports these emitters, never the other way round.
+    """
+    lines = []
+    for target in report.targets:
+        certain = target.impact_counts()["certain"]
+        for r in target.risks:
+            cmd = _SEVERITY_CMD.get(r.severity, "warning")
+            path = _rel_posix(root, r.file_path)
+            msg = f"{r.description} Mitigation: {r.mitigation}"
+            title = f"django-orm-lens: {r.rule}"
+            if certain:
+                msg = (
+                    f"{msg} Blast radius: {certain} certain reference(s) to "
+                    f"{target.label} still in the codebase."
+                )
+                title = f"{title} ({certain} certain reference(s))"
+            lines.append(
+                f"::{cmd} file={_esc_prop(path)},line={r.line_number},"
+                f"title={_esc_prop(title)}::{_esc_data(msg)}"
+            )
+    for r in report.unscanned_risks:
+        cmd = _SEVERITY_CMD.get(r.severity, "warning")
+        path = _rel_posix(root, r.file_path)
+        msg = f"{r.description} Mitigation: {r.mitigation}"
+        lines.append(
+            f"::{cmd} file={_esc_prop(path)},line={r.line_number},"
+            f"title={_esc_prop('django-orm-lens: ' + r.rule)}::{_esc_data(msg)}"
+        )
+    return "\n".join(lines)

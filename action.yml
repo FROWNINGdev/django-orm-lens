@@ -11,8 +11,9 @@ branding:
 inputs:
   command:
     description: >-
-      Subcommand to run: nplusone | migration-risk | scan | list | er | diff |
-      suggest-indexes | signals | migration-deps | cascade
+      Subcommand to run: nplusone | migration-risk | blast-radius | impact |
+      scan | list | er | diff | suggest-indexes | signals | migration-deps |
+      cascade
     required: false
     default: "nplusone"
   path:
@@ -21,10 +22,12 @@ inputs:
     default: "."
   format:
     description: >-
-      Output format for nplusone / migration-risk. "github" prints workflow
-      commands that become PR annotations with zero extra permissions;
-      "sarif" pairs with github/codeql-action/upload-sarif for the Security
-      tab. Other commands keep their own default format.
+      Output format for nplusone / migration-risk / blast-radius. "github"
+      prints workflow commands that become PR annotations with zero extra
+      permissions; "sarif" pairs with github/codeql-action/upload-sarif for
+      the Security tab; "markdown" (blast-radius only) prints a PR-comment
+      body you can pipe into `gh pr comment`. Other commands keep their own
+      default format.
     required: false
     default: "github"
   args:
@@ -64,7 +67,7 @@ runs:
       run: |
         FORMAT_ARGS=""
         case "$DOL_COMMAND" in
-          nplusone|n-plus-one|migration-risk)
+          nplusone|n-plus-one|migration-risk|blast-radius|blast)
             FORMAT_ARGS="--format $DOL_FORMAT"
             ;;
         esac

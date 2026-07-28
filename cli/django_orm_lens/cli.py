@@ -28,6 +28,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from . import __version__
+from .blast_radius import analyze_blast_radius, format_blast_radius
 from .ci_formats import (
     migration_risks_github,
     migration_risks_sarif,
@@ -37,6 +38,7 @@ from .ci_formats import (
 from .diff import diff_schemas, format_diff
 from .er_formats import ER_BUILDERS
 from .formatters import format_hover, format_index, format_model
+from .impact import group_by_layer, scan_impact
 from .migrations_parser import analyze_migration_risks, describe_migration_dependency
 from .models import (
     ParsedModel,
@@ -434,6 +436,74 @@ def _migration_deps_mermaid(result: dict) -> str:
     return "\n".join(lines)
 
 
+def _cmd_impact(args: argparse.Namespace) -> int:
+    """Every reference to a model or field name, grouped by Django layer."""
+    findings = scan_impact(args.path, args.name)
+    if args.confidence != "all":
+        threshold = {"certain": 0, "likely": 1, "possibly": 2}[args.confidence]
+        rank = {"certain": 0, "likely": 1, "possibly": 2}
+        findings = [f for f in findings if rank[f.confidence] <= threshold]
+
+    if args.format == "json":
+        print(json.dumps(
+            {"needle": args.name, "findings": [f.to_dict() for f in findings]},
+            indent=2,
+            ensure_ascii=False,
+        ))
+        return 0
+
+    if not findings:
+        print(f"no references to {args.name!r} found.")
+        return 0
+
+    root = Path(args.path).resolve()
+    for layer, items in group_by_layer(findings).items():
+        print(f"{layer} ({len(items)}):")
+        for f in items:
+            try:
+                rel = Path(f.file_path).resolve().relative_to(root).as_posix()
+            except (ValueError, OSError):
+                rel = f.file_path
+            # +1 on the line: the finding is zero-based, humans and editors
+            # are one-based.
+            print(f"  {rel}:{f.line + 1}  [{f.confidence}] {f.snippet}")
+            print(f"      {f.reason}")
+    print(f"\n{len(findings)} reference(s) to {args.name!r}.")
+    return 0
+
+
+def _cmd_blast_radius(args: argparse.Namespace) -> int:
+    """Join migration risks with the code that still references what changes."""
+    risks = analyze_migration_risks(args.path)
+    if args.severity != "all":
+        threshold = _SEVERITY_ORDER[args.severity]
+        risks = [
+            r for r in risks if _SEVERITY_ORDER.get(r.severity, 99) <= threshold
+        ]
+
+    index = None
+    if not args.no_cascade:
+        index = _load_index(args)
+
+    report = analyze_blast_radius(
+        args.path,
+        index=index,
+        only_migrations=args.only or None,
+        risks=risks,
+    )
+
+    if args.format == "json":
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        rendered = format_blast_radius(report, args.format, args.path)
+        if rendered:
+            print(rendered)
+
+    if args.exit_zero:
+        return 0
+    return 1 if report.critical_count else 0
+
+
 def _cmd_cascade(args: argparse.Namespace) -> int:
     """Show what deleting one row of a model does to every related table."""
     idx = _load_index(args)
@@ -712,6 +782,70 @@ def build_parser() -> argparse.ArgumentParser:
     )
     casc.set_defaults(func=_cmd_cascade)
 
+    imp = sub.add_parser(
+        "impact",
+        help="What references a model or field — grouped by Django layer",
+    )
+    _add_scan_flags(imp)
+    imp.add_argument(
+        "name",
+        help="Field or model name to search for, e.g. author or Post",
+    )
+    imp.add_argument(
+        "--confidence",
+        choices=("certain", "likely", "possibly", "all"),
+        default="all",
+        help="Minimum confidence to report (default: all)",
+    )
+    imp.add_argument("--format", "-f", choices=("text", "json"), default="text")
+    imp.set_defaults(func=_cmd_impact)
+
+    blast = sub.add_parser(
+        "blast-radius",
+        aliases=["blast"],
+        help=(
+            "Review-time report: risky migration operations joined with the "
+            "code that still references what they change"
+        ),
+    )
+    _add_scan_flags(blast)
+    blast.add_argument(
+        "--format", "-f",
+        choices=("text", "json", "markdown", "github"),
+        default="text",
+        help=(
+            "Output format. 'markdown' is a ready-to-post PR comment; "
+            "'github' emits ::error/::warning workflow commands"
+        ),
+    )
+    blast.add_argument(
+        "--severity",
+        choices=("critical", "warning", "info", "all"),
+        default="critical",
+        help="Minimum risk severity to report (default: critical)",
+    )
+    blast.add_argument(
+        "--only",
+        action="append",
+        default=[],
+        metavar="MIGRATION",
+        help=(
+            "Restrict to these migration files — pass a PR's changed paths, "
+            "repeat the flag per file. Default: every migration in the workspace"
+        ),
+    )
+    blast.add_argument(
+        "--no-cascade",
+        action="store_true",
+        help="Skip the cascade preview (avoids the extra workspace parse)",
+    )
+    blast.add_argument(
+        "--exit-zero",
+        action="store_true",
+        help="Always exit 0 even when critical risks are present",
+    )
+    blast.set_defaults(func=_cmd_blast_radius)
+
     mcp = sub.add_parser(
         "mcp",
         help="Run the MCP stdio server (requires 'pip install django-orm-lens[mcp]')",
@@ -737,6 +871,8 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  signals            Sender→signal→handler graph from @receiver")
     print("  migration-deps <app>      Migration dependency DAG (text/json/mermaid)")
     print("  cascade <model>    What delete() cascades to, grouped by on_delete")
+    print("  impact <name>      What still references a model or field, by layer")
+    print("  blast-radius       Migration risks joined with what still reads them")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
     print("run `django-orm-lens <command> --help` for options.")

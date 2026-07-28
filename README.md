@@ -333,6 +333,8 @@ django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
 django-orm-lens signals                      # sender→signal→handler graph
 django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
 django-orm-lens cascade blog.Author          # what one delete() takes down
+django-orm-lens impact author                # what still references a field
+django-orm-lens blast-radius -f markdown     # risks + who still reads them
 ```
 
 Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
