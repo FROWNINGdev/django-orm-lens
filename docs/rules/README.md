@@ -1,5 +1,8 @@
 # Rule reference
 
+🌐 [Tiếng Việt](../i18n/rules/vi/README.md)
+
+
 Django ORM Lens ships two rule surfaces:
 
 1. **Editor rules (`DOL###`)** — 16 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `Django ORM Lens`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
