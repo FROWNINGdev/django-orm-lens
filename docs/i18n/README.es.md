@@ -376,7 +376,7 @@ Las regresiones de esquema son más baratas de atrapar en el momento en que entr
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.5.0
+    rev: py-v1.5.1
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk

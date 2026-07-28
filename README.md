@@ -382,7 +382,7 @@ Schema regressions are cheapest to catch the moment they enter a PR. Three zero-
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.5.0
+    rev: py-v1.5.1
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk
