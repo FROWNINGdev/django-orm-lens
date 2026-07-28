@@ -13,7 +13,7 @@ inputs:
     description: >-
       Subcommand to run: nplusone | migration-risk | blast-radius | impact |
       scan | list | er | diff | suggest-indexes | signals | migration-deps |
-      cascade
+      cascade | drift | stats-sql
     required: false
     default: "nplusone"
   path:
@@ -54,8 +54,11 @@ inputs:
     default: "false"
   github-token:
     description: >-
-      Token for only-changed / comment. `${{ github.token }}` is enough —
-      it needs `pull-requests: write` only when comment is enabled.
+      Token for only-changed / comment. The built-in workflow token is
+      enough; it needs `pull-requests: write` only when comment is enabled.
+      NOTE: no expression syntax anywhere in this file outside `runs:` —
+      GitHub evaluates it while loading the manifest, and an unavailable
+      context there fails the whole action, not just the input.
     required: false
     default: ""
 

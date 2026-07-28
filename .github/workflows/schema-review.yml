@@ -18,12 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The repo has no Django app of its own; the fixture app is the closest
-      # real target and exercises every code path the action uses.
+      # A fixture app dedicated to this workflow. Deliberately NOT the one the
+      # unit tests assert on: pointing both at the same app means any PR that
+      # adds a migration to exercise the bot also breaks tests that pin exact
+      # target counts, which is precisely what happened the first time.
       - uses: ./
         with:
           command: blast-radius
-          path: cli/tests/fixtures/blast_radius
+          path: cli/tests/fixtures/live_check
           args: --severity all --exit-zero
           only-changed: true
           comment: true
