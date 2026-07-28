@@ -18,6 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Install the checkout, not the release. The action installs from PyPI by
+      # default, which can only ever expose commands that have shipped — so a
+      # workflow verifying unreleased work has to bring its own build, or it
+      # silently tests the last release instead of this PR.
+      - run: pip install ./cli
+
       # A fixture app dedicated to this workflow. Deliberately NOT the one the
       # unit tests assert on: pointing both at the same app means any PR that
       # adds a migration to exercise the bot also breaks tests that pin exact
@@ -25,6 +31,7 @@ jobs:
       - uses: ./
         with:
           command: blast-radius
+          install: false
           path: cli/tests/fixtures/live_check
           args: --severity all --exit-zero
           only-changed: true

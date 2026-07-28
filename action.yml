@@ -38,6 +38,15 @@ inputs:
     description: "django-orm-lens version to install from PyPI (default: latest)"
     required: false
     default: ""
+  install:
+    description: >-
+      Install django-orm-lens from PyPI before running. Set to "false" when the
+      workflow has already put a build on PATH — a checkout of this repo, or a
+      wheel from an earlier job. Note that a PyPI install can only ever expose
+      commands that have been released, so an unreleased command needs this off
+      plus your own install step.
+    required: false
+    default: "true"
   only-changed:
     description: >-
       blast-radius only. Restrict the report to migration files this pull
@@ -72,7 +81,16 @@ runs:
       shell: bash
       env:
         DOL_VERSION: ${{ inputs.version }}
+        DOL_INSTALL: ${{ inputs.install }}
       run: |
+        if [ "$DOL_INSTALL" != "true" ]; then
+          echo "install: skipped by input"
+          command -v django-orm-lens >/dev/null 2>&1 || {
+            echo "::error::install is false but django-orm-lens is not on PATH"
+            exit 1
+          }
+          exit 0
+        fi
         if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
         if [ -n "$DOL_VERSION" ]; then
           "$PY" -m pip install --quiet "django-orm-lens==$DOL_VERSION"
@@ -138,6 +156,12 @@ runs:
             $ONLY_ARGS $DOL_ARGS > "$REPORT" || RC=$?
           cat "$REPORT"
 
+          if [ ! -s "$REPORT" ]; then
+            # An empty body is a 422 from the API, which would mask whatever
+            # actually went wrong upstream. Surface that instead.
+            echo "::error::blast-radius produced no report (exit $RC) - not commenting"
+            exit "${RC:-1}"
+          fi
           if [ -z "${DOL_PR:-}" ]; then
             echo "::notice::comment skipped — not a pull_request event"
           elif [ -z "${GH_TOKEN:-}" ]; then
