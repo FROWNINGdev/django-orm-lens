@@ -252,6 +252,13 @@ class HappyPathTest(unittest.TestCase):
         self.assertIn("myapp.Author", raw)
         self.assertIn("myapp.Book", raw)
 
+    def test_er_diagram_dot_format(self) -> None:
+        result = _tool_er_diagram(
+            {"workspace_root": str(self.tmp), "diagram_format": "dot"}
+        )
+        self.assertTrue(result.startswith("digraph django_orm_lens {"))
+        self.assertIn('subgraph "cluster_myapp" {', result)
+
     def test_describe_model_returns_field_detail(self) -> None:
         raw = _tool_describe_model(
             {"workspace_root": str(self.tmp), "model": "myapp.Book"}

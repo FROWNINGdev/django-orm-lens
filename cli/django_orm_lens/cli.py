@@ -4,7 +4,7 @@ Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
 
   django-orm-lens scan       — walk workspace, list every model
   django-orm-lens describe   — one model in detail
-  django-orm-lens er         — ER diagram: mermaid / dbml / d2 / plantuml
+  django-orm-lens er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
   django-orm-lens hover      — compact hover card for one model
   django-orm-lens list       — flat list ``app.Model`` for shell piping
   django-orm-lens diff       — compare two schema JSON dumps
@@ -566,17 +566,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     er = sub.add_parser(
         "er",
-        help="Emit an ER diagram — Mermaid, DBML, D2, or PlantUML (stdout or file)",
+        help=(
+            "Emit an ER diagram — Mermaid, DBML, D2, PlantUML, or Graphviz DOT "
+            "(stdout or file)"
+        ),
     )
     _add_scan_flags(er)
     er.add_argument(
         "--format", "-f",
-        choices=("mermaid", "dbml", "d2", "plantuml"),
+        choices=("mermaid", "dbml", "d2", "plantuml", "dot"),
         default="mermaid",
         help=(
             "Diagram language. mermaid renders natively on GitHub; dbml "
             "pastes into dbdiagram.io; d2 renders via the d2 CLI; plantuml "
-            "via any PlantUML server or IDE plugin"
+            "via any PlantUML server or IDE plugin; dot renders via Graphviz"
         ),
     )
     er.add_argument(
@@ -726,7 +729,7 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  list               Flat app.Model list, pipes into shell")
     print("  describe <model>   Full field/relation/Meta detail for one model")
     print("  hover <model>      Compact hover-card markdown for a model")
-    print("  er                 ER diagram: mermaid / dbml / d2 / plantuml")
+    print("  er                 ER diagram: mermaid / dbml / d2 / plantuml / dot")
     print("  diff <old> <new>   Compare two schema JSON dumps and print the delta")
     print("  nplusone           Detect N+1 anti-patterns in views/tasks")
     print("  migration-risk     Flag risky migration operations")
