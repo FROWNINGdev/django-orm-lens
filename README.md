@@ -712,6 +712,16 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] Golden-snapshot regression suite over 59 real-world models (Zulip / Saleor / Wagtail / django CMS / Mezzanine); ruff + mypy now gate CI
 - [x] Migration dependency graph — `migration-deps` (text / json / mermaid)
 
+**py-1.7 → 1.8** — the schema-intelligence wave
+
+- [x] `blast-radius` — migration risks joined with what still reads the schema they touch, as a PR bot (`comment: true`, sticky, `only-changed`)
+- [x] `drift` — `makemigrations --check` without booting Django
+- [x] `impact <name>` — what still references a model or field, grouped by Django layer
+- [x] `blast-radius --stats` + `stats-sql` — optional production row counts from read-only SQL you run yourself (the tool never holds a DB credential)
+- [x] `nplusone` resolves across functions — a queryset returned by a helper is followed into the loop that consumes it
+- [x] `blast_radius`, `drift` and `impact` exposed as MCP tools — thirteen tools for AI agents
+- [x] `drift` documents its `!!` / `~` marks in the report and in `--help` — reported by [@sevdog](https://github.com/sevdog) ([#57](https://github.com/FROWNINGdev/django-orm-lens/issues/57))
+
 **Next**
 
 - [ ] ORM query autocomplete inside `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
