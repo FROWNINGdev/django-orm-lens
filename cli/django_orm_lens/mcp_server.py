@@ -1,6 +1,6 @@
 """MCP (Model Context Protocol) stdio server for Django ORM Lens.
 
-Exposes ten read-only tools that any MCP-compatible AI agent can call:
+Exposes thirteen read-only tools that any MCP-compatible AI agent can call:
 
 * ``list_apps``       — list Django apps with model counts
 * ``list_models``    — flat ``app.Model`` list, optional app filter
@@ -303,6 +303,78 @@ def _tool_nplusone_scan(args: dict[str, Any]) -> str:
     return json.dumps([f.to_dict() for f in findings], indent=2)
 
 
+
+def _tool_blast_radius(args: dict[str, Any]) -> str:
+    """What a destructive migration actually hits.
+
+    Joins the migration-risk rules with a workspace-wide reference scan and,
+    for whole-model operations, the cascade fallout. Every destructive
+    operation becomes a target carrying its risks, the code that still reads
+    the thing being dropped (grouped by Django layer, tagged certain /
+    likely / possibly), and the cascade preview.
+    """
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    from .blast_radius import analyze_blast_radius
+    from .migrations_parser import analyze_migration_risks
+
+    severity = str(args.get("severity") or "critical")
+    risks = analyze_migration_risks(str(ws))
+    if severity != "all":
+        rank = {"critical": 0, "warning": 1, "info": 2}
+        threshold = rank.get(severity, 0)
+        risks = [r for r in risks if rank.get(r.severity, 99) <= threshold]
+    report = analyze_blast_radius(str(ws), index=get_index(ws), risks=risks)
+    return json.dumps(report.to_dict(), indent=2, ensure_ascii=False)
+
+
+def _tool_drift(args: dict[str, Any]) -> str:
+    """Do the migrations still describe the models?
+
+    Replays each app's migrations into the field set they imply and diffs
+    that against models.py. This is ``makemigrations --check`` without a
+    settings module or an app registry, so it answers on a cold clone.
+    """
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    from .drift import detect_drift
+
+    return json.dumps(detect_drift(str(ws)).to_dict(), indent=2, ensure_ascii=False)
+
+
+def _tool_impact(args: dict[str, Any]) -> str:
+    """Everything that still references a field or model name.
+
+    Grouped by Django layer, each finding tagged certain / likely / possibly.
+    Answers "what breaks if I remove this?" before the removal happens.
+    """
+    ws = _resolve(args)
+    if isinstance(ws, WorkspaceError):
+        return _error_json(ws)
+    needle = str(args.get("name") or "").strip()
+    if not needle:
+        return json.dumps({"error": "MISSING_NAME", "hint": "pass 'name'"}, indent=2)
+    from .impact import group_by_layer, scan_impact
+
+    findings = scan_impact(ws, needle)
+    return json.dumps(
+        {
+            "needle": needle,
+            "counts": {
+                tier: sum(1 for f in findings if f.confidence == tier)
+                for tier in ("certain", "likely", "possibly")
+            },
+            "byLayer": {
+                layer: [f.to_dict() for f in items]
+                for layer, items in group_by_layer(findings).items()
+            },
+        },
+        indent=2,
+        ensure_ascii=False,
+    )
+
 # ---------------------------------------------------------------------------
 # Tool registry — descriptions ship in tools/list so agents see them
 # ---------------------------------------------------------------------------
@@ -380,6 +452,42 @@ TOOLS: dict[str, dict[str, Any]] = {
             "the workspace. Returns sender->signal->handler DAG plus custom-"
             "signal send-sites and orphan handlers. Zero-runtime, no DB, no "
             "Django boot." + _WORKSPACE_HINT
+        ),
+    },
+    "blast_radius": {
+        "handler": _tool_blast_radius,
+        "description": (
+            "What a destructive schema change actually hits. Joins migration "
+            "risk rules with a workspace-wide reference scan: for every "
+            "RemoveField / DeleteModel / RenameField / RenameModel / "
+            "AlterField it reports the risks, the code still reading the "
+            "dropped thing grouped by Django layer with a certain/likely/"
+            "possibly tag, and the cascade fallout for whole-model "
+            "operations. Optional 'severity' (critical|warning|info|all, "
+            "default critical)." + _WORKSPACE_HINT
+        ),
+    },
+    "drift": {
+        "handler": _tool_drift,
+        "description": (
+            "Do the migrations still describe the models? Replays each app's "
+            "migrations into the field set they imply and diffs it against "
+            "models.py - makemigrations --check without a settings module, "
+            "an app registry or an installed dependency. Reports fields "
+            "declared but never migrated (the column will not exist) "
+            "separately from fields migrated but no longer declared."
+            + _WORKSPACE_HINT
+        ),
+    },
+    "impact": {
+        "handler": _tool_impact,
+        "description": (
+            "Everything that still references a field or model name, grouped "
+            "by Django layer (models, serializers, forms, admin, views, urls, "
+            "templates, tests, migrations), each finding tagged certain / "
+            "likely / possibly. Answers 'what breaks if I remove this?'. "
+            "Required 'name' argument: the field or model name to search for."
+            + _WORKSPACE_HINT
         ),
     },
     "nplusone_scan": {
@@ -505,6 +613,20 @@ def main() -> int:
             @server.tool(name=name, description=description)
             def nplusone_scan(workspace_root: str = "") -> str:
                 return handler({"workspace_root": workspace_root})
+        elif name == "blast_radius":
+            @server.tool(name=name, description=description)
+            def blast_radius(workspace_root: str = "", severity: str = "critical") -> str:
+                return handler(
+                    {"workspace_root": workspace_root, "severity": severity}
+                )
+        elif name == "drift":
+            @server.tool(name=name, description=description)
+            def drift(workspace_root: str = "") -> str:
+                return handler({"workspace_root": workspace_root})
+        elif name == "impact":
+            @server.tool(name=name, description=description)
+            def impact(name_: str = "", workspace_root: str = "") -> str:
+                return handler({"name": name_, "workspace_root": workspace_root})
 
     for name, spec in TOOLS.items():
         _register(name, spec["description"], spec["handler"])

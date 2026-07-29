@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.8.0] - 2026-07-29
+
+### Added
+
+- **`blast_radius`, `drift` and `impact` are MCP tools now.** The four
+  analyzers added in 1.7.0 shipped to the CLI only, which quietly broke the
+  project's own promise of three surfaces over one parser core: an agent
+  could ask what a model looked like but not what dropping a field would
+  hit. All three are exposed with the same workspace resolution and the same
+  structured error envelope as the existing tools, taking the tool count from
+  ten to thirteen. `blast_radius` accepts an optional `severity`; `impact`
+  requires a `name` and returns `MISSING_NAME` rather than an empty result
+  when it is absent.
+
 ## [py-1.7.1] - 2026-07-29
 
 ### Fixed

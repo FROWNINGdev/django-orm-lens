@@ -52,7 +52,7 @@ Cold clone, broken venv, no settings module — you still get every app, model, 
 |---|---|---|
 | **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Sidebar tree, live ER diagram, hover cards, 16 QuickFix rules |
 | **Terminal / CI user** | `pip install django-orm-lens` | 17 subcommands, SARIF + PR annotations, pre-commit hooks, a GitHub Action |
-| **AI-agent user** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 10 read-only MCP tools answering schema questions from ground truth |
+| **AI-agent user** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 13 read-only MCP tools answering schema questions from ground truth |
 
 MCP setup is one JSON block — see [Integrations](#-integrations). Point `DJANGO_ORM_LENS_ROOT` at your Django project's absolute path.
 
@@ -456,7 +456,7 @@ The comment goes up **before** the job fails, so a blocked PR still explains why
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.7.1
+    rev: py-v1.8.0
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk

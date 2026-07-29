@@ -52,7 +52,7 @@ uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
 |---|---|---|
 | **Пользователь редактора** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Дерево в боковой панели, живая ER-диаграмма, hover-карточки, 16 QuickFix-правил |
 | **Пользователь терминала / CI** | `pip install django-orm-lens` | 13 подкоманд, SARIF + PR-аннотации, pre-commit-хуки, GitHub Action |
-| **Пользователь AI-агентов** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 10 read-only MCP-инструментов, отвечающих на вопросы о схеме на основе ground truth |
+| **Пользователь AI-агентов** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 13 read-only MCP-инструментов, отвечающих на вопросы о схеме на основе ground truth |
 
 Настройка MCP — один JSON-блок, см. [Интеграции](#-интеграции). Укажите в `DJANGO_ORM_LENS_ROOT` абсолютный путь к вашему Django-проекту.
 
@@ -398,7 +398,7 @@ django-orm-lens mcp
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.7.1
+    rev: py-v1.8.0
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk

@@ -67,7 +67,7 @@ def _write_django_project(root: Path) -> None:
 class ToolsRegistryTest(unittest.TestCase):
     """The ``TOOLS`` dict is what feeds ``tools/list`` — schema-level asserts."""
 
-    def test_all_ten_tools_registered(self) -> None:
+    def test_all_tools_registered(self) -> None:
         expected = {
             "list_apps",
             "list_models",
@@ -79,6 +79,9 @@ class ToolsRegistryTest(unittest.TestCase):
             "suggest_indexes",
             "signal_graph",
             "nplusone_scan",
+            "blast_radius",
+            "drift",
+            "impact",
         }
         self.assertEqual(set(TOOLS), expected)
 
