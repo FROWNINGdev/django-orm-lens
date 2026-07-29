@@ -721,6 +721,8 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] `nplusone` resolves across functions — a queryset returned by a helper is followed into the loop that consumes it
 - [x] `blast_radius`, `drift` and `impact` exposed as MCP tools — thirteen tools for AI agents
 - [x] `drift` documents its `!!` / `~` marks in the report and in `--help` — reported by [@sevdog](https://github.com/sevdog) ([#57](https://github.com/FROWNINGdev/django-orm-lens/issues/57))
+- [x] `drift` follows inheritance from abstract bases — an abstract base's fields count as the concrete child's own, as Django treats them — reported by [@sevdog](https://github.com/sevdog) ([#58](https://github.com/FROWNINGdev/django-orm-lens/issues/58))
+- [x] `suggest-index` recognises the indexes Django already made — primary key (`pk` and `id` are one lookup), `db_index`, `unique`, foreign keys, `unique_together`, `UniqueConstraint` — reported by [@sevdog](https://github.com/sevdog) ([#60](https://github.com/FROWNINGdev/django-orm-lens/issues/60)), same cause independently found by [@RinZ27](https://github.com/RinZ27) ([#61](https://github.com/FROWNINGdev/django-orm-lens/pull/61))
 
 **Next**
 
