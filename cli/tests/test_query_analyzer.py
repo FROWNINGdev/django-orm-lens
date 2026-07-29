@@ -171,6 +171,102 @@ class SuggestIndexesTest(unittest.TestCase):
             fields = {u["field"]: u["sites"] for u in result["filter_usages"] if not u.get("composite")}
             self.assertEqual(fields.get("pk"), 2)
 
+    def test_pk_and_id_not_proposed(self) -> None:
+        """Filtering on pk/id should never generate a proposal — it's the PK."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _copy_miniapp(root)
+            _write(
+                root / "api.py",
+                "from orders.models import Order\n"
+                "def a(): return Order.objects.filter(pk=1)\n"
+                "def b(): return Order.objects.filter(pk=2)\n"
+                "def c(): return Order.objects.filter(id=3)\n"
+                "def d(): return Order.objects.filter(id=4)\n",
+            )
+
+            result = suggest_indexes("orders", "Order", str(root))
+            proposed = [p["fields"] for p in result["proposed_indexes"]]
+            self.assertNotIn(["pk"], proposed)
+            self.assertNotIn(["id"], proposed)
+
+    def test_db_index_true_field_not_proposed(self) -> None:
+        """Fields with db_index=True already have a DB index — no proposal."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "myapp" / "__init__.py", ""
+            )
+            _write(
+                root / "myapp" / "models.py",
+                "from django.db import models\n\n"
+                "class Widget(models.Model):\n"
+                "    code = models.CharField(max_length=32, db_index=True)\n"
+                "    name = models.CharField(max_length=64)\n",
+            )
+            _write(
+                root / "views.py",
+                "from myapp.models import Widget\n"
+                "def a(): return Widget.objects.filter(code='x')\n"
+                "def b(): return Widget.objects.filter(code='y')\n",
+            )
+
+            result = suggest_indexes("myapp", "Widget", str(root))
+            proposed = [p["fields"] for p in result["proposed_indexes"]]
+            self.assertNotIn(["code"], proposed)
+
+    def test_unique_field_not_proposed(self) -> None:
+        """Fields declared unique=True carry an implicit index."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(root / "shop" / "__init__.py", "")
+            _write(
+                root / "shop" / "models.py",
+                "from django.db import models\n\n"
+                "class Product(models.Model):\n"
+                "    sku = models.CharField(max_length=32, unique=True)\n",
+            )
+            _write(
+                root / "views.py",
+                "from shop.models import Product\n"
+                "def a(): return Product.objects.filter(sku='A1')\n"
+                "def b(): return Product.objects.filter(sku='A2')\n",
+            )
+
+            result = suggest_indexes("shop", "Product", str(root))
+            proposed = [p["fields"] for p in result["proposed_indexes"]]
+            self.assertNotIn(["sku"], proposed)
+
+    def test_unique_constraint_not_proposed(self) -> None:
+        """UniqueConstraint in Meta.constraints implies a DB index — skip it."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(root / "inventory" / "__init__.py", "")
+            _write(
+                root / "inventory" / "models.py",
+                "from django.db import models\n\n"
+                "class Stock(models.Model):\n"
+                "    warehouse = models.CharField(max_length=32)\n"
+                "    product = models.CharField(max_length=32)\n\n"
+                "    class Meta:\n"
+                "        constraints = [\n"
+                "            models.UniqueConstraint(\n"
+                "                fields=['warehouse', 'product'], name='uc_stock'\n"
+                "            )\n"
+                "        ]\n",
+            )
+            _write(
+                root / "views.py",
+                "from inventory.models import Stock\n"
+                "def a(): return Stock.objects.filter(warehouse='A', product='X')\n"
+                "def b(): return Stock.objects.filter(warehouse='B', product='Y')\n",
+            )
+
+            result = suggest_indexes("inventory", "Stock", str(root))
+            proposed = [p["fields"] for p in result["proposed_indexes"]]
+            self.assertNotIn(["product", "warehouse"], proposed)
+            self.assertNotIn(["warehouse", "product"], proposed)
+
 
 if __name__ == "__main__":
     unittest.main()

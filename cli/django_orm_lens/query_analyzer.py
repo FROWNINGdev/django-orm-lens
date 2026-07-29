@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import (
+    ParsedModel,
     WorkspaceIndex,
     find_user_model,
     find_user_model_from_dict,
@@ -157,6 +158,69 @@ def _existing_meta_indexes(meta: dict[str, str]) -> list[list[str]]:
         if fields:
             out.append(fields)
     return out
+
+
+def _covered_index_sets(model: ParsedModel) -> set[tuple[str, ...]]:
+    """Return every field combination that already has a DB index.
+
+    This covers:
+    * ``Meta.indexes`` entries
+    * ``Meta.unique_together`` tuples (which imply a composite index)
+    * ``Meta.constraints`` with ``UniqueConstraint(fields=[...])``
+    * Per-field ``primary_key=True``, ``db_index=True``, or ``unique=True``
+    * The implicit PK columns ``pk`` and ``id`` on models that rely on the
+      default auto-primary-key (no custom ``primary_key=True`` field declared)
+    """
+    covered: set[tuple[str, ...]] = set()
+
+    # --- Meta.indexes ---
+    for fields in _existing_meta_indexes(model.meta):
+        covered.add(tuple(fields))
+
+    # --- Meta.unique_together ---
+    raw_ut = model.meta.get("unique_together")
+    if raw_ut:
+        for m in re.finditer(r"\(([^)]+)\)", raw_ut):
+            fields = re.findall(r"['\"]([^'\"]+)['\"]", m.group(1))
+            if fields:
+                covered.add(tuple(fields))
+                covered.add(tuple(sorted(fields)))
+
+    # --- Meta.constraints (UniqueConstraint) ---
+    raw_con = model.meta.get("constraints")
+    if raw_con:
+        for m in re.finditer(r"fields\s*=\s*\[([^\]]*)\]", raw_con):
+            fields = re.findall(r"['\"]([^'\"]+)['\"]", m.group(1))
+            if fields:
+                covered.add(tuple(fields))
+                covered.add(tuple(sorted(fields)))
+
+    # --- Field-level flags ---
+    has_custom_pk = any(
+        re.search(r"primary_key\s*=\s*True", f.args or "")
+        for f in model.fields
+    )
+    for f in model.fields:
+        args = f.args or ""
+        if re.search(r"primary_key\s*=\s*True", args):
+            covered.add((f.name,))
+            # Django maps `pk` as an alias to whatever the PK column is
+            covered.add(("pk",))
+        if re.search(r"db_index\s*=\s*True", args):
+            covered.add((f.name,))
+        if re.search(r"(?<![a-z_])unique\s*=\s*True", args):
+            covered.add((f.name,))
+        # ForeignKey implicitly creates a DB index unless db_index=False
+        if f.is_relation and f.relation_kind == "ForeignKey" and not re.search(r"db_index\s*=\s*False", args):
+            covered.add((f.name,))
+            covered.add((f.name + "_id",))
+
+    # --- Implicit auto-PK (id / pk) ---
+    if not has_custom_pk:
+        covered.add(("id",))
+        covered.add(("pk",))
+
+    return covered
 
 
 class _Collector(ast.NodeVisitor):
@@ -302,7 +366,7 @@ def _propose_indexes(
     filter_singles: list[dict[str, Any]],
     filter_composites: list[dict[str, Any]],
     order_by_summary: list[dict[str, Any]],
-    existing: list[list[str]],
+    covered: set[tuple[str, ...]],
 ) -> list[dict[str, Any]]:
     """Turn the frequency tables into concrete ``Meta.indexes`` suggestions.
 
@@ -314,9 +378,10 @@ def _propose_indexes(
     * every order_by field with >=2 sites gets a proposal (unless already
       covered by an existing index whose leading field matches).
 
-    Existing ``Meta.indexes`` are dedup'd by exact field-list match.
+    ``covered`` is the full set of already-indexed field tuples produced by
+    :func:`_covered_index_sets` — includes Meta.indexes, field-level flags,
+    implicit PK columns, and unique constraints.
     """
-    existing_set = {tuple(x) for x in existing}
     proposed: list[dict[str, Any]] = []
     covered_leaders: set[str] = set()
 
@@ -325,7 +390,7 @@ def _propose_indexes(
             continue
         fields = combo["field"]
         key = tuple(fields)
-        if key in existing_set:
+        if key in covered:
             continue
         proposed.append(
             {
@@ -340,7 +405,7 @@ def _propose_indexes(
             continue
         field = single["field"]
         key = (field,)
-        if key in existing_set:
+        if key in covered:
             continue
         if field in covered_leaders:
             continue
@@ -356,7 +421,7 @@ def _propose_indexes(
             continue
         field = row["field"]
         key = (field,)
-        if key in existing_set:
+        if key in covered:
             continue
         # Don't duplicate an existing filter proposal on the same bare field
         if any(p["fields"] == [field] for p in proposed):
@@ -443,8 +508,9 @@ def suggest_indexes(
     aggregate_summary = _summarise_order_by(all_aggregate)  # same shape
 
     existing = _existing_meta_indexes(target_model.meta)
+    covered = _covered_index_sets(target_model)
     proposed = _propose_indexes(
-        filter_singles, filter_composites, order_by_summary, existing
+        filter_singles, filter_composites, order_by_summary, covered
     )
 
     filter_usages: list[dict[str, Any]] = list(filter_singles)

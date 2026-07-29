@@ -5,6 +5,22 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`suggest-indexes` no longer proposes redundant indexes** for fields that
+  already have a DB index by other means: implicit primary-key columns (`pk`
+  and `id`), fields with `db_index=True`, fields with `unique=True`,
+  `ForeignKey` fields (which Django indexes by default), and composite indexes
+  declared via `Meta.unique_together` or `Meta.constraints`
+  (`UniqueConstraint`). Previously all of these were treated as uncovered,
+  producing noisy proposals for columns the DB had already indexed.
+  The parser's `class Meta` reader was also extended to capture multi-line
+  bracket values (`constraints = [...]`, `unique_together = [...]`) that were
+  previously truncated to a bare `[`.
+  Closes [#60](https://github.com/FROWNINGdev/django-orm-lens/issues/60).
+
 ## [py-1.8.1] - 2026-07-29
 
 ### Added

@@ -355,6 +355,36 @@ def _read_balanced_args(lines: Sequence[str], start: int):
     return "".join(parts).lstrip("("), len(lines) - 1
 
 
+def _read_balanced_meta_value(lines: Sequence[str], start: int, col: int) -> tuple[str, int]:
+    """Read a possibly-multi-line Meta attribute value starting at ``col`` on
+    line ``start``.
+
+    If the value begins with ``[`` or ``(``, collect lines until the bracket
+    is balanced and return the full text. Otherwise return the single-line
+    value as-is.
+    """
+    first = lines[start][col:].rstrip()
+    opener = first[0] if first else ""
+    if opener not in ("[", "("):
+        return first, start
+    closer = "]" if opener == "[" else ")"
+    depth = 0
+    parts: list[str] = []
+    for i in range(start, len(lines)):
+        segment = lines[i][col:] if i == start else lines[i]
+        for ch in segment:
+            if ch == opener:
+                depth += 1
+            elif ch == closer:
+                depth -= 1
+                if depth == 0:
+                    parts.append(ch)
+                    return "".join(parts), i
+            parts.append(ch)
+        parts.append(" ")  # join lines with a space for readable re-matching
+    return "".join(parts), len(lines) - 1
+
+
 def _looks_like_model(base_classes: list[str]) -> bool:
     for b in base_classes:
         tail = b.split(".")[-1]
@@ -474,7 +504,19 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
                         break
                     m2 = rx["META_ITEM_RE"].match(ml)
                     if m2:
-                        model.meta[m2.group(1)] = m2.group(2).strip()
+                        key = m2.group(1)
+                        raw_val = m2.group(2).strip()
+                        # If the value opens a bracket that hasn't closed on
+                        # this line, read ahead until the bracket balances.
+                        if raw_val and raw_val[-1] in ("[", "(") or (
+                            raw_val.count("[") > raw_val.count("]")
+                            or raw_val.count("(") > raw_val.count(")")
+                        ):
+                            val_col = ml.index(raw_val[0])
+                            full_val, k = _read_balanced_meta_value(lines, k, val_col)
+                            model.meta[key] = full_val
+                        else:
+                            model.meta[key] = raw_val
                     k += 1
                 j = k
                 continue
