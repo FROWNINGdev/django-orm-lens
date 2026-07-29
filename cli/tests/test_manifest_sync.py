@@ -139,6 +139,8 @@ def test_mcp_extra_excludes_the_2x_api() -> None:
     )
     for extra in ("mcp", "full"):
         line = next(
-            l for l in text.splitlines() if l.strip().startswith(f"{extra} = [")
+            row
+            for row in text.splitlines()
+            if row.strip().startswith(f"{extra} = [")
         )
         assert "<2" in line, f"{extra} extra must cap mcp below 2.0: {line}"
