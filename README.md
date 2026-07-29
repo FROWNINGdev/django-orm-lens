@@ -1,3 +1,5 @@
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.FROWNINGdev%2Fdjango-orm-lens.svg)](https://mcptoplist.com/server/io.github.FROWNINGdev%2Fdjango-orm-lens)
+
 **English** · [Русский](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.ru.md) · [Español](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.es.md) · [中文](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.zh.md)
 
 <div align="center" markdown="1">
