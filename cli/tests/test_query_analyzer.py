@@ -167,9 +167,15 @@ class SuggestIndexesTest(unittest.TestCase):
             )
 
             result = suggest_indexes("orders", "Order", str(root))
-            # get sites feed into the filter/exclude/get pool for indexing
+            # get sites feed into the filter/exclude/get pool for indexing.
+            # ``pk`` is folded onto the real primary-key column (#60) — it is
+            # an alias, not a field of its own, so counting it separately
+            # would split one lookup across two rows.
             fields = {u["field"]: u["sites"] for u in result["filter_usages"] if not u.get("composite")}
-            self.assertEqual(fields.get("pk"), 2)
+            self.assertEqual(fields.get("id"), 2)
+            self.assertNotIn("pk", fields)
+            # …and the primary key is already indexed, so nothing is proposed.
+            self.assertNotIn(["id"], [p["fields"] for p in result["proposed_indexes"]])
 
 
 if __name__ == "__main__":

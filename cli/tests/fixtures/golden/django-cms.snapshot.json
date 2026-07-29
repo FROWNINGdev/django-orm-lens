@@ -52,7 +52,7 @@
           "lineNumber": 1108,
           "meta": {
             "app_label": "\"cms\"",
-            "constraints": "[",
+            "constraints": "[ UniqueConstraint(fields=[\"page\", \"language\"], name=\"unique_together_page_language\"), ]",
             "default_permissions": "[]"
           },
           "name": "PageUrl"
@@ -171,7 +171,7 @@
           "lineNumber": 153,
           "meta": {
             "app_label": "'cms'",
-            "indexes": "[",
+            "indexes": "[ models.Index(fields=['placeholder', 'language', 'position']), ]",
             "ordering": "('position',)",
             "unique_together": "('placeholder', 'language', 'position')",
             "verbose_name": "_(\"plugin\")",

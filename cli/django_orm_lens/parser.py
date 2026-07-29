@@ -25,6 +25,7 @@ import re
 import sys
 import time
 from collections.abc import Iterable, Sequence
+from dataclasses import replace
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -474,7 +475,8 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
                         break
                     m2 = rx["META_ITEM_RE"].match(ml)
                     if m2:
-                        model.meta[m2.group(1)] = m2.group(2).strip()
+                        value, k = _read_meta_value(lines, k, m2.group(2))
+                        model.meta[m2.group(1)] = value
                     k += 1
                 j = k
                 continue
@@ -511,6 +513,106 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
     return all_defs
 
 
+def _read_meta_value(
+    lines: list[str], start: int, first_line: str
+) -> tuple[str, int]:
+    """Join a ``Meta`` entry that spans lines. Returns ``(value, last_index)``.
+
+    ``Meta.indexes`` and ``Meta.constraints`` are almost always written one
+    entry per line. The per-line regex captured only ``[`` for those, so every
+    consumer saw an empty list and, in the case of ``suggest-index``, proposed
+    indexes the model already had (#60). Continuation lines are pulled in
+    until the brackets opened on the first line close again.
+
+    A value that balances on its own first line is returned untouched, so
+    every single-line ``Meta`` entry parses exactly as before.
+    """
+    def _depth(text: str) -> int:
+        return (
+            text.count("(") - text.count(")")
+            + text.count("[") - text.count("]")
+            + text.count("{") - text.count("}")
+        )
+
+    parts = [first_line.strip()]
+    depth = _depth(parts[0])
+    k = start
+    # Bounded so an unclosed bracket cannot walk the rest of the file.
+    while depth > 0 and k + 1 < len(lines) and k - start < 200:
+        k += 1
+        nxt = lines[k]
+        if not nxt.strip():
+            continue
+        parts.append(nxt.strip())
+        depth += _depth(nxt)
+    return " ".join(parts).strip(), k
+
+
+def _is_abstract(model: ParsedModel) -> bool:
+    return model.meta.get("abstract", "").strip() in ("True", "1", "true")
+
+
+def _abstract_bases_fields(
+    model: ParsedModel,
+    by_name: dict[str, ParsedModel],
+    stack: tuple[str, ...] = (),
+) -> list[ParsedField]:
+    """Fields ``model`` inherits from its abstract bases, parent-first.
+
+    Only *abstract* bases contribute. A concrete base is multi-table
+    inheritance, where the parent keeps its own table and the child gains a
+    ``parent_ptr`` rather than copies of the columns — counting those as the
+    child's own would invent columns that no migration will ever create.
+
+    Bases are walked in declaration order and the first declaration of a name
+    wins, which is the direction Python's MRO resolves for the single-
+    inheritance chains this actually matters for. ``stack`` breaks cycles in
+    malformed source instead of recursing forever.
+    """
+    out: list[ParsedField] = []
+    taken: set[str] = set()
+    for base in model.base_classes:
+        tail = base.split(".")[-1]
+        if tail in stack:
+            continue
+        parent = by_name.get(tail)
+        if parent is None or parent is model or not _is_abstract(parent):
+            continue
+        contributed = [
+            *_abstract_bases_fields(parent, by_name, (*stack, tail)),
+            *(
+                replace(f, inherited_from=f.inherited_from or parent.name)
+                for f in parent.fields
+            ),
+        ]
+        for f in contributed:
+            if f.name in taken:
+                continue
+            taken.add(f.name)
+            out.append(f)
+    return out
+
+
+def _attach_inherited_fields(all_defs: list[ParsedModel]) -> None:
+    """Populate ``inherited_fields`` on every def, in place.
+
+    Runs before the abstract classes are dropped — they are the only source
+    of inherited fields, so the merge has to happen while they are still in
+    the list. A field the class declares itself shadows the inherited one of
+    the same name, exactly as an override does in Django.
+    """
+    by_name: dict[str, ParsedModel] = {}
+    for m in all_defs:
+        # First definition wins when two files declare the same class name;
+        # the parser has no import graph to disambiguate with.
+        by_name.setdefault(m.name, m)
+    for m in all_defs:
+        own = {f.name for f in m.fields}
+        m.inherited_fields = [
+            f for f in _abstract_bases_fields(m, by_name) if f.name not in own
+        ]
+
+
 def _resolve_and_filter(all_defs: list[ParsedModel]) -> list[ParsedModel]:
     """Pass 2: transitive model resolution + abstract drop over ``all_defs``.
 
@@ -519,6 +621,7 @@ def _resolve_and_filter(all_defs: list[ParsedModel]) -> list[ParsedModel]:
     each base's tail name against whatever definitions are present, so a
     base class defined in another file is found when the union is passed.
     """
+    _attach_inherited_fields(all_defs)
     is_model_name = {m.name for m in all_defs if _looks_like_model(m.base_classes)}
     changed = True
     while changed:

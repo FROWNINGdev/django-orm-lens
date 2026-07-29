@@ -24,6 +24,10 @@ class ParsedField:
     on_delete: str | None = None
     related_name: str | None = None
     through_model: str | None = None
+    inherited_from: str | None = None
+    """Abstract base this field was declared on, when it reached the model
+    through inheritance rather than its own class body. ``None`` for a field
+    the class declares itself."""
 
     def to_dict(self) -> dict:
         out = {
@@ -55,6 +59,31 @@ class ParsedModel:
     base_classes: list[str]
     fields: list[ParsedField] = field(default_factory=list)
     meta: dict[str, str] = field(default_factory=dict)
+    inherited_fields: list[ParsedField] = field(default_factory=list)
+    """Fields this model gets from *abstract* bases, parent-first.
+
+    Django copies an abstract base's fields onto every concrete descendant's
+    own table, so schema-level consumers (drift, index suggestions) must count
+    them as the model's own — see #58, where django-guardian's
+    ``UserObjectPermission`` looked like it had dropped four migrated fields
+    that its abstract base declares. Concrete (multi-table) inheritance is
+    deliberately excluded: there the parent keeps its own table and the child
+    only gains a ``parent_ptr``.
+
+    Kept separate from :attr:`fields` (and out of :meth:`to_dict`) so the tree,
+    ER diagrams and the extension keep showing what each class literally
+    declares.
+    """
+
+    def all_fields(self) -> list[ParsedField]:
+        """Every field on this model's own table, parent-first.
+
+        What Django would put in ``Model._meta.fields``: the abstract bases'
+        fields, then the ones the class declares. Use this wherever the
+        question is "what columns does this table have"; use :attr:`fields`
+        where the question is "what does this class body say".
+        """
+        return [*self.inherited_fields, *self.fields]
 
     def to_dict(self) -> dict:
         return {

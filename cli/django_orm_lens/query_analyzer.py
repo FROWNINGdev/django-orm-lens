@@ -51,6 +51,15 @@ def _root_field(kwarg: str) -> str:
     return kwarg.split("__", 1)[0]
 
 
+def _canonical_pk(field: str, pk_name: str) -> str:
+    """Fold the ``pk`` alias onto the real primary-key field name.
+
+    Keeps any ``-`` prefix so ``order_by("-pk")`` stays a descending sort.
+    """
+    prefix, body = ("-", field[1:]) if field.startswith("-") else ("", field)
+    return prefix + (pk_name if body == "pk" else body)
+
+
 def _order_field(raw: str) -> str:
     """Normalise ``-created_at`` / ``created_at`` — keep the ``-`` prefix but
     strip any ``__`` lookup tail (rare but appears in ``order_by`` on JSONField)."""
@@ -146,17 +155,138 @@ def _existing_meta_indexes(meta: dict[str, str]) -> list[list[str]]:
     ``meta`` values are raw source snippets (see parser). We regex the
     ``fields=[...]`` bit and pull each quoted field name. Returns a list of
     field-name lists (order preserved). Non-parseable entries are skipped.
+
+    ``fields`` may be written as a list or a tuple, and both forms appear in
+    real code — ``models.Index(fields=("a", "b"))`` is as common as the list.
     """
     raw = meta.get("indexes")
     if not raw:
         return []
+    return _field_tuples(raw)
+
+
+def _field_tuples(raw: str) -> list[list[str]]:
+    """Every ``fields=[...]`` / ``fields=(...)`` group in a source snippet."""
     out: list[list[str]] = []
-    for m in re.finditer(r"fields\s*=\s*\[([^\]]*)\]", raw):
-        body = m.group(1)
-        fields = re.findall(r"['\"]([^'\"]+)['\"]", body)
+    for m in re.finditer(r"fields\s*=\s*[\[(]([^\])]*)[\])]", raw):
+        fields = re.findall(r"['\"]([^'\"]+)['\"]", m.group(1))
         if fields:
             out.append(fields)
     return out
+
+
+def _unique_constraint_tuples(meta: dict[str, str]) -> list[list[str]]:
+    """Field groups from ``Meta.constraints`` that create a unique index.
+
+    Only ``UniqueConstraint`` is counted. ``CheckConstraint`` creates no index,
+    and a ``UniqueConstraint`` carrying ``expressions=`` indexes an expression
+    rather than the bare columns, so it cannot satisfy a column lookup either.
+    """
+    raw = meta.get("constraints")
+    if not raw:
+        return []
+    out: list[list[str]] = []
+    for m in re.finditer(r"UniqueConstraint\s*\(", raw):
+        out.extend(_field_tuples(_balanced_call_args(raw, m.end() - 1)))
+    return out
+
+
+def _balanced_call_args(raw: str, open_paren: int) -> str:
+    """Text between ``raw[open_paren]`` and its matching ``)``.
+
+    A regex cannot do this: a constraint's arguments contain their own
+    parentheses (``fields=("a", "b")``, ``condition=Q(x=1)``), so any
+    ``\\(.*?\\)`` stops at the first inner close and truncates the very
+    ``fields=`` group we are here to read.
+    """
+    depth = 0
+    for i in range(open_paren, len(raw)):
+        ch = raw[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return raw[open_paren + 1 : i]
+    return raw[open_paren + 1 :]
+
+
+def _unique_together_tuples(meta: dict[str, str]) -> list[list[str]]:
+    """``Meta.unique_together`` groups — each one is backed by a unique index.
+
+    Accepts both the single-group shorthand (``("a", "b")``) and the nested
+    form (``(("a", "b"), ("c",))``) Django also allows.
+    """
+    raw = meta.get("unique_together")
+    if not raw:
+        return []
+    inner = re.findall(r"[\[(]\s*((?:\s*['\"][^'\"]+['\"]\s*,?)+)[\])]", raw)
+    out = [re.findall(r"['\"]([^'\"]+)['\"]", grp) for grp in inner]
+    out = [g for g in out if g]
+    if out:
+        return out
+    flat = re.findall(r"['\"]([^'\"]+)['\"]", raw)
+    return [flat] if flat else []
+
+
+_PK_TRUE_RE = re.compile(r"\bprimary_key\s*=\s*True\b")
+_UNIQUE_TRUE_RE = re.compile(r"\bunique\s*=\s*True\b")
+_DB_INDEX_TRUE_RE = re.compile(r"\bdb_index\s*=\s*True\b")
+_DB_INDEX_FALSE_RE = re.compile(r"\bdb_index\s*=\s*False\b")
+
+#: Django gives these their own index on the referencing column unless the
+#: field explicitly opts out with ``db_index=False``. ManyToManyField is absent
+#: on purpose — its indexes live on the through table, not on this model.
+_SELF_INDEXED_RELATIONS = frozenset({"ForeignKey", "OneToOneField"})
+
+
+def primary_key_field(model: Any) -> str:
+    """The model's primary-key field name — the explicit one, or ``id``."""
+    for f in model.all_fields():
+        if _PK_TRUE_RE.search(f.args or ""):
+            return f.name
+    return "id"
+
+
+def _indexed_single_fields(model: Any) -> set[str]:
+    """Field names that already sit behind an index, so needing no proposal.
+
+    Covers what Django indexes without being asked (#60): the primary key,
+    ``db_index=True``, ``unique=True``, and the referencing column of a
+    ForeignKey / OneToOneField. Leading columns of a composite index count
+    too — a B-tree on ``(a, b)`` answers a lookup on ``a`` alone.
+    """
+    pk = primary_key_field(model)
+    # ``pk`` is an alias Django resolves to whatever the primary key is, so a
+    # filter written either way hits the same already-indexed column.
+    out: set[str] = {pk, "pk"}
+    for f in model.all_fields():
+        args = f.args or ""
+        has_own_index = (
+            _PK_TRUE_RE.search(args)
+            or _UNIQUE_TRUE_RE.search(args)
+            or _DB_INDEX_TRUE_RE.search(args)
+            or (
+                f.relation_kind in _SELF_INDEXED_RELATIONS
+                and not _DB_INDEX_FALSE_RE.search(args)
+            )
+        )
+        if has_own_index:
+            out.add(f.name)
+    for group in _covered_field_groups(model):
+        if group:
+            out.add(group[0])
+    return out
+
+
+def _covered_field_groups(model: Any) -> list[list[str]]:
+    """Every multi-column index the model already declares, in Meta."""
+    meta = model.meta
+    return [
+        *_existing_meta_indexes(meta),
+        *_unique_together_tuples(meta),
+        *_unique_constraint_tuples(meta),
+    ]
 
 
 class _Collector(ast.NodeVisitor):
@@ -303,6 +433,8 @@ def _propose_indexes(
     filter_composites: list[dict[str, Any]],
     order_by_summary: list[dict[str, Any]],
     existing: list[list[str]],
+    already_indexed: set[str] | None = None,
+    covered_groups: list[list[str]] | None = None,
 ) -> list[dict[str, Any]]:
     """Turn the frequency tables into concrete ``Meta.indexes`` suggestions.
 
@@ -314,9 +446,17 @@ def _propose_indexes(
     * every order_by field with >=2 sites gets a proposal (unless already
       covered by an existing index whose leading field matches).
 
-    Existing ``Meta.indexes`` are dedup'd by exact field-list match.
+    Existing ``Meta.indexes`` are dedup'd by exact field-list match, and
+    ``already_indexed`` drops anything Django indexes on its own — primary
+    key, ``db_index=True``, ``unique=True``, foreign keys, unique constraints
+    (#60). Suggesting an index that exists is worse than silence: it teaches
+    people the tool has not read their model.
     """
+    covered = already_indexed or set()
     existing_set = {tuple(x) for x in existing}
+    # Every column group already backed by an index, whichever Meta option
+    # declared it — indexes, unique_together or a UniqueConstraint.
+    existing_sets = [set(x) for x in (covered_groups or existing)]
     proposed: list[dict[str, Any]] = []
     covered_leaders: set[str] = set()
 
@@ -326,6 +466,10 @@ def _propose_indexes(
         fields = combo["field"]
         key = tuple(fields)
         if key in existing_set:
+            continue
+        # An existing index over the same columns answers this combo whatever
+        # order it was declared in.
+        if any(set(fields) == grp for grp in existing_sets):
             continue
         proposed.append(
             {
@@ -342,7 +486,7 @@ def _propose_indexes(
         key = (field,)
         if key in existing_set:
             continue
-        if field in covered_leaders:
+        if field in covered_leaders or field in covered:
             continue
         proposed.append(
             {
@@ -357,6 +501,10 @@ def _propose_indexes(
         field = row["field"]
         key = (field,)
         if key in existing_set:
+            continue
+        # order_by keeps its ``-`` prefix; the index behind it is the same one
+        # either direction, so strip it before asking whether it exists.
+        if field.lstrip("-") in covered:
             continue
         # Don't duplicate an existing filter proposal on the same bare field
         if any(p["fields"] == [field] for p in proposed):
@@ -436,6 +584,14 @@ def suggest_indexes(
         all_order_by.extend(collector.order_by_sites)
         all_aggregate.extend(collector.aggregate_sites)
 
+    # ``pk`` is an alias for the real primary-key column, so ``filter(pk=…)``
+    # and ``filter(id=…)`` are the same lookup and must not be counted as two
+    # different fields (#60).
+    pk_name = primary_key_field(target_model)
+    for bucket in (all_filter, all_exclude, all_get, all_order_by, all_aggregate):
+        for row in bucket:
+            row["fields"] = [_canonical_pk(f, pk_name) for f in row["fields"]]
+
     filter_singles, filter_composites = _summarise_filter_like(
         all_filter + all_exclude + all_get
     )
@@ -443,8 +599,14 @@ def suggest_indexes(
     aggregate_summary = _summarise_order_by(all_aggregate)  # same shape
 
     existing = _existing_meta_indexes(target_model.meta)
+    already_indexed = _indexed_single_fields(target_model)
     proposed = _propose_indexes(
-        filter_singles, filter_composites, order_by_summary, existing
+        filter_singles,
+        filter_composites,
+        order_by_summary,
+        existing,
+        already_indexed,
+        _covered_field_groups(target_model),
     )
 
     filter_usages: list[dict[str, Any]] = list(filter_singles)
@@ -459,6 +621,9 @@ def suggest_indexes(
         "aggregate_usages": aggregate_summary,
         "proposed_indexes": proposed,
         "existing_meta_indexes": existing,
+        # Why a hot field may carry no proposal. Without this the output is
+        # indistinguishable from the analyzer having missed the usage.
+        "already_indexed": sorted(already_indexed),
     }
 
 

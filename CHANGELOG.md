@@ -5,6 +5,41 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Abstract base fields count as the child's own.** `drift` compared each
+  model's migrations against only what its class body declares, so every model
+  whose columns come from an abstract base looked like it had dropped them.
+  On django-guardian the two permission models reported four fields each as
+  "migrated but no longer declared" — advisory noise on a project with no
+  drift at all. The parser now resolves abstract inheritance the way Django
+  does: an abstract base's fields land on every concrete descendant, a field
+  the child redeclares wins, and a *concrete* base donates nothing because
+  multi-table inheritance leaves the parent's columns on the parent's table.
+  The fields are exposed as `inherited_fields` / `all_fields()`, kept out of
+  the tree and ER output so those keep showing what each class literally
+  declares. Reported by [@sevdog](https://github.com/sevdog) in
+  [#58](https://github.com/FROWNINGdev/django-orm-lens/issues/58).
+
+- **`suggest-index` stops proposing indexes that already exist.** It read
+  `Meta.indexes` and nothing else, so it recommended indexes for the primary
+  key, for `db_index=True` and `unique=True` fields, for foreign keys (Django
+  indexes those itself), and for column groups already covered by
+  `unique_together` or a `UniqueConstraint`. `filter(pk=…)` and `filter(id=…)`
+  were also counted as two different fields when they are one lookup — they
+  now fold onto the real primary-key column. A field left without a proposal
+  for this reason appears under a new `already_indexed` key, so silence is
+  distinguishable from the analyzer having missed the usage.
+  Underlying all of it: the parser truncated any multi-line `class Meta` value
+  to a bare `[`, which is why `constraints` and a list-per-line `indexes` were
+  invisible. Both list and tuple spellings of `fields=` are read.
+  Reported by [@sevdog](https://github.com/sevdog) in
+  [#60](https://github.com/FROWNINGdev/django-orm-lens/issues/60);
+  [@RinZ27](https://github.com/RinZ27) independently diagnosed the same cause
+  in [#61](https://github.com/FROWNINGdev/django-orm-lens/pull/61).
+
 ## [py-1.8.1] - 2026-07-29
 
 ### Added

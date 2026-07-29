@@ -149,7 +149,7 @@
           "filePath": "saleor/discount/models.py",
           "lineNumber": 269,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ BTreeIndex(fields=[\"voucher_code\"], name=\"vouchercustomer_voucher_code_idx\") ]",
             "ordering": "(\"voucher_code\", \"customer_email\", \"pk\")",
             "unique_together": "((\"voucher_code\", \"customer_email\"),)"
           },
@@ -339,7 +339,7 @@
           "filePath": "saleor/discount/models.py",
           "lineNumber": 520,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ BTreeIndex( fields=[\"promotion_rule\"], name=\"orderdiscount_promotion_rule_idx\" ), # Orders searching index GinIndex(fields=[\"name\", \"translated_name\"]), GinIndex(fields=[\"voucher_code\"], name=\"orderdiscount_voucher_code_idx\"), ]",
             "ordering": "(\"created_at\", \"id\")"
           },
           "name": "OrderDiscount"
@@ -372,8 +372,8 @@
           "filePath": "saleor/discount/models.py",
           "lineNumber": 542,
           "meta": {
-            "constraints": "[",
-            "indexes": "[",
+            "constraints": "[ models.UniqueConstraint( fields=[\"line_id\", \"unique_type\"], name=\"unique_orderline_discount_type\", ), ]",
+            "indexes": "[ BTreeIndex( fields=[\"promotion_rule\"], name=\"orderlinedisc_promotion_rule_idx\" ), GinIndex(fields=[\"voucher_code\"], name=\"orderlinedisc_voucher_code_idx\"), ]",
             "ordering": "(\"created_at\", \"id\")"
           },
           "name": "OrderLineDiscount"
@@ -399,7 +399,7 @@
           "filePath": "saleor/discount/models.py",
           "lineNumber": 574,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ BTreeIndex(fields=[\"promotion_rule\"], name=\"checkoutdiscount_rule_idx\"), # Orders searching index GinIndex(fields=[\"name\", \"translated_name\"]), GinIndex(fields=[\"voucher_code\"], name=\"checkoutdiscount_voucher_idx\"), ]",
             "ordering": "(\"created_at\", \"id\")",
             "unique_together": "(\"checkout_id\", \"promotion_rule_id\")"
           },
@@ -433,8 +433,8 @@
           "filePath": "saleor/discount/models.py",
           "lineNumber": 594,
           "meta": {
-            "constraints": "[",
-            "indexes": "[",
+            "constraints": "[ models.UniqueConstraint( fields=[\"line_id\", \"unique_type\"], name=\"unique_checkoutline_discount_type\", ), ]",
+            "indexes": "[ BTreeIndex( fields=[\"promotion_rule\"], name=\"checklinedisc_promotion_rule_idx\" ), GinIndex(fields=[\"voucher_code\"], name=\"checklinedisc_voucher_code_idx\"), ]",
             "ordering": "(\"created_at\", \"id\")"
           },
           "name": "CheckoutLineDiscount"
@@ -588,7 +588,7 @@
           "filePath": "saleor/order/models.py",
           "lineNumber": 829,
           "meta": {
-            "indexes": "["
+            "indexes": "[ BTreeIndex( fields=[\"reason_reference\"], name=\"fulfillmentline_reason_ref_idx\", condition=Q(reason_reference__isnull=False), ), ]"
           },
           "name": "FulfillmentLine"
         },
@@ -667,7 +667,7 @@
           "filePath": "saleor/order/models.py",
           "lineNumber": 866,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ BTreeIndex(fields=[\"related\"], name=\"order_orderevent_related_id_idx\"), models.Index(fields=[\"type\"]), BTreeIndex(fields=[\"date\"], name=\"order_orderevent_date_idx\"), ]",
             "ordering": "(\"date\",)"
           },
           "name": "OrderEvent"
@@ -847,7 +847,7 @@
           "filePath": "saleor/order/models.py",
           "lineNumber": 965,
           "meta": {
-            "indexes": "["
+            "indexes": "[ BTreeIndex( fields=[\"reason_reference\"], name=\"grantedrefundline_reason_ref_idx\", condition=Q(reason_reference__isnull=False), ), ]"
           },
           "name": "OrderGrantedRefundLine"
         }
@@ -941,7 +941,7 @@
           "filePath": "saleor/product/models.py",
           "lineNumber": 481,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ GinIndex(fields=[\"price_amount\", \"channel_id\"]), ]",
             "ordering": "(\"pk\",)",
             "unique_together": "[[\"variant\", \"channel\"]]"
           },
@@ -1223,7 +1223,7 @@
           "filePath": "saleor/warehouse/models.py",
           "lineNumber": 635,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ models.Index(fields=[\"checkout_line\", \"reserved_until\"]), ]",
             "ordering": "(\"pk\",)",
             "unique_together": "[[\"checkout_line\", \"product_variant_channel_listing\"]]"
           },
@@ -1275,7 +1275,7 @@
           "filePath": "saleor/warehouse/models.py",
           "lineNumber": 663,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ models.Index(fields=[\"checkout_line\", \"reserved_until\"]), ]",
             "ordering": "(\"pk\",)",
             "unique_together": "[[\"checkout_line\", \"stock\"]]"
           },

@@ -90,7 +90,7 @@
           "filePath": "zerver/models/messages.py",
           "lineNumber": 166,
           "meta": {
-            "indexes": "["
+            "indexes": "[ GinIndex(\"search_tsvector\", fastupdate=False, name=\"zerver_message_search_tsvector\"), models.Index( # For moving messages between streams or marking # streams as read.  The \"id\" at the end makes it easy # to scan the resulting messages in order, and perform # batching. \"realm_id\", \"recipient_id\", \"id\", name=\"zerver_message_realm_recipient_id\", ), models.Index( # For generating digest emails and message archiving, # which both group by stream. \"realm_id\", \"recipient_id\", \"date_sent\", name=\"zerver_message_realm_recipient_date_sent\", ), models.Index( # For exports, which want to limit both sender and # receiver.  The prefix of this index (realm_id, # sender_id) can be used for scrubbing users and/or # deleting users' messages. # Also used in send_welcome_bot_response \"realm_id\", \"sender_id\", \"recipient_id\", name=\"zerver_message_realm_sender_recipient\", ), models.Index( # For analytics and retention queries \"realm_id\", \"date_sent\", name=\"zerver_message_realm_date_sent\", ), models.Index( # For users searching by topic (but not stream), which # is done case-insensitively \"realm_id\", Upper(\"subject\"), F(\"id\").desc(nulls_last=True), name=\"zerver_message_realm_upper_subject\", condition=Q(is_channel_message=True), ), models.Index( # Most stream/topic searches are case-insensitive by # topic name (e.g. messages_for_topic).  The \"id\" at # the end makes it easy to scan the resulting messages # in order, and perform batching. \"realm_id\", \"recipient_id\", Upper(\"subject\"), F(\"id\").desc(nulls_last=True), name=\"zerver_message_realm_recipient_upper_subject\", condition=Q(is_channel_message=True), ), models.Index( # Used when determining recent topics (we post-process # to merge and show the most recent case) \"realm_id\", \"recipient_id\", \"subject\", F(\"id\").desc(nulls_last=True), name=\"zerver_message_realm_recipient_subject\", condition=Q(is_channel_message=True), ), models.Index( # Only used by update_first_visible_message_id \"realm_id\", F(\"id\").desc(nulls_last=True), name=\"zerver_message_realm_id\", ), models.Index( # Potentially useful for migrations that rewrite # message edit history. Originally added for # 0680_rename_general_chat_to_empty_string_topic, # though that migration was adjusted in a way that no # longer uses this. fields=[\"id\"], condition=Q(edit_history__isnull=False), name=\"zerver_message_edit_history_id\", ), ]"
           },
           "name": "Message"
         },
@@ -202,7 +202,7 @@
           "filePath": "zerver/models/messages.py",
           "lineNumber": 582,
           "meta": {
-            "indexes": "["
+            "indexes": "[ models.Index( \"user_profile\", \"message\", condition=Q(flags__andnz=AbstractUserMessage.flags.starred.mask), name=\"zerver_usermessage_starred_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q(flags__andnz=AbstractUserMessage.flags.mentioned.mask), name=\"zerver_usermessage_mentioned_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q(flags__andz=AbstractUserMessage.flags.read.mask), name=\"zerver_usermessage_unread_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q(flags__andnz=AbstractUserMessage.flags.has_alert_word.mask), name=\"zerver_usermessage_has_alert_word_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q(flags__andnz=AbstractUserMessage.flags.mentioned.mask) | Q(flags__andnz=AbstractUserMessage.flags.stream_wildcard_mentioned.mask), name=\"zerver_usermessage_wildcard_mentioned_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q( flags__andnz=AbstractUserMessage.flags.mentioned.mask | AbstractUserMessage.flags.stream_wildcard_mentioned.mask | AbstractUserMessage.flags.topic_wildcard_mentioned.mask | AbstractUserMessage.flags.group_mentioned.mask ), name=\"zerver_usermessage_any_mentioned_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q(flags__andnz=AbstractUserMessage.flags.is_private.mask), name=\"zerver_usermessage_is_private_message_id\", ), models.Index( \"user_profile\", \"message\", condition=( Q(flags__andnz=AbstractUserMessage.flags.is_private.mask) & Q(flags__andz=AbstractUserMessage.flags.read.mask) ), name=\"zerver_usermessage_is_private_unread_message_id\", ), models.Index( \"user_profile\", \"message\", condition=Q( flags__andnz=AbstractUserMessage.flags.active_mobile_push_notification.mask ), name=\"zerver_usermessage_active_mobile_push_notification_id\", ), models.Index( \"message\", condition=Q( flags__andnz=AbstractUserMessage.flags.active_mobile_push_notification.mask ), name=\"zerver_usermessage_message_active_mobile_push_notification_idx\", ), ]"
           },
           "name": "UserMessage"
         },
@@ -342,7 +342,7 @@
           "filePath": "zerver/models/messages.py",
           "lineNumber": 802,
           "meta": {
-            "indexes": "["
+            "indexes": "[ models.Index( \"realm\", \"create_time\", name=\"zerver_attachment_realm_create_time\", ), ]"
           },
           "name": "Attachment"
         },
@@ -464,7 +464,7 @@
           "filePath": "zerver/models/realm_audit_logs.py",
           "lineNumber": 215,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ models.Index( name=\"zerver_realmauditlog_realm__event_type__event_time\", fields=[\"realm\", \"event_type\", \"event_time\"], ), models.Index( name=\"zerver_realmauditlog_user_subscriptions_idx\", fields=[\"modified_user\", \"modified_stream\"], condition=Q( event_type__in=[ AuditLogEventType.SUBSCRIPTION_CREATED, AuditLogEventType.SUBSCRIPTION_ACTIVATED, AuditLogEventType.SUBSCRIPTION_DEACTIVATED, ] ), ), models.Index( # Used in analytics/lib/counts.py for computing active users for realm_active_humans name=\"zerver_realmauditlog_user_activations_idx\", fields=[\"modified_user\", \"event_time\"], condition=Q( event_type__in=[ AuditLogEventType.USER_CREATED, AuditLogEventType.USER_ACTIVATED, AuditLogEventType.USER_DEACTIVATED, AuditLogEventType.USER_REACTIVATED, ] ), ), ]",
             "ordering": "[\"id\"]"
           },
           "name": "RealmAuditLog"
@@ -1701,7 +1701,7 @@
           "filePath": "zerver/models/streams.py",
           "lineNumber": 32,
           "meta": {
-            "indexes": "["
+            "indexes": "[ models.Index(Upper(\"name\"), name=\"upper_stream_name_idx\"), ]"
           },
           "name": "Stream"
         },
@@ -1805,7 +1805,7 @@
           "filePath": "zerver/models/streams.py",
           "lineNumber": 359,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ models.Index( fields=(\"recipient\", \"user_profile\"), name=\"zerver_subscription_recipient_id_user_profile_id_idx\", condition=Q(active=True, is_user_active=True), ), ]",
             "unique_together": "(\"user_profile\", \"recipient\")"
           },
           "name": "Subscription"
@@ -1964,7 +1964,7 @@
           "filePath": "zerver/models/streams.py",
           "lineNumber": 476,
           "meta": {
-            "indexes": "[",
+            "indexes": "[ models.Index( fields=(\"realm\", \"channel\"), name=\"zerver_channelemailaddress_realm_id_channel_id_idx\", ), ]",
             "unique_together": "(\"channel\", \"creator\", \"sender\")"
           },
           "name": "ChannelEmailAddress"
@@ -2248,8 +2248,8 @@
           "filePath": "zerver/models/users.py",
           "lineNumber": 445,
           "meta": {
-            "constraints": "[",
-            "indexes": "["
+            "constraints": "[ models.UniqueConstraint( \"realm\", Upper(F(\"email\")), name=\"zerver_userprofile_realm_id_email_uniq\", ), models.UniqueConstraint( \"realm\", Upper(F(\"delivery_email\")), name=\"zerver_userprofile_realm_id_delivery_email_uniq\", ), ]",
+            "indexes": "[ models.Index(Upper(\"email\"), name=\"upper_userprofile_email_idx\"), ]"
           },
           "name": "UserProfile"
         },
@@ -2304,7 +2304,7 @@
           "filePath": "zerver/models/users.py",
           "lineNumber": 1260,
           "meta": {
-            "constraints": "["
+            "constraints": "[ models.UniqueConstraint( fields=[ \"realm\", \"external_auth_method_name\", \"external_auth_id\", ], name=\"zerver_externalauthid_uniq\", ), # Each user should only have at most a single ExternalAuthID # for any authentication method. models.UniqueConstraint( fields=[ \"user\", \"external_auth_method_name\", ], name=\"zerver_user_externalauth_uniq\", ), ]"
           },
           "name": "ExternalAuthID"
         }

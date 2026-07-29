@@ -104,7 +104,7 @@
           "filePath": "wagtail/models/pages.py",
           "lineNumber": 297,
           "meta": {
-            "permissions": "[",
+            "permissions": "[ (codename, name) for codename, _, name in PAGE_PERMISSION_TYPES if codename not in {\"add_page\", \"change_page\", \"delete_page\", \"view_page\"} ]",
             "unique_together": "[(\"translation_key\", \"locale\")]",
             "verbose_name": "_(\"page\")",
             "verbose_name_plural": "_(\"pages\")"
@@ -153,7 +153,7 @@
           "filePath": "wagtail/models/pages.py",
           "lineNumber": 2155,
           "meta": {
-            "constraints": "[",
+            "constraints": "[ models.UniqueConstraint( fields=(\"group\", \"page\", \"permission\"), name=\"unique_permission\", ), ]",
             "verbose_name": "_(\"group page permission\")",
             "verbose_name_plural": "_(\"group page permissions\")"
           },
@@ -281,7 +281,7 @@
           "filePath": "wagtail/models/pages.py",
           "lineNumber": 2851,
           "meta": {
-            "unique_together": "["
+            "unique_together": "[ (\"page\", \"user\"), ]"
           },
           "name": "PageSubscription"
         },
