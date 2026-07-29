@@ -5,7 +5,7 @@
 # Smithery runs it via `uvx` so no user-side install / venv is required.
 
 name: "@FROWNINGdev/django-orm-lens"
-version: "1.7.0"
+version: "1.7.1"
 description: >-
   Django ORM static-analysis MCP. 10 read-only tools that expose Django
   schema, relationships (FK / M2M / O2O, on_delete, related_name),

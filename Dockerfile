@@ -42,5 +42,16 @@ RUN adduser --system --uid 10001 --no-create-home --shell /usr/sbin/nologin appu
 USER appuser
 
 WORKDIR /workspace
+
+# Default to the MCP server, not the help text.
+#
+# Directories that index MCP servers - Glama among them - build the repo's
+# Dockerfile and then try to speak MCP to the container over stdio. With
+# `--help` as the default the process printed usage and exited, so the
+# handshake never happened and the build counted as broken.
+#
+# Only CMD changes, so every documented CLI invocation is untouched: passing
+# arguments overrides CMD, and `docker run ... scan --path .` behaves exactly
+# as before.
 ENTRYPOINT ["django-orm-lens"]
-CMD ["--help"]
+CMD ["mcp"]

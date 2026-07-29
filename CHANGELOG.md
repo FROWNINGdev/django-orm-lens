@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.7.1] - 2026-07-29
+
+### Fixed
+
+- **`pip install "django-orm-lens[mcp]"` produced a server that would not
+  start.** The extra asked for `mcp>=1.0`, so a fresh install resolved
+  **mcp 2.0.0**, which removed `mcp.server.fastmcp` — the module the server
+  bootstraps from. Every new MCP install since that release printed
+  *"django-orm-lens MCP requires the 'mcp' package"* and exited, while the
+  package was in fact installed. Capped to `mcp>=1.0,<2`; adapting to the 2.x
+  API is separate work. A regression test now pins the upper bound so it
+  cannot be widened without the code changing too.
+  Found because the Glama directory's build failed: it builds the repo's
+  Dockerfile and speaks MCP to the container, which is a stricter check than
+  anything in the test suite, all of which ran against a local mcp 1.28.1.
+- **The published container defaulted to `--help` instead of the MCP server.**
+  Directories that index MCP servers build the Dockerfile and then try to talk
+  to the container over stdio; it printed usage and exited. Only `CMD`
+  changed, so `docker run ... scan --path .` and every other documented CLI
+  invocation behave exactly as before.
+
 ## [0.10.0] - 2026-07-29
 
 Extension release. Everything here has been on `main` for some time; the

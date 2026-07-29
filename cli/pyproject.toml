@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-orm-lens"
-version = "1.7.0"
+version = "1.7.1"
 description = "Static analysis + MCP server for Django models. Blast radius, schema drift, N+1 and migration risk for CI, ER diagrams for terminals and AI agents. No DB, no Django boot. Free and MIT."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -53,8 +53,8 @@ dependencies = []
 
 # Default install is zero-dependency. Add [mcp] or [full] to enable MCP server for AI agents.
 [project.optional-dependencies]
-mcp = ["mcp>=1.0"]
-full = ["mcp>=1.0"]
+mcp = ["mcp>=1.0,<2"]
+full = ["mcp>=1.0,<2"]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "build>=1.2", "twine>=5.1"]
 
 [project.scripts]

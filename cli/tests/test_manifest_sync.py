@@ -124,3 +124,21 @@ def test_mcp_tool_count_matches_module_docstring() -> None:
         f"not say {expected_phrase!r} — update the docstring (and README "
         f"blurbs) when adding/removing tools"
     )
+
+
+def test_mcp_extra_excludes_the_2x_api() -> None:
+    """The `mcp` extra must stay below 2.0 until the server is ported.
+
+    mcp 2.0.0 removed `mcp.server.fastmcp`, which `mcp_server.main()` imports.
+    With a bare `>=1.0` a fresh install resolved 2.0.0 and every MCP user got
+    "requires the 'mcp' package" from a package that was installed. Widening
+    this bound without porting the bootstrap reintroduces that.
+    """
+    text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(
+        encoding="utf-8"
+    )
+    for extra in ("mcp", "full"):
+        line = next(
+            l for l in text.splitlines() if l.strip().startswith(f"{extra} = [")
+        )
+        assert "<2" in line, f"{extra} extra must cap mcp below 2.0: {line}"
