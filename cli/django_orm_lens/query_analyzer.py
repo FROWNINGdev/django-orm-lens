@@ -211,6 +211,29 @@ def _balanced_call_args(raw: str, open_paren: int) -> str:
     return raw[open_paren + 1 :]
 
 
+def _innermost_bracket_spans(raw: str) -> list[str]:
+    """Contents of every bracket group that holds no further bracket.
+
+    ``(("a", "b"), ("c",))`` yields the two inner groups; ``("a", "b")``
+    yields itself. Written as a single left-to-right scan rather than a
+    regex on purpose: the pattern this replaces nested a quantifier inside a
+    quantifier and CodeQL flagged it as a ReDoS (alert #35, high). A scan is
+    linear in the input no matter how the snippet is shaped.
+    """
+    spans: list[str] = []
+    stack: list[tuple[int, bool]] = []  # (content start, saw a nested group)
+    for i, ch in enumerate(raw):
+        if ch in "([":
+            for j in range(len(stack)):
+                stack[j] = (stack[j][0], True)
+            stack.append((i + 1, False))
+        elif ch in ")]" and stack:
+            start, had_child = stack.pop()
+            if not had_child:
+                spans.append(raw[start:i])
+    return spans
+
+
 def _unique_together_tuples(meta: dict[str, str]) -> list[list[str]]:
     """``Meta.unique_together`` groups — each one is backed by a unique index.
 
@@ -220,9 +243,11 @@ def _unique_together_tuples(meta: dict[str, str]) -> list[list[str]]:
     raw = meta.get("unique_together")
     if not raw:
         return []
-    inner = re.findall(r"[\[(]\s*((?:\s*['\"][^'\"]+['\"]\s*,?)+)[\])]", raw)
-    out = [re.findall(r"['\"]([^'\"]+)['\"]", grp) for grp in inner]
-    out = [g for g in out if g]
+    out: list[list[str]] = []
+    for span in _innermost_bracket_spans(raw):
+        names = re.findall(r"['\"]([^'\"]+)['\"]", span)
+        if names:
+            out.append(names)
     if out:
         return out
     flat = re.findall(r"['\"]([^'\"]+)['\"]", raw)

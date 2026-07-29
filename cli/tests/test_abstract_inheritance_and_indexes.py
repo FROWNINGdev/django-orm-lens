@@ -10,13 +10,17 @@
 
 from __future__ import annotations
 
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from django_orm_lens.drift import detect_drift
 from django_orm_lens.parser import parse_models_file, scan_workspace
-from django_orm_lens.query_analyzer import suggest_indexes
+from django_orm_lens.query_analyzer import (
+    _unique_together_tuples,
+    suggest_indexes,
+)
 
 # Shaped after django-guardian: a two-level abstract chain whose fields land
 # on each concrete permission model's own table.
@@ -296,6 +300,39 @@ class SuggestIndexAlreadyIndexedTest(unittest.TestCase):
         self.assertEqual(
             [p["fields"] for p in result["proposed_indexes"]], [["plain"]]
         )
+
+
+class UniqueTogetherParsingTest(unittest.TestCase):
+    """The three spellings Django accepts, plus the shape that caused a ReDoS.
+
+    The first implementation matched the groups with a quantifier nested in a
+    quantifier; CodeQL flagged it high-severity and it is now a linear scan.
+    """
+
+    def _groups(self, raw: str) -> list[list[str]]:
+        return _unique_together_tuples({"unique_together": raw})
+
+    def test_single_group_shorthand(self) -> None:
+        self.assertEqual(self._groups('("a", "b")'), [["a", "b"]])
+
+    def test_nested_groups(self) -> None:
+        self.assertEqual(
+            self._groups('(("a", "b"), ("c",))'), [["a", "b"], ["c"]]
+        )
+
+    def test_flat_list(self) -> None:
+        self.assertEqual(self._groups('["a", "b", "c"]'), [["a", "b", "c"]])
+
+    def test_pathological_input_is_linear(self) -> None:
+        """A long run of quoted names must not blow up the parser.
+
+        The old pattern backtracked catastrophically on exactly this: many
+        quoted items inside one unterminated group.
+        """
+        raw = "(" + ", ".join(f'"f{i}"' for i in range(400))
+        start = time.perf_counter()
+        self._groups(raw)
+        self.assertLess(time.perf_counter() - start, 1.0)
 
 
 class MetaMultilineValueTest(unittest.TestCase):
