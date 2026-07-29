@@ -293,6 +293,21 @@ def detect_drift(
     return report
 
 
+BLOCKING_MARK = "!!"
+ADVISORY_MARK = " ~"
+
+#: Reported in #57: the marks were only discoverable by reading the source.
+#: Kept next to the marks themselves so the two cannot drift apart, and
+#: asserted against them in the tests.
+LEGEND_LINES = (
+    f"{BLOCKING_MARK} blocking — models declare something no migration creates;"
+    " it will not exist at runtime",
+    f"{ADVISORY_MARK} advisory — migrations keep something models no longer"
+    " declare; harmless at runtime",
+    "",
+)
+
+
 def format_drift(report: DriftReport) -> str:
     """Human-readable text. JSON is serialised by the caller."""
     if not report.drifted:
@@ -300,9 +315,9 @@ def format_drift(report: DriftReport) -> str:
             f"no drift — {report.migrations_replayed} migration(s) across "
             f"{report.apps_scanned} app(s) match the declared models."
         )
-    out: list[str] = []
+    out: list[str] = list(LEGEND_LINES)
     for d in report.drifted:
-        mark = "!!" if d.is_blocking else " ~"
+        mark = BLOCKING_MARK if d.is_blocking else ADVISORY_MARK
         if d.only_in_models:
             out.append(f"{mark} {d.label}: declared, but no migration creates it")
             out.append("     run makemigrations, or the table will not exist")

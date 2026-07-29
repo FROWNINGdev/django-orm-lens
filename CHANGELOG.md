@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`drift` explains its own marks.** The text report tagged every entry `!!`
+  or `~` and documented neither, so the only way to learn what they meant was
+  to read `drift.py`. A two-line legend now precedes the entries, the same two
+  lines appear in `drift --help` alongside the exit-code rule, and the legend
+  is imported from the module that prints the marks rather than retyped, so
+  the two cannot fall out of step. No legend on a clean run — nothing is
+  marked there. JSON is unchanged; it always carried `"blocking"` outright.
+  Reported by [@sevdog](https://github.com/sevdog) in
+  [#57](https://github.com/FROWNINGdev/django-orm-lens/issues/57).
+
 ## [py-1.8.0] - 2026-07-29
 
 ### Added

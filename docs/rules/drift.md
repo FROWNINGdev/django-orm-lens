@@ -30,6 +30,9 @@ django-orm-lens drift --exit-zero         # report without failing the build
 ```
 
 ```
+!! blocking — models declare something no migration creates; it will not exist at runtime
+ ~ advisory — migrations keep something models no longer declare; harmless at runtime
+
 !! blog.post:
      declared but never migrated: author
        the column will be missing at runtime
@@ -37,7 +40,9 @@ django-orm-lens drift --exit-zero         # report without failing the build
 summary: 1 model(s) drifted, 1 blocking, 2 migration(s) replayed
 ```
 
-Blocking entries sort first, so the thing that breaks production is the first line of output.
+Every entry carries a mark, and the legend above them says what it means — `django-orm-lens drift --help` prints the same two lines. The legend is omitted when there is no drift, since nothing is marked.
+
+Blocking entries sort first, so the thing that breaks production is the first line of output. In JSON there is nothing to decode: each entry carries `"blocking": true | false` outright.
 
 ## In CI
 

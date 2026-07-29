@@ -36,6 +36,7 @@ from .ci_formats import (
     nplusone_sarif,
 )
 from .diff import diff_schemas, format_diff
+from .drift import LEGEND_LINES as DRIFT_LEGEND_LINES
 from .drift import detect_drift, format_drift
 from .er_formats import ER_BUILDERS
 from .formatters import format_hover, format_index, format_model
@@ -901,6 +902,16 @@ def build_parser() -> argparse.ArgumentParser:
             "Do the migrations still describe the models? "
             "Static makemigrations --check, no Django boot"
         ),
+        # The legend is imported rather than retyped: a copy here would be one
+        # more thing to keep in step with the marks format_drift actually
+        # prints, which is how they went undocumented in the first place (#57).
+        epilog=(
+            "marks:\n  "
+            + "\n  ".join(line for line in DRIFT_LEGEND_LINES if line)
+            + "\n\nonly blocking drift fails the build; pass --exit-zero to"
+            "\nreport it without a non-zero exit."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     _add_scan_flags(drift)
     drift.add_argument("--format", "-f", choices=("text", "json"), default="text")

@@ -16,6 +16,9 @@ import unittest
 from pathlib import Path
 
 from django_orm_lens.drift import (
+    ADVISORY_MARK,
+    BLOCKING_MARK,
+    LEGEND_LINES,
     DriftReport,
     ModelDrift,
     detect_drift,
@@ -197,6 +200,43 @@ class DetectDriftTest(unittest.TestCase):
         d = report.drifted[0]
         self.assertTrue(d.only_in_migrations)
         self.assertFalse(d.is_blocking)
+
+    # --- legend (#57) ----------------------------------------------------
+    # Reported by @sevdog: `!!` and `~` were only discoverable by reading the
+    # source. Documenting them is worthless if the text and the marks can
+    # drift apart later, so these pin the legend to what is actually printed.
+
+    def test_legend_explains_the_mark_it_prints(self) -> None:
+        blocking = self._detect({"blog": {"post": {"title", "slug"}}})
+        text = format_drift(blocking)
+        legend = text.split("\n")[0]
+        self.assertTrue(legend.startswith(BLOCKING_MARK), legend)
+        self.assertIn("blocking", legend)
+        # the mark the legend describes is the mark the entry carries
+        entry = next(
+            line for line in text.split("\n") if "blog.post" in line
+        )
+        self.assertTrue(entry.startswith(BLOCKING_MARK), entry)
+
+    def test_advisory_legend_matches_advisory_entry(self) -> None:
+        advisory = self._detect({"blog": {"post": set()}})
+        text = format_drift(advisory)
+        entry = next(line for line in text.split("\n") if "blog.post" in line)
+        self.assertTrue(entry.startswith(ADVISORY_MARK), entry)
+        self.assertIn(f"{ADVISORY_MARK} advisory", text)
+
+    def test_no_drift_output_carries_no_legend(self) -> None:
+        # Nothing is marked, so a legend would be noise on the happy path.
+        text = format_drift(self._detect({"blog": {"post": {"id", "title"}}}))
+        for line in LEGEND_LINES:
+            if line:
+                self.assertNotIn(line, text)
+
+    def test_legend_precedes_the_entries(self) -> None:
+        text = format_drift(self._detect({"blog": {"post": {"title", "slug"}}}))
+        self.assertLess(
+            text.index("blocking —"), text.index("blog.post"), text
+        )
 
     def test_implicit_id_is_never_drift(self) -> None:
         # Declared without `id`, migrated with it — Django adds it either way.
