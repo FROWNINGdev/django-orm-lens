@@ -60,16 +60,17 @@ MCP setup is one JSON block — see [Integrations](#-integrations). Point `DJANG
 
 ## 🆓 Paid-tier capabilities, free and MIT
 
-Schema review is a paid category nearly everywhere. A bot that reviews every pull request, analysis that follows a value across files, a registry that catches schema drift, index advice grounded in real table statistics — those normally sit behind a per-seat or per-database subscription.
+Schema review is a paid category nearly everywhere. A bot that reviews every pull request, analysis that follows a queryset past the function it was built in, a check that catches schema drift, index advice grounded in real table statistics — those normally sit behind a per-seat or per-database subscription.
 
 All of it is here, MIT-licensed, with no tier gate, no seat count, no account, and no telemetry:
 
 | Capability usually sold as a paid tier | Here |
 |---|---|
-| PR review bot — posts once, then updates in place | [`blast-radius`](docs/rules/blast-radius.md) + the [Action](#️-gate-your-ci) |
+| PR review bot for schema changes — posts once, then updates in place | [`blast-radius`](docs/rules/blast-radius.md) + the [Action](#️-gate-your-ci) |
 | Analysis that follows a queryset across functions | [`nplusone`](docs/rules/nplusone.md) |
-| Schema registry / drift detection | [`drift`](docs/rules/drift.md) |
-| Index proposals from production table statistics | `suggest-indexes` + `--stats` |
+| Schema drift detection | [`drift`](docs/rules/drift.md) |
+| Index proposals from observed QuerySet usage | `suggest-indexes` |
+| Migration risk weighed against real table sizes | `blast-radius --stats` |
 | Blast radius of a destructive migration | [`blast-radius`](docs/rules/blast-radius.md) |
 | Cross-layer impact of removing a field | `impact` |
 
