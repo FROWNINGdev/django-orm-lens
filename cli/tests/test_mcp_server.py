@@ -24,6 +24,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
+try:  # the ``mcp`` extra is optional — the base install must stay zero-dep
+    from mcp.server.fastmcp import FastMCP
+except ImportError:  # pragma: no cover - exercised only without the extra
+    # A sentinel rather than a per-test ``try/except`` around the import: with
+    # the import inside a test, the ``except`` branch calls ``self.skipTest``
+    # and static analysis cannot know that raises, so every later use of the
+    # name reads as a possibly-unbound local (CodeQL py/uninitialized-local-
+    # variable, alerts #36 and #37). Binding it once here keeps the name
+    # defined on both paths.
+    FastMCP = None  # type: ignore[assignment, misc]
+
 from django_orm_lens import __version__
 from django_orm_lens.mcp_server import (
     TOOLS,
@@ -332,9 +343,7 @@ class AdvertisedVersionTest(unittest.TestCase):
     """
 
     def test_sets_the_package_version_on_the_low_level_server(self) -> None:
-        try:
-            from mcp.server.fastmcp import FastMCP
-        except ImportError:  # pragma: no cover - mcp extra not installed
+        if FastMCP is None:
             self.skipTest("mcp extra not installed")
         server = FastMCP("django-orm-lens")
         self.assertEqual(_advertise_our_version(server), __version__)
@@ -347,9 +356,7 @@ class AdvertisedVersionTest(unittest.TestCase):
         ``InitializationOptions``, this fails instead of silently shipping the
         SDK's own version again.
         """
-        try:
-            from mcp.server.fastmcp import FastMCP
-        except ImportError:  # pragma: no cover - mcp extra not installed
+        if FastMCP is None:
             self.skipTest("mcp extra not installed")
         server = FastMCP("django-orm-lens")
         _advertise_our_version(server)
