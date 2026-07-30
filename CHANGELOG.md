@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Abstract bases in `abstract_models.py` were never read.** The other half of
+  the same django-oscar run: once its models were found, 72 of the 83 had zero
+  fields between them, because every pluggable framework keeps the abstract
+  base in `abstract_models.py` and leaves `models.py` holding only the
+  concrete subclass. A model reported with no columns reads as a schema that
+  lost them, which is a worse answer than admitting the file was not read.
+  The workspace walk now takes `abstract_models.py` alongside `models.py`;
+  the bases are still dropped from the results, they only become available for
+  inheritance. oscar goes from 72 empty models to 8 — and those 8 are correct:
+  they subclass *concrete* models, where multi-table inheritance leaves the
+  columns on the parent's table.
+
 - **Models declared inside a module-level block were invisible.** Running the
   CLI over a real django-oscar checkout — not a fixture — showed 12 models for
   the whole framework, and every one of them came from oscar's `tests/`

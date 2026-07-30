@@ -364,6 +364,62 @@ class MetaMultilineValueTest(unittest.TestCase):
         self.assertEqual(thing.meta["verbose_name"], "'thing'")
 
 
+class AbstractModelsFileTest(unittest.TestCase):
+    """Bases kept in ``abstract_models.py``, the pluggable-framework layout.
+
+    django-oscar splits every app this way: the abstract base in
+    ``abstract_models.py``, the concrete subclass in ``models.py``. Walking
+    only ``models.py`` found the subclasses and none of their fields — 72 of
+    83 models parsed as empty shells, which reads as a schema that lost its
+    columns rather than one the tool could not see.
+    """
+
+    def _oscar_layout(self, root: Path) -> None:
+        _write(
+            root / "catalogue" / "abstract_models.py",
+            "from django.db import models\n"
+            "\n"
+            "class AbstractProduct(models.Model):\n"
+            "    title = models.CharField(max_length=255)\n"
+            "    slug = models.SlugField(max_length=255)\n"
+            "\n"
+            "    class Meta:\n"
+            "        abstract = True\n",
+        )
+        _write(
+            root / "catalogue" / "models.py",
+            "from oscar.apps.catalogue.abstract_models import *\n"
+            "from oscar.core.loading import is_model_registered\n"
+            "\n"
+            "if not is_model_registered('catalogue', 'Product'):\n"
+            "\n"
+            "    class Product(AbstractProduct):\n"
+            "        pass\n",
+        )
+
+    def test_the_concrete_model_gets_the_abstract_base_fields(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._oscar_layout(root)
+            index = scan_workspace(str(root))
+            product = next(
+                m for app in index.apps for m in app.models if m.name == "Product"
+            )
+            self.assertEqual(
+                [f.name for f in product.all_fields()], ["title", "slug"]
+            )
+            self.assertEqual(product.fields, [], "the class body is empty")
+
+    def test_the_abstract_base_itself_is_not_reported_as_a_model(self) -> None:
+        """Reading the file must not add ``AbstractProduct`` to the schema."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._oscar_layout(root)
+            index = scan_workspace(str(root))
+            names = [m.name for app in index.apps for m in app.models]
+            self.assertEqual(names, ["Product"])
+
+
 class WorkspaceInheritanceTest(unittest.TestCase):
     def test_abstract_base_in_another_file_still_donates(self) -> None:
         """Cross-file resolution already worked for *recognition* (#20).

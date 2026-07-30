@@ -703,11 +703,20 @@ def _resolve_and_filter(all_defs: list[ParsedModel]) -> list[ParsedModel]:
     return result
 
 
+#: Files that declare models but are not named ``models.py``. Pluggable
+#: Django frameworks keep their abstract bases here and leave ``models.py``
+#: holding only the concrete subclasses — django-oscar does this in all 14 of
+#: its apps. Without reading these, oscar's models parse as 82 classes with
+#: zero fields between them: found, but empty, which reads as a schema that
+#: lost its columns.
+MODEL_SOURCE_FILES = frozenset({"models.py", "abstract_models.py"})
+
+
 def _iter_python_files(root: Path, excludes: Sequence[str]) -> Iterable[Path]:
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for name in filenames:
-            if name == "models.py" or (
+            if name in MODEL_SOURCE_FILES or (
                 os.path.basename(dirpath) == "models"
                 and name.endswith(".py")
                 and name != "__init__.py"
