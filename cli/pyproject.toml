@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-orm-lens"
-version = "1.8.1"
+version = "1.9.0"
 description = "Static analysis + MCP server for Django models. Blast radius, schema drift, N+1 and migration risk for CI, ER diagrams for terminals and AI agents. No DB, no Django boot. Free and MIT."
 readme = "README.md"
 requires-python = ">=3.9"
