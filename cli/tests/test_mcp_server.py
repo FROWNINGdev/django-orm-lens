@@ -24,8 +24,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from django_orm_lens import __version__
 from django_orm_lens.mcp_server import (
     TOOLS,
+    _advertise_our_version,
     _resolve,
     _tool_cascade_preview,
     _tool_describe_migration_dependency,
@@ -319,6 +321,49 @@ class SentinelDataclassTest(unittest.TestCase):
         payload = err.to_dict()
         self.assertEqual(set(payload), {"error", "message", "hint", "path"})
         self.assertEqual(payload["error"], "X")
+
+
+class AdvertisedVersionTest(unittest.TestCase):
+    """The version clients read from ``initialize`` must be ours.
+
+    FastMCP forwards no version to the low-level ``Server``, and the SDK then
+    falls back to ``importlib.metadata.version("mcp")`` — so every client used
+    to be told this server was 1.29.0, the mcp release number.
+    """
+
+    def test_sets_the_package_version_on_the_low_level_server(self) -> None:
+        try:
+            from mcp.server.fastmcp import FastMCP
+        except ImportError:  # pragma: no cover - mcp extra not installed
+            self.skipTest("mcp extra not installed")
+        server = FastMCP("django-orm-lens")
+        self.assertEqual(_advertise_our_version(server), __version__)
+        self.assertEqual(server._mcp_server.version, __version__)
+
+    def test_the_value_reaching_initialize_is_ours(self) -> None:
+        """Assert the wire field, not just the attribute we wrote.
+
+        If a future SDK renames the attribute or changes how it builds
+        ``InitializationOptions``, this fails instead of silently shipping the
+        SDK's own version again.
+        """
+        try:
+            from mcp.server.fastmcp import FastMCP
+        except ImportError:  # pragma: no cover - mcp extra not installed
+            self.skipTest("mcp extra not installed")
+        server = FastMCP("django-orm-lens")
+        _advertise_our_version(server)
+        opts = server._mcp_server.create_initialization_options()
+        self.assertEqual(opts.server_version, __version__)
+        self.assertEqual(opts.server_name, "django-orm-lens")
+
+    def test_unexpected_sdk_shape_is_survivable(self) -> None:
+        """A stub without the private handle must not raise."""
+
+        class Stub:
+            pass
+
+        self.assertIsNone(_advertise_our_version(Stub()))
 
 
 if __name__ == "__main__":

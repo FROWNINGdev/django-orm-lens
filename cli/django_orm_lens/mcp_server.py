@@ -35,6 +35,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from . import __version__
 from .cli import _build_mermaid
 from .er_formats import ER_BUILDERS
 from .migrations_parser import describe_migration_dependency
@@ -509,6 +510,31 @@ TOOLS: dict[str, dict[str, Any]] = {
 # ---------------------------------------------------------------------------
 
 
+def _advertise_our_version(server: Any) -> str | None:
+    """Make ``initialize`` report this package's version, not the SDK's.
+
+    ``FastMCP`` accepts no version and never forwards one to the low-level
+    ``Server``, and the SDK's ``create_initialization_options`` falls back to
+    ``importlib.metadata.version("mcp")`` when it is unset. Every client was
+    therefore told this server was version ``1.29.0`` — the ``mcp`` release
+    number. Anything keying an integration off the reported version was
+    reading the wrong project's.
+
+    ``Server(name, version=...)`` is public API; only FastMCP's handle on that
+    instance is private, so the attribute is set defensively and a future SDK
+    that moves it leaves the old behaviour rather than raising. The test suite
+    asserts the value that actually reaches ``initialize``, so such a rename
+    surfaces as a red test instead of a wrong number on the wire.
+
+    :returns: the version set, or ``None`` if the SDK shape was unexpected.
+    """
+    low = getattr(server, "_mcp_server", None)
+    if low is None or not hasattr(low, "version"):
+        return None
+    low.version = __version__
+    return __version__
+
+
 def main() -> int:
     """Start the MCP stdio server. Lazy-imports the ``mcp`` package."""
     try:
@@ -522,6 +548,7 @@ def main() -> int:
         return 3
 
     server = FastMCP("django-orm-lens")
+    _advertise_our_version(server)
 
     # Subtle star-ask on startup (stderr — stdout is reserved for JSON-RPC).
     # Mirrors the CLI welcome convention from py-1.0.9. MCP clients that

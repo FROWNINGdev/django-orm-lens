@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The MCP server reported the SDK's version as its own.** `FastMCP` takes no
+  version and forwards none to the low-level `Server`, and the SDK then falls
+  back to `importlib.metadata.version("mcp")` — so every `initialize` response
+  told the client this server was `1.29.0`, the `mcp` release number. Anything
+  keying an integration or a bug report off the reported version was reading
+  the wrong project's. The package version is now set on the server the SDK
+  actually reads, and the tests assert the value that reaches `initialize`
+  rather than the attribute we write, so a future SDK rename fails the suite
+  instead of silently restoring the wrong number.
+
 - **Abstract base fields count as the child's own.** `drift` compared each
   model's migrations against only what its class body declares, so every model
   whose columns come from an abstract base looked like it had dropped them.
