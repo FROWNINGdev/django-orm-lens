@@ -1,11 +1,11 @@
 """Full-output regression net over the vendored real-world fixture projects.
 
 test_golden_fixtures.py only asserts the parser *survives* Zulip, Saleor,
-Wagtail, django-CMS, and Mezzanine. A parser change can silently drop a
-field, mangle a Meta block, or lose a relation on real-world code while
-that suite stays green. This suite pins the complete ``scan_workspace``
-output for each project against a committed snapshot, so any behavioral
-diff on real code shows up as a reviewable unified diff.
+Wagtail, django-CMS, Mezzanine, and Read the Docs. A parser change can
+silently drop a field, mangle a Meta block, or lose a relation on
+real-world code while that suite stays green. This suite pins the complete
+``scan_workspace`` output for each project against a committed snapshot,
+so any behavioral diff on real code shows up as a reviewable unified diff.
 
 Snapshot files
 --------------
@@ -52,7 +52,7 @@ GOLDEN = Path(__file__).parent / "fixtures" / "golden"
 
 # Explicit list (not iterdir) so a deleted or renamed fixture project fails
 # loudly here instead of silently shrinking the net.
-PROJECTS = ("django-cms", "mezzanine", "saleor", "wagtail", "zulip")
+PROJECTS = ("django-cms", "mezzanine", "readthedocs", "saleor", "wagtail", "zulip")
 
 _REGEN_HINT = (
     "If the change is intentional, regenerate snapshots with "
@@ -140,7 +140,7 @@ def _model_count(payload: dict) -> int:
 
 
 def test_total_model_count_matches_snapshots() -> None:
-    """Guard against accidental fixture deletion: the live parse of all five
+    """Guard against accidental fixture deletion: the live parse of all six
     projects must produce exactly as many models as the committed snapshots
     record. A vanished models.py drops the live count; a vanished snapshot
     fails the lookup."""

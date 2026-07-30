@@ -14,7 +14,8 @@ from pathlib import Path
 
 FIXTURES = Path(__file__).resolve().parents[1] / "cli" / "tests" / "fixtures" / "golden"
 
-# Selection tuned so combined vendored size stays <500 KB.
+# Keep each project to a representative subset instead of vendoring its
+# complete model tree. The combined corpus is guarded by the <2 s scan test.
 PROJECTS = {
     "zulip": {
         "repo": "zulip/zulip",
@@ -62,6 +63,13 @@ PROJECTS = {
         "ref": "master",
         "paths": [
             "mezzanine/blog/models.py",
+        ],
+    },
+    "readthedocs": {
+        "repo": "readthedocs/readthedocs.org",
+        "ref": "main",
+        "paths": [
+            "readthedocs/projects/models.py",
         ],
     },
 }
