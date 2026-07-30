@@ -1,0 +1,1281 @@
+{
+  "apps": [
+    {
+      "models": [
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "\"projects.Project\",\n        verbose_name=_(\"Main project\"),\n        related_name=\"subprojects\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 100,
+              "name": "parent",
+              "onDelete": "CASCADE",
+              "relatedModel": "projects.Project",
+              "relatedName": "subprojects",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"projects.Project\",\n        verbose_name=_(\"Subproject\"),\n        related_name=\"superprojects\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 106,
+              "name": "child",
+              "onDelete": "CASCADE",
+              "relatedModel": "projects.Project",
+              "relatedName": "superprojects",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"Alias\"),\n        max_length=255,\n        null=True,\n        blank=True,\n        db_index=False,\n        validators=[\n            RegexValidator(\n                regex=rf\"^{constants.SUBPROJECT_ALIAS_REGEX}$\",\n                message=_(\"Aliases can contain letters, numbers, underscores, and hyphens.\"),\n            ),\n        ],",
+              "isRelation": false,
+              "lineNumber": 119,
+              "name": "alias",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 90,
+          "meta": {},
+          "name": "ProjectRelationship"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel"
+          ],
+          "fields": [
+            {
+              "args": "\"Project\",\n        related_name=\"addons\",\n        null=True,\n        blank=True,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 172,
+              "name": "project",
+              "onDelete": "CASCADE",
+              "relatedModel": "Project",
+              "relatedName": "addons",
+              "relationKind": "OneToOneField",
+              "type": "OneToOneField"
+            },
+            {
+              "args": "default=True,\n        help_text=\"Enable/Disable all the addons on this project\",",
+              "isRelation": false,
+              "lineNumber": 180,
+              "name": "enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True,\n        blank=True,\n        max_length=128,\n        help_text=\"CSS selector for the main content of the page. Leave it blank for auto-detect.\",",
+              "isRelation": false,
+              "lineNumber": 185,
+              "name": "options_root_selector",
+              "type": "CharField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 194,
+              "name": "options_load_when_embedded",
+              "type": "BooleanField"
+            },
+            {
+              "args": "\"builds.Version\",\n        verbose_name=_(\"Base version to compare against (eg. DocDiff, File Tree Diff)\"),\n        null=True,\n        blank=True,\n        on_delete=models.SET_NULL,",
+              "isRelation": true,
+              "lineNumber": 196,
+              "name": "options_base_version",
+              "onDelete": "SET_NULL",
+              "relatedModel": "builds.Version",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 208,
+              "name": "analytics_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 211,
+              "name": "doc_diff_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 212,
+              "name": "doc_diff_show_additions",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 213,
+              "name": "doc_diff_show_deletions",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 216,
+              "name": "ethicalads_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 219,
+              "name": "filetreediff_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "help_text=_(\"List of ignored files. One per line.\"),\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 220,
+              "name": "filetreediff_ignored_files",
+              "type": "JSONField"
+            },
+            {
+              "args": "default=True,\n        verbose_name=_(\"Enabled\"),",
+              "isRelation": false,
+              "lineNumber": 227,
+              "name": "flyout_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "verbose_name=_(\"Sorting of versions\"),\n        choices=ADDONS_FLYOUT_SORTING_CHOICES,\n        default=ADDONS_FLYOUT_SORTING_SEMVER_READTHEDOCS_COMPATIBLE,\n        max_length=64,",
+              "isRelation": false,
+              "lineNumber": 231,
+              "name": "flyout_sorting",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=32,\n        default=None,\n        null=True,\n        blank=True,\n        verbose_name=_(\"Custom version sorting pattern\"),\n        help_text=\"Sorting pattern supported by BumpVer \"\n        '(<a href=\"https://github.com/mbarkhau/bumpver#pattern-examples\">See examples</a>)',",
+              "isRelation": false,
+              "lineNumber": 237,
+              "name": "flyout_sorting_custom_pattern",
+              "type": "CharField"
+            },
+            {
+              "args": "verbose_name=_(\"Show <code>latest</code> and <code>stable</code> at the beginning\"),\n        default=True,",
+              "isRelation": false,
+              "lineNumber": 246,
+              "name": "flyout_sorting_latest_stable_at_beginning",
+              "type": "BooleanField"
+            },
+            {
+              "args": "choices=ADDONS_FLYOUT_POSITION_CHOICES,\n        max_length=64,\n        default=None,  # ``None`` means use the default (theme override if present or Read the Docs default)\n        null=True,\n        blank=True,\n        verbose_name=_(\"Position\"),",
+              "isRelation": false,
+              "lineNumber": 251,
+              "name": "flyout_position",
+              "type": "CharField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 261,
+              "name": "hotkeys_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Enable search modal\"), default=True",
+              "isRelation": false,
+              "lineNumber": 264,
+              "name": "search_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True, blank=True, max_length=128",
+              "isRelation": false,
+              "lineNumber": 265,
+              "name": "search_default_filter",
+              "type": "CharField"
+            },
+            {
+              "args": "\"Show subprojects filter in search modal\",\n        default=True,\n        db_default=True,",
+              "isRelation": false,
+              "lineNumber": 266,
+              "name": "search_show_subprojects_filter",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 273,
+              "name": "customscript_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "max_length=512,\n        null=True,\n        blank=True,\n        help_text=\"URL to a JavaScript file to inject at serve time\",",
+              "isRelation": false,
+              "lineNumber": 277,
+              "name": "customscript_src",
+              "type": "CharField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 285,
+              "name": "notifications_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 286,
+              "name": "notifications_show_on_latest",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=True",
+              "isRelation": false,
+              "lineNumber": 287,
+              "name": "notifications_show_on_non_stable",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False,\n        verbose_name=_(\"Show a notification on builds from pull requests\"),\n        help_text=_(\n            \"Display a notification on the rendered documentation of pull \"\n            \"request previews. Readers will see a toast linking to the \"\n            \"build and the pull request.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 288,
+              "name": "notifications_show_on_external",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False",
+              "isRelation": false,
+              "lineNumber": 299,
+              "name": "linkpreviews_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True,\n        blank=True,\n        max_length=128,\n        help_text=\"CSS selector to select links you want enabled for link previews. Leave it blank for auto-detect all links in your main page content.\",",
+              "isRelation": false,
+              "lineNumber": 300,
+              "name": "linkpreviews_selector",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 161,
+          "meta": {},
+          "name": "AddonsConfig"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel"
+          ],
+          "fields": [
+            {
+              "args": "\"AddonsConfig\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 315,
+              "name": "addons",
+              "onDelete": "CASCADE",
+              "relatedModel": "AddonsConfig",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=128",
+              "isRelation": false,
+              "lineNumber": 316,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=128",
+              "isRelation": false,
+              "lineNumber": 317,
+              "name": "syntaxt",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 308,
+          "meta": {},
+          "name": "AddonSearchFilter"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "_(\"Publication date\"), auto_now_add=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 324,
+              "name": "pub_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "_(\"Modified date\"), auto_now=True, db_index=True",
+              "isRelation": false,
+              "lineNumber": 325,
+              "name": "modified_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "User,\n        verbose_name=_(\"User\"),\n        related_name=\"projects\",",
+              "isRelation": true,
+              "lineNumber": 328,
+              "name": "users",
+              "relatedModel": "User",
+              "relatedName": "projects",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "_(\"Name\"), max_length=63",
+              "isRelation": false,
+              "lineNumber": 334,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Slug\"), max_length=63, unique=True",
+              "isRelation": false,
+              "lineNumber": 335,
+              "name": "slug",
+              "type": "SlugField"
+            },
+            {
+              "args": "_(\"Description\"),\n        blank=True,\n        help_text=_(\"Short description of this project\"),",
+              "isRelation": false,
+              "lineNumber": 336,
+              "name": "description",
+              "type": "TextField"
+            },
+            {
+              "args": "_(\"Custom command to execute before Git checkout\"),\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 347,
+              "name": "git_checkout_command",
+              "type": "JSONField"
+            },
+            {
+              "args": "_(\"Repository URL\"),\n        max_length=255,\n        validators=[validate_repository_url],\n        help_text=_(\"Git repository URL\"),",
+              "isRelation": false,
+              "lineNumber": 353,
+              "name": "repo",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Repository type\"),\n        max_length=10,\n        choices=constants.REPO_CHOICES,\n        default=\"git\",",
+              "isRelation": false,
+              "lineNumber": 362,
+              "name": "repo_type",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Project homepage\"),\n        blank=True,\n        help_text=_(\"The project's homepage\"),",
+              "isRelation": false,
+              "lineNumber": 368,
+              "name": "project_url",
+              "type": "URLField"
+            },
+            {
+              "args": "_(\"Canonical URL\"),\n        blank=True,\n        help_text=_(\"URL that documentation is expected to serve from\"),",
+              "isRelation": false,
+              "lineNumber": 373,
+              "name": "canonical_url",
+              "type": "URLField"
+            },
+            {
+              "args": "_(\"URL versioning scheme\"),\n        max_length=120,\n        default=constants.MULTIPLE_VERSIONS_WITH_TRANSLATIONS,\n        choices=constants.VERSIONING_SCHEME_CHOICES,\n        # TODO: remove after migration\n        null=True,\n        help_text=_(\n            \"This affects URL your documentation is served from, \"\n            \"and if it supports translations or versions. \"\n            \"Changing the versioning scheme will break your current URLs, \"\n            \"so you might need to create a redirect.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 378,
+              "name": "versioning_scheme",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Single version\"),\n        default=False,\n        help_text=_(\n            \"A single version site has no translations and only your \"\n            '\"latest\" version, served at the root of the domain. Use '\n            \"this with caution, only turn it on if you will <b>never</b> \"\n            \"have multiple versions of your docs.\",\n        ),",
+              "isRelation": false,
+              "lineNumber": 393,
+              "name": "single_version",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Default version\"),\n        max_length=255,\n        default=LATEST,\n        help_text=_(\"The version of your project that / redirects to\"),",
+              "isRelation": false,
+              "lineNumber": 403,
+              "name": "default_version",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Default branch\"),\n        max_length=255,\n        default=None,\n        null=True,\n        blank=True,\n        help_text=_(\n            'What branch \"latest\" points to. Leave empty to use the default value for your VCS.',\n        ),",
+              "isRelation": false,
+              "lineNumber": 411,
+              "name": "default_branch",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Custom path prefix\"),\n        max_length=255,\n        default=None,\n        blank=True,\n        null=True,\n        help_text=_(\n            \"A custom path prefix used when serving documentation from this project. \"\n            \"By default we serve documentation at the root (/) of a domain.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 421,
+              "name": "custom_prefix",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Custom subproject path prefix\"),\n        max_length=255,\n        default=None,\n        blank=True,\n        null=True,\n        help_text=_(\n            \"A custom path prefix used when evaluating the root of a subproject. \"\n            \"By default we serve documentation from subprojects under the `/projects/` prefix.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 432,
+              "name": "custom_subproject_prefix",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Build pull requests for this project\"),\n        default=False,\n        help_text=_(\n            'More information in <a href=\"https://docs.readthedocs.io/page/guides/autobuild-docs-for-pull-requests.html\">our docs</a>.'  # noqa\n        ),",
+              "isRelation": false,
+              "lineNumber": 445,
+              "name": "external_builds_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Privacy level of Pull Requests\"),\n        max_length=20,\n        # TODO: remove after migration\n        null=True,\n        choices=constants.PRIVACY_CHOICES,\n        default=default_privacy_level,\n        help_text=_(\n            \"Should builds from pull requests be public? <strong>If your repository is public, don't set this to private</strong>.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 452,
+              "name": "external_builds_privacy_level",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Show build overview in a comment\"),\n        db_default=True,\n        help_text=_(\n            \"Show an overview of the build and files changed in a comment when a pull request is built.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 463,
+              "name": "show_build_overview_in_comment",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"CDN Enabled\"), default=False",
+              "isRelation": false,
+              "lineNumber": 472,
+              "name": "cdn_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Analytics code\"),\n        max_length=50,\n        null=True,\n        blank=True,\n        help_text=_(\n            \"Google Analytics Tracking ID \"\n            \"(ex. <code>UA-22345342-1</code>). \"\n            \"This may slow down your page loads.\",\n        ),",
+              "isRelation": false,
+              "lineNumber": 473,
+              "name": "analytics_code",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Disable Analytics\"),\n        default=False,\n        null=True,\n        help_text=_(\n            \"Disable Google Analytics completely for this project \"\n            \"(requires rebuilding documentation)\",\n        ),",
+              "isRelation": false,
+              "lineNumber": 484,
+              "name": "analytics_disabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Alternative container image\"),\n        max_length=64,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 493,
+              "name": "container_image",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Container memory limit\"),\n        max_length=10,\n        null=True,\n        blank=True,\n        help_text=_(\n            \"Memory limit in Docker format -- example: <code>512m</code> or <code>1g</code>\",\n        ),",
+              "isRelation": false,
+              "lineNumber": 499,
+              "name": "container_mem_limit",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Container time limit in seconds\"),\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 508,
+              "name": "container_time_limit",
+              "type": "IntegerField"
+            },
+            {
+              "args": "_(\"Alternate build queue id\"),\n        max_length=32,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 513,
+              "name": "build_queue",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Maximum concurrent builds allowed for this project\"),\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 519,
+              "name": "max_concurrent_builds",
+              "type": "IntegerField"
+            },
+            {
+              "args": "_(\"Allow paid advertising\"),\n        default=True,\n        help_text=_(\"If unchecked, users will still see community ads.\"),",
+              "isRelation": false,
+              "lineNumber": 524,
+              "name": "allow_promos",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Ad-free\"),\n        default=False,\n        help_text=\"If checked, do not show advertising for this project\",",
+              "isRelation": false,
+              "lineNumber": 529,
+              "name": "ad_free",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Is spam?\"),\n        default=None,\n        null=True,\n        help_text=_(\"Manually marked as (not) spam\"),",
+              "isRelation": false,
+              "lineNumber": 534,
+              "name": "is_spam",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Show version warning\"),\n        default=False,\n        help_text=_(\"Show warning banner in non-stable nor latest versions.\"),",
+              "isRelation": false,
+              "lineNumber": 540,
+              "name": "show_version_warning",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Path for .readthedocs.yaml\"),\n        max_length=1024,\n        default=None,\n        blank=True,\n        null=True,\n        help_text=_(\n            \"<strong>Warning: experimental feature</strong>. \"\n            \"Custom path from repository top-level to your <code>.readthedocs.yaml</code>, \"\n            \"ex. <code>subpath/docs/.readthedocs.yaml</code>. \"\n            \"Leave blank for default value: <code>.readthedocs.yaml</code>.\",\n        ),\n        validators=[validate_build_config_file],",
+              "isRelation": false,
+              "lineNumber": 546,
+              "name": "readthedocs_yaml_path",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Featured\"), default=False",
+              "isRelation": false,
+              "lineNumber": 561,
+              "name": "featured",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Skip (disable) building this project\"), default=False",
+              "isRelation": false,
+              "lineNumber": 563,
+              "name": "skip",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Disable builds for this project\"),\n        default=False,\n        db_default=False,\n        help_text=_(\n            \"Builds on this project were automatically disabled due to many consecutive failures. Uncheck this field to re-enable building.\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 564,
+              "name": "n_consecutive_failed_builds",
+              "type": "BooleanField"
+            },
+            {
+              "args": "null=True,\n        default=False,\n        verbose_name=_(\"Delisted\"),\n        help_text=_(\n            \"Delisting a project removes it from Read the Docs search indexing and asks external \"\n            \"search engines to remove it via robots.txt\"\n        ),",
+              "isRelation": false,
+              "lineNumber": 576,
+              "name": "delisted",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Enable search indexing\"),\n        default=True,\n        db_default=True,\n        help_text=_(\"Enable/disable search indexing for this project\"),",
+              "isRelation": false,
+              "lineNumber": 586,
+              "name": "search_indexing_enabled",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Privacy Level\"),\n        max_length=20,\n        choices=constants.PRIVACY_CHOICES,\n        default=settings.DEFAULT_PRIVACY_LEVEL,\n        help_text=_(\n            \"Should the project dashboard be public?\",\n        ),",
+              "isRelation": false,
+              "lineNumber": 593,
+              "name": "privacy_level",
+              "type": "CharField"
+            },
+            {
+              "args": "\"self\",\n        verbose_name=_(\"Related projects\"),\n        blank=True,\n        symmetrical=False,\n        through=ProjectRelationship,",
+              "isRelation": true,
+              "lineNumber": 604,
+              "name": "related_projects",
+              "relatedModel": "self",
+              "relationKind": "ManyToManyField",
+              "throughModel": "ProjectRelationship",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "_(\"Language\"),\n        max_length=20,\n        default=\"en\",\n        help_text=_(\n            \"The language the project \"\n            \"documentation is rendered in. \"\n            \"Note: this affects your project's URL.\",\n        ),\n        choices=constants.LANGUAGES,",
+              "isRelation": false,
+              "lineNumber": 613,
+              "name": "language",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Programming Language\"),\n        max_length=20,\n        default=\"words\",\n        help_text=_(\n            \"The primary programming language the project is written in.\",\n        ),\n        choices=constants.PROGRAMMING_LANGUAGES,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 625,
+              "name": "programming_language",
+              "type": "CharField"
+            },
+            {
+              "args": "\"self\",\n        related_name=\"translations\",\n        on_delete=models.SET_NULL,\n        blank=True,\n        null=True,",
+              "isRelation": true,
+              "lineNumber": 636,
+              "name": "main_language_project",
+              "onDelete": "SET_NULL",
+              "relatedModel": "self",
+              "relatedName": "translations",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\"This project has been built with a webhook\"),",
+              "isRelation": false,
+              "lineNumber": 644,
+              "name": "has_valid_webhook",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\"This project has been successfully cloned\"),",
+              "isRelation": false,
+              "lineNumber": 648,
+              "name": "has_valid_clone",
+              "type": "BooleanField"
+            },
+            {
+              "args": "\"oauth.RemoteRepository\",\n        verbose_name=_(\"Connected repository\"),\n        help_text=_(\"Repository connected to this project\"),\n        on_delete=models.SET_NULL,\n        related_name=\"projects\",\n        null=True,\n        blank=True,",
+              "isRelation": true,
+              "lineNumber": 659,
+              "name": "remote_repository",
+              "onDelete": "SET_NULL",
+              "relatedModel": "oauth.RemoteRepository",
+              "relatedName": "projects",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"Documentation type\"),\n        max_length=20,\n        choices=constants.DOCUMENTATION_CHOICES,\n        default=None,\n        null=True,\n        blank=True,\n        help_text=_(\n            'Type of documentation you are building. <a href=\"'\n            \"http://www.sphinx-doc.org/en/stable/builders.html#sphinx.builders.html.\"\n            'DirectoryHTMLBuilder\">More info on sphinx builders</a>.',\n        ),",
+              "isRelation": false,
+              "lineNumber": 680,
+              "name": "documentation_type",
+              "type": "CharField"
+            },
+            {
+              "args": "help_text=_(\"Project has an SSH key with write access\"),\n        default=False,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 696,
+              "name": "has_ssh_key_with_write_access",
+              "type": "BooleanField"
+            },
+            {
+              "args": "\"builds.Build\",\n        verbose_name=_(\"Latest build\"),\n        # No reverse relation needed.\n        related_name=\"+\",\n        on_delete=models.SET_NULL,\n        null=True,\n        blank=True,",
+              "isRelation": true,
+              "lineNumber": 703,
+              "name": "latest_build",
+              "onDelete": "SET_NULL",
+              "relatedModel": "builds.Build",
+              "relatedName": "+",
+              "relationKind": "OneToOneField",
+              "type": "OneToOneField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 320,
+          "meta": {
+            "ordering": "(\"slug\",)",
+            "verbose_name": "_(\"project\")"
+          },
+          "name": "Project"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "Project"
+          ],
+          "fields": [],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1600,
+          "meta": {
+            "proxy": "True"
+          },
+          "name": "APIProject"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "primary_key=True",
+              "isRelation": false,
+              "lineNumber": 1686,
+              "name": "id",
+              "type": "BigAutoField"
+            },
+            {
+              "args": "Project,\n        verbose_name=_(\"Project\"),\n        related_name=\"imported_files\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 1687,
+              "name": "project",
+              "onDelete": "CASCADE",
+              "relatedModel": "Project",
+              "relatedName": "imported_files",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "\"builds.Version\",\n        verbose_name=_(\"Version\"),\n        related_name=\"imported_files\",\n        null=True,\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 1693,
+              "name": "version",
+              "onDelete": "CASCADE",
+              "relatedModel": "builds.Version",
+              "relatedName": "imported_files",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"Name\"), max_length=255",
+              "isRelation": false,
+              "lineNumber": 1700,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Path\"), max_length=4096",
+              "isRelation": false,
+              "lineNumber": 1705,
+              "name": "path",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Commit\"), max_length=255",
+              "isRelation": false,
+              "lineNumber": 1706,
+              "name": "commit",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Build id\"), null=True",
+              "isRelation": false,
+              "lineNumber": 1707,
+              "name": "build",
+              "type": "IntegerField"
+            },
+            {
+              "args": "_(\"Modified date\"), auto_now=True",
+              "isRelation": false,
+              "lineNumber": 1708,
+              "name": "modified_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "_(\"Page search rank\"),\n        default=0,\n        validators=[MinValueValidator(-10), MaxValueValidator(10)],",
+              "isRelation": false,
+              "lineNumber": 1709,
+              "name": "rank",
+              "type": "IntegerField"
+            },
+            {
+              "args": "_(\"Ignore this file from operations like indexing\"),\n        # default=False,\n        # TODO: remove after migration\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 1714,
+              "name": "ignore",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1678,
+          "meta": {},
+          "name": "ImportedFile"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "ImportedFile"
+          ],
+          "fields": [],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1729,
+          "meta": {
+            "proxy": "True"
+          },
+          "name": "HTMLFile"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "Notification"
+          ],
+          "fields": [
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 1778,
+              "name": "email",
+              "type": "EmailField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1777,
+          "meta": {},
+          "name": "EmailHook"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "max_length=256,\n        unique=True,\n        choices=EVENTS,",
+              "isRelation": false,
+              "lineNumber": 1795,
+              "name": "name",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1784,
+          "meta": {},
+          "name": "WebHookEvent"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "Notification"
+          ],
+          "fields": [
+            {
+              "args": "_(\"URL\"),\n        max_length=600,\n        help_text=_(\"URL to send the webhook to\"),",
+              "isRelation": false,
+              "lineNumber": 1806,
+              "name": "url",
+              "type": "URLField"
+            },
+            {
+              "args": "help_text=_(\"Secret used to sign the payload of the webhook\"),\n        max_length=255,\n        blank=True,\n        null=True,",
+              "isRelation": false,
+              "lineNumber": 1811,
+              "name": "secret",
+              "type": "CharField"
+            },
+            {
+              "args": "WebHookEvent,\n        related_name=\"webhooks\",\n        help_text=_(\"Events to subscribe\"),",
+              "isRelation": true,
+              "lineNumber": 1817,
+              "name": "events",
+              "relatedModel": "WebHookEvent",
+              "relatedName": "webhooks",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "_(\"JSON payload\"),\n        help_text=_(\n            \"JSON payload to send to the webhook. \"\n            'Check <a href=\"https://docs.readthedocs.io/page/build-notifications.html#variable-substitutions-reference\">the docs</a> for available substitutions.',  # noqa\n        ),\n        blank=True,\n        null=True,\n        max_length=25000,",
+              "isRelation": false,
+              "lineNumber": 1822,
+              "name": "payload",
+              "type": "TextField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1805,
+          "meta": {},
+          "name": "WebHook"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel"
+          ],
+          "fields": [
+            {
+              "args": "Project,\n        related_name=\"domains\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 1917,
+              "name": "project",
+              "onDelete": "CASCADE",
+              "relatedModel": "Project",
+              "relatedName": "domains",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"Domain\"),\n        unique=True,\n        max_length=255,\n        validators=[validate_domain_name, validate_no_ip],",
+              "isRelation": false,
+              "lineNumber": 1922,
+              "name": "domain",
+              "type": "CharField"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\"This domain was auto-created\"),",
+              "isRelation": false,
+              "lineNumber": 1928,
+              "name": "machine",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\"This domain is a CNAME for the project\"),",
+              "isRelation": false,
+              "lineNumber": 1932,
+              "name": "cname",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\n            \"This domain is the primary one where the documentation is served from\",\n        ),",
+              "isRelation": false,
+              "lineNumber": 1936,
+              "name": "canonical",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Use HTTPS\"),\n        default=True,\n        help_text=_(\"Always use HTTPS for this domain\"),",
+              "isRelation": false,
+              "lineNumber": 1942,
+              "name": "https",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=0,\n        help_text=_(\"Number of times this domain has been hit\"),",
+              "isRelation": false,
+              "lineNumber": 1947,
+              "name": "count",
+              "type": "IntegerField"
+            },
+            {
+              "args": "_(\"SSL certificate status\"),\n        max_length=30,\n        choices=constants.SSL_STATUS_CHOICES,\n        default=constants.SSL_STATUS_UNKNOWN,\n        # Remove after deploy\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 1953,
+              "name": "ssl_status",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Skip validation process.\"),\n        default=False,",
+              "isRelation": false,
+              "lineNumber": 1962,
+              "name": "skip_validation",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Start date of the validation process.\"),\n        auto_now_add=True,",
+              "isRelation": false,
+              "lineNumber": 1966,
+              "name": "validation_process_start",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "default=0,\n        help_text=_(\"Set a custom max-age (eg. 31536000) for the HSTS header\"),",
+              "isRelation": false,
+              "lineNumber": 1974,
+              "name": "hsts_max_age",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\"If hsts_max_age > 0, set the includeSubDomains flag with the HSTS header\"),",
+              "isRelation": false,
+              "lineNumber": 1978,
+              "name": "hsts_include_subdomains",
+              "type": "BooleanField"
+            },
+            {
+              "args": "default=False,\n        help_text=_(\"If hsts_max_age > 0, set the preload flag with the HSTS header\"),",
+              "isRelation": false,
+              "lineNumber": 1982,
+              "name": "hsts_preload",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 1906,
+          "meta": {
+            "ordering": "(\"-canonical\", \"-machine\", \"domain\")"
+          },
+          "name": "Domain"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel",
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Domain,\n        related_name=\"http_headers\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2054,
+              "name": "domain",
+              "onDelete": "CASCADE",
+              "relatedModel": "Domain",
+              "relatedName": "http_headers",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=128,\n        choices=HEADERS_CHOICES,",
+              "isRelation": false,
+              "lineNumber": 2059,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=4096",
+              "isRelation": false,
+              "lineNumber": 2063,
+              "name": "value",
+              "type": "CharField"
+            },
+            {
+              "args": "help_text=\"Only set this header if the request is secure (HTTPS)\",",
+              "isRelation": false,
+              "lineNumber": 2064,
+              "name": "only_if_secure_request",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 2030,
+          "meta": {},
+          "name": "HTTPHeader"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "Project,\n        blank=True,",
+              "isRelation": true,
+              "lineNumber": 2208,
+              "name": "projects",
+              "relatedModel": "Project",
+              "relationKind": "ManyToManyField",
+              "type": "ManyToManyField"
+            },
+            {
+              "args": "_(\"Feature identifier\"),\n        max_length=255,\n        unique=True,",
+              "isRelation": false,
+              "lineNumber": 2214,
+              "name": "feature_id",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Date feature was added\"),\n        auto_now_add=True,",
+              "isRelation": false,
+              "lineNumber": 2219,
+              "name": "add_date",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "_(\"Default all past projects to True\"),\n        default=False,",
+              "isRelation": false,
+              "lineNumber": 2225,
+              "name": "default_true",
+              "type": "BooleanField"
+            },
+            {
+              "args": "_(\"Default all future projects to True\"),\n        default=False,",
+              "isRelation": false,
+              "lineNumber": 2229,
+              "name": "future_default_true",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 2072,
+          "meta": {},
+          "name": "Feature"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel",
+            "models.Model"
+          ],
+          "fields": [
+            {
+              "args": "max_length=128,\n        help_text=_(\"Name of the environment variable\"),",
+              "isRelation": false,
+              "lineNumber": 2250,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=48000,\n        help_text=_(\"Value of the environment variable\"),",
+              "isRelation": false,
+              "lineNumber": 2254,
+              "name": "value",
+              "type": "CharField"
+            },
+            {
+              "args": "Project,\n        on_delete=models.CASCADE,\n        help_text=_(\"Project where this variable will be used\"),",
+              "isRelation": true,
+              "lineNumber": 2258,
+              "name": "project",
+              "onDelete": "CASCADE",
+              "relatedModel": "Project",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"Public\"),\n        default=False,\n        null=True,\n        help_text=_(\"Expose this environment variable in PR builds?\"),",
+              "isRelation": false,
+              "lineNumber": 2263,
+              "name": "public",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 2249,
+          "meta": {},
+          "name": "EnvironmentVariable"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel"
+          ],
+          "fields": [
+            {
+              "args": "Project,\n        verbose_name=_(\"Project\"),\n        related_name=\"automation_rules\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2339,
+              "name": "project",
+              "onDelete": "CASCADE",
+              "relatedModel": "Project",
+              "relatedName": "automation_rules",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "_(\"Rule priority\"),\n        help_text=_(\"A lower number (0) means a higher priority\"),\n        default=0,",
+              "isRelation": false,
+              "lineNumber": 2346,
+              "name": "priority",
+              "type": "PositiveIntegerField"
+            },
+            {
+              "args": "_(\"Description\"),\n        max_length=255,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 2352,
+              "name": "description",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Version types\"),\n        help_text=_(\n            \"List of version types this rule applies to (e.g., ['tag', 'branch', 'external']).\"\n        ),\n        default=list,",
+              "isRelation": false,
+              "lineNumber": 2360,
+              "name": "version_types",
+              "type": "JSONField"
+            },
+            {
+              "args": "_(\"Version predefined match pattern\"),\n        help_text=_(\n            \"Predefined pattern to match against the version name (e.g., 'semver-versions')\"\n        ),\n        max_length=255,\n        choices=VERSION_PREDEFINED_MATCH_PATTERNS,",
+              "isRelation": false,
+              "lineNumber": 2368,
+              "name": "version_predefined_match_pattern",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Version match pattern\"),\n        help_text=_(\"Regex pattern to match against the version name (e.g., '^release-.*')\"),\n        max_length=255,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 2377,
+              "name": "version_match_pattern",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Webhook files match pattern\"),\n        help_text=_(\n            \"Pattern to match against the files changed in the webhook event. \"\n            \"Use fnmatch patterns (e.g., 'docs/*.md') and one pattern per line.\"\n        ),\n        max_length=1024,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 2386,
+              "name": "webhook_files_match_pattern",
+              "type": "JSONField"
+            },
+            {
+              "args": "_(\"Webhook labels match pattern\"),\n        help_text=_(\n            \"Pattern to match against the labels in the webhook event. \"\n            \"Use a regex pattern to match against the labels (e.g., 'docs|build').\"\n        ),\n        max_length=255,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 2396,
+              "name": "webhook_labels_match_pattern",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Webhook commit message match pattern\"),\n        help_text=_(\n            \"Pattern to match against the commit message in the webhook event. \"\n            \"Use a regex pattern to match against the commit message (e.g., 'fix|feature').\"\n        ),\n        max_length=255,\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 2406,
+              "name": "webhook_commit_message_match_pattern",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Action\"),\n        help_text=_(\"Action to apply when the rule matches\"),\n        max_length=32,\n        choices=ACTIONS,",
+              "isRelation": false,
+              "lineNumber": 2418,
+              "name": "action",
+              "type": "CharField"
+            },
+            {
+              "args": "_(\"Enabled\"),\n        default=True,\n        help_text=_(\"Whether this rule is enabled\"),",
+              "isRelation": false,
+              "lineNumber": 2425,
+              "name": "enabled",
+              "type": "BooleanField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 2284,
+          "meta": {
+            "ordering": "(\"priority\", \"-modified\", \"-created\")",
+            "verbose_name": "_(\"Automation rule\")",
+            "verbose_name_plural": "_(\"Automation rules\")"
+          },
+          "name": "AutomationRule"
+        },
+        {
+          "appName": "projects",
+          "baseClasses": [
+            "TimeStampedModel"
+          ],
+          "fields": [
+            {
+              "args": "AutomationRule,\n        verbose_name=_(\"Matched rule\"),\n        related_name=\"matches\",\n        on_delete=models.CASCADE,",
+              "isRelation": true,
+              "lineNumber": 2703,
+              "name": "rule",
+              "onDelete": "CASCADE",
+              "relatedModel": "AutomationRule",
+              "relatedName": "matches",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "max_length=255",
+              "isRelation": false,
+              "lineNumber": 2711,
+              "name": "version_name",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=255",
+              "isRelation": false,
+              "lineNumber": 2712,
+              "name": "match_arg",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=255,\n        choices=AutomationRule.ACTIONS,",
+              "isRelation": false,
+              "lineNumber": 2713,
+              "name": "action",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=32,\n        choices=VERSION_TYPES,",
+              "isRelation": false,
+              "lineNumber": 2717,
+              "name": "version_type",
+              "type": "CharField"
+            }
+          ],
+          "filePath": "readthedocs/projects/models.py",
+          "lineNumber": 2692,
+          "meta": {
+            "ordering": "(\"-modified\", \"-created\")"
+          },
+          "name": "AutomationRuleMatch"
+        }
+      ],
+      "name": "projects",
+      "path": "readthedocs/projects"
+    }
+  ],
+  "scannedAt": 0,
+  "scannedFiles": 1
+}
