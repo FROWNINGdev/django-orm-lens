@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`drift` reported a false blocking failure when two apps shared a name.**
+  The third finding from the same real-world run, on django-guardian, which
+  ships both `example_project/core` and `example_project_custom_group/core`.
+  The parser labels an app by its directory, so the *declared* side merged the
+  two; the migration side replayed each directory on its own. One project's
+  migrations were therefore compared against both projects' models, and the
+  report contradicted itself — `core.customgroup` came out as "declared, but
+  no migration creates it" **and** "migrated but no longer declared", with
+  `core.customuser` printed twice. The first of those is a blocking verdict,
+  so anyone running `drift` in CI over a repo with two same-named app
+  directories — every monorepo — could have a build failed by a model that was
+  migrated perfectly well. Replayed state is now merged per app name, matching
+  how the declared side is already keyed. On the real guardian checkout the
+  blocking count goes from 1 to 0 and the duplicate row disappears, while a
+  genuinely unmigrated field still blocks.
+
 - **Abstract bases in `abstract_models.py` were never read.** The other half of
   the same django-oscar run: once its models were found, 72 of the 83 had zero
   fields between them, because every pluggable framework keeps the abstract

@@ -256,9 +256,23 @@ def detect_drift(
     report = DriftReport()
     seen_apps: set[str] = set()
 
+    # Several directories can carry the same app name — django-guardian ships
+    # example_project/core and example_project_custom_group/core, and any
+    # monorepo has the same shape. The declared side is already merged by name
+    # (the parser labels an app by its directory), so replaying each migrations
+    # directory separately compared one project's migrations against both
+    # projects' models: core.customuser was printed twice, and core.customgroup
+    # came out as "no migration creates it" *and* "migrated but no longer
+    # declared" at once. Merge the replayed state per label so both sides agree.
+    merged: dict[str, dict[str, set[str]]] = {}
     for app_label, migrations_dir in _find_all_migration_apps(root):
         migrated, replayed = replay_app(migrations_dir)
         report.migrations_replayed += replayed
+        into = merged.setdefault(app_label, {})
+        for model, fields in migrated.items():
+            into.setdefault(model, set()).update(fields)
+
+    for app_label, migrated in merged.items():
         seen_apps.add(app_label)
         declared_app = declared.get(app_label, {})
 

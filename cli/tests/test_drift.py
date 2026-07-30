@@ -253,6 +253,85 @@ class DetectDriftTest(unittest.TestCase):
         self.assertTrue(payload["drifted"][0]["blocking"])
 
 
+class SameAppNameTwiceTest(unittest.TestCase):
+    """Two directories with the same app name must not fight each other.
+
+    django-guardian ships ``example_project/core`` and
+    ``example_project_custom_group/core``. The parser labels an app by its
+    directory, so the *declared* side merged both; the migration side replayed
+    each directory separately. One project's migrations were therefore compared
+    against both projects' models, and on the real checkout that produced a
+    duplicated row and a **false blocking** finding — the worst outcome for a
+    tool people put in a CI gate.
+    """
+
+    def _project(self, root: Path, holder: str, model: str, field: str) -> None:
+        app = root / holder / "core"
+        (app / "migrations").mkdir(parents=True, exist_ok=True)
+        (app / "migrations" / "__init__.py").write_text("", encoding="utf-8")
+        (app / "migrations" / "0001_initial.py").write_text(
+            "from django.db import migrations, models\n"
+            "\n"
+            "class Migration(migrations.Migration):\n"
+            "    operations = [\n"
+            "        migrations.CreateModel(\n"
+            f"            name='{model}',\n"
+            "            fields=[\n"
+            "                ('id', models.AutoField(primary_key=True)),\n"
+            f"                ('{field}', models.CharField(max_length=10)),\n"
+            "            ],\n"
+            "        ),\n"
+            "    ]\n",
+            encoding="utf-8",
+        )
+        (app / "models.py").write_text(
+            "from django.db import models\n"
+            "\n"
+            f"class {model}(models.Model):\n"
+            f"    {field} = models.CharField(max_length=10)\n",
+            encoding="utf-8",
+        )
+
+    def test_no_duplicate_rows_and_no_false_blocking(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._project(root, "example_project", "Alpha", "one")
+            self._project(root, "example_project_custom_group", "Beta", "two")
+
+            payload = detect_drift(str(root)).to_dict()
+
+            labels = [(d["app"], d["model"]) for d in payload["drifted"]]
+            self.assertEqual(
+                len(labels), len(set(labels)), f"duplicate rows: {labels}"
+            )
+            self.assertEqual(
+                payload["summary"]["blocking"],
+                0,
+                "a model migrated in the sibling project must not read as "
+                f"unmigrated: {payload['drifted']}",
+            )
+
+    def test_a_real_missing_migration_still_blocks(self) -> None:
+        """Merging the two sides must not blunt the check."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._project(root, "example_project", "Alpha", "one")
+            app = root / "example_project" / "core"
+            app.joinpath("models.py").write_text(
+                "from django.db import models\n"
+                "\n"
+                "class Alpha(models.Model):\n"
+                "    one = models.CharField(max_length=10)\n"
+                "    never_migrated = models.IntegerField(default=0)\n",
+                encoding="utf-8",
+            )
+            payload = detect_drift(str(root)).to_dict()
+            self.assertEqual(payload["summary"]["blocking"], 1)
+            self.assertEqual(
+                payload["drifted"][0]["missingInMigrations"], ["never_migrated"]
+            )
+
+
 class BlockingPolicyTest(unittest.TestCase):
     """The narrow blocking rule is a deliberate contract, so pin it."""
 
