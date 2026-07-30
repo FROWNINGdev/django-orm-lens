@@ -398,7 +398,7 @@ django-orm-lens mcp
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.8.0
+    rev: py-v1.8.1
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk
