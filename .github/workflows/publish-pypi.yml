@@ -19,7 +19,7 @@ on:
 # Until step 1-2 are done, the next tag push fails at the Publish step with
 # a 403 from PyPI — safe failure mode, no bad publish.
 permissions:
-  contents: read
+  contents: write   # the Release step below creates the tag's release page
   id-token: write   # required for OIDC
 
 jobs:
@@ -51,3 +51,51 @@ jobs:
         with:
           packages-dir: cli/dist
           skip-existing: true
+
+      # py-v1.7.0, 1.7.1, 1.8.0 and 1.8.1 all published to every registry and
+      # left no GitHub release page behind, because nothing here ever made one.
+      # Anyone reading the Releases tab saw py-v1.6.0 as the newest Python
+      # version for a week. The notes come from the tag's own CHANGELOG
+      # section, so the release page cannot describe something other than what
+      # shipped.
+      - name: Release notes from CHANGELOG
+        id: notes
+        run: |
+          python - "$TAG" <<'PY'
+          import pathlib, re, sys
+
+          tag = sys.argv[1]                      # py-v1.8.1
+          heading = tag.replace("py-v", "py-")   # py-1.8.1
+          lines = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+          starts = [i for i, l in enumerate(lines) if l.startswith("## ")]
+          body = ""
+          for n, i in enumerate(starts):
+              if re.match(rf"## \[{re.escape(heading)}\]", lines[i]):
+                  end = starts[n + 1] if n + 1 < len(starts) else len(lines)
+                  body = "\n".join(lines[i + 1:end]).strip()
+                  break
+          if not body:
+              # No section is not a reason to fail the publish - the package is
+              # already on PyPI by this point. Ship a stub and say so.
+              body = f"See CHANGELOG.md for {heading}."
+              print(f"::warning::no CHANGELOG section for {heading}")
+          pathlib.Path("release-notes.md").write_text(body + "\n", encoding="utf-8")
+          print(f"wrote {len(body)} chars of notes for {tag}")
+          PY
+        env:
+          TAG: ${{ github.ref_name }}
+
+      - name: Create the GitHub release page
+        # Idempotent on purpose: a re-run of a partially failed publish must not
+        # fail here just because the page already exists.
+        run: |
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "release $TAG already exists - leaving it alone"
+          else
+            gh release create "$TAG" --repo "$REPO" --verify-tag \
+              --title "$TAG" --notes-file release-notes.md
+          fi
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
