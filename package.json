@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "See your entire Django schema in your editor, and gate it in CI. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "preview": false,
   "galleryBanner": {
     "color": "#0c4b33",

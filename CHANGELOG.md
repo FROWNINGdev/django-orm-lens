@@ -5,6 +5,18 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-07-30
+
+Extension release, marketplace metadata only — no code change. The listing
+still described the extension as a sidebar and an ER diagram, which is what it
+was two waves ago: impact analysis, blast radius and schema drift had shipped
+and nothing on the store page said so. Someone searching for those never found
+it. The description now names them and says plainly that it is free and MIT
+with no Pro tier, and seven keywords were added (`schema drift`, `impact
+analysis`, `blast radius`, `code review`, `pull request`, `free`,
+`open source`). Both take effect only on publish, which is why they needed a
+release of their own.
+
 ## [py-1.9.0] - 2026-07-30
 
 ### Fixed
