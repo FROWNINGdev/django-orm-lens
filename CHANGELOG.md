@@ -5,7 +5,12 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [py-1.10.0] - 2026-07-31
+
+Three defects found by running the CLI over real checkouts of django-oscar,
+django-guardian, django-allauth and django-cms rather than over fixtures. Each
+one was invisible to a green test suite, and two of them made the tool answer
+confidently with something false.
 
 ### Fixed
 
