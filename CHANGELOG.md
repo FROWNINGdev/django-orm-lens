@@ -5,6 +5,21 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **A sixth golden fixture: Read the Docs.** The vendored `projects/models.py`,
+  its generated snapshot, reproducible fetch metadata and MIT attribution, next
+  to Zulip, Saleor, Wagtail, django-CMS and Mezzanine — 16 models and 142
+  fields more, putting the parser under 75 models and 537 fields of real-world
+  Django. Verified byte-identical to upstream blob `cf1e913d` before merge:
+  fixtures are parser *input* for byte-stable snapshots, so an edited copy
+  would quietly rewrite what those snapshots assert. Contributed by
+  [@JJordan0C](https://github.com/JJordan0C) in
+  [#62](https://github.com/FROWNINGdev/django-orm-lens/pull/62), closing
+  [#51](https://github.com/FROWNINGdev/django-orm-lens/issues/51).
+
 ## [0.10.1] - 2026-07-30
 
 Extension release, marketplace metadata only — no code change. The listing

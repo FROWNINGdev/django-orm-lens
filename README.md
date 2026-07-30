@@ -723,6 +723,7 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] `drift` documents its `!!` / `~` marks in the report and in `--help` — reported by [@sevdog](https://github.com/sevdog) ([#57](https://github.com/FROWNINGdev/django-orm-lens/issues/57))
 - [x] `drift` follows inheritance from abstract bases — an abstract base's fields count as the concrete child's own, as Django treats them — reported by [@sevdog](https://github.com/sevdog) ([#58](https://github.com/FROWNINGdev/django-orm-lens/issues/58))
 - [x] `suggest-index` recognises the indexes Django already made — primary key (`pk` and `id` are one lookup), `db_index`, `unique`, foreign keys, `unique_together`, `UniqueConstraint` — reported by [@sevdog](https://github.com/sevdog) ([#60](https://github.com/FROWNINGdev/django-orm-lens/issues/60)), same cause independently found by [@RinZ27](https://github.com/RinZ27) ([#61](https://github.com/FROWNINGdev/django-orm-lens/pull/61))
+- [x] A sixth golden fixture — Read the Docs joins Zulip, Saleor, Wagtail, django-CMS and Mezzanine, putting the parser under 75 models and 537 fields of real-world Django — contributed by [@JJordan0C](https://github.com/JJordan0C) ([#62](https://github.com/FROWNINGdev/django-orm-lens/pull/62), closing [#51](https://github.com/FROWNINGdev/django-orm-lens/issues/51))
 
 **Next**
 
