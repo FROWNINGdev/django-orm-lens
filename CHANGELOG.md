@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Models declared inside a module-level block were invisible.** Running the
+  CLI over a real django-oscar checkout — not a fixture — showed 12 models for
+  the whole framework, and every one of them came from oscar's `tests/`
+  directory: 21 of its 22 app `models.py` files parsed to nothing. Catalogue,
+  order, offer, partner, payment, shipping, voucher, customer, address,
+  analytics, reviews and wishlists were all missing. Reporting a project's
+  test fixtures as its schema is worse than reporting none of it.
+  The cause is the swappable-model idiom every pluggable Django framework
+  uses — `if not is_model_registered(...):` and then an indented `class` —
+  against class discovery anchored on `^class`. A class is now matched on its
+  dedented view and accepted when everything enclosing it is a block statement
+  (`if`, `try`, `with`, `for`); a `def` or `class` outwards still rejects it,
+  so `Meta`, nested helpers and factory-local models stay out. django-oscar
+  now yields 82 models. All six golden snapshots are byte-identical: a
+  column-0 class parses exactly as before.
+
 ### Added
 
 - **A sixth golden fixture: Read the Docs.** The vendored `projects/models.py`,

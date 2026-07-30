@@ -356,6 +356,43 @@ def _read_balanced_args(lines: Sequence[str], start: int):
     return "".join(parts).lstrip("("), len(lines) - 1
 
 
+def _encloses_only_blocks(lines: Sequence[str], idx: int, indent: int) -> bool:
+    """Is the indented statement at ``lines[idx]`` still at module level?
+
+    Django's swappable-model convention wraps concrete models in a plain
+    ``if``::
+
+        if not is_model_registered("catalogue", "ProductClass"):
+
+            class ProductClass(AbstractProductClass):
+                pass
+
+    That class is a module-level model in every sense that matters, but it is
+    indented, and matching ``^class`` alone missed it — 21 of django-oscar's
+    22 app ``models.py`` files parsed to nothing, losing catalogue, order,
+    partner, payment, voucher and the rest of the framework.
+
+    Walking outwards, every enclosing header must be a block statement
+    (``if`` / ``try`` / ``with`` / ``for`` …). A ``def`` or ``class`` means
+    the class is a local or a nested helper — ``class Meta`` is the common
+    one — and must stay excluded.
+    """
+    want = indent
+    for k in range(idx - 1, -1, -1):
+        line = lines[k]
+        if not line.strip():
+            continue
+        cur = len(line) - len(line.lstrip())
+        if cur >= want:
+            continue
+        if line.lstrip().startswith(("def ", "async def ", "class ")):
+            return False
+        want = cur
+        if want == 0:
+            return True
+    return True
+
+
 def _looks_like_model(base_classes: list[str]) -> bool:
     for b in base_classes:
         tail = b.split(".")[-1]
@@ -420,9 +457,19 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
     i = 0
     while i < len(lines):
         line = lines[i]
-        class_match = CLASS_RE.match(line)
+        # A class indented inside a module-level ``if`` is still a model (see
+        # _encloses_only_blocks). Match the dedented view so the ``^class``
+        # anchor keeps meaning "start of the statement", not "column 0".
+        class_indent = len(line) - len(line.lstrip())
+        probe = line if class_indent == 0 else line.lstrip()
+        class_match = CLASS_RE.match(probe)
+        if class_match and class_indent and not _encloses_only_blocks(
+            lines, i, class_indent
+        ):
+            i += 1
+            continue
         class_header_end = i
-        if not class_match and CLASS_START_RE.match(line):
+        if not class_match and class_indent == 0 and CLASS_START_RE.match(line):
             joined_match, joined_end = _read_multiline_class(lines, i)
             if joined_match is not None:
                 class_match = joined_match
@@ -461,6 +508,15 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
         j = class_header_end + 1
         while j < len(lines):
             inner = lines[j]
+            # An indented class ends where the source dedents back out of it.
+            # Column-0 classes keep the original terminator exactly, so files
+            # without conditional models parse byte-for-byte as before.
+            if (
+                class_indent
+                and inner.strip()
+                and len(inner) - len(inner.lstrip()) <= class_indent
+            ):
+                break
             if re.match(r"^class\s+", inner) and not re.match(r"^\s+class", inner):
                 break
             if not inner.strip():
