@@ -111,6 +111,7 @@ const BARE_FIELD_TYPES = [
   'GenericIPAddressField',
   'AutoField', 'BigAutoField', 'SmallAutoField',
   'ForeignKey', 'OneToOneField', 'ManyToManyField',
+  'TaggableManager',
 ].join('|');
 
 function buildBodyRegexes(indent: number) {
@@ -321,7 +322,13 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
         const fieldName = fieldMatch[1];
         const fieldType = fieldMatch[2];
         const { argsBlock, endIdx } = readBalancedArgs(lines, j);
-        const isRel = RELATION_TYPES.includes(fieldType as RelationKind);
+        const relationKind =
+          fieldType === 'TaggableManager'
+            ? 'ManyToManyField'
+            : RELATION_TYPES.includes(fieldType as RelationKind)
+            ? (fieldType as RelationKind)
+            : undefined;
+        const isRel = relationKind !== undefined;
         const field: ParsedField = {
           name: fieldName,
           type: fieldType,
@@ -330,16 +337,23 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
           lineNumber: j,
         };
         if (isRel) {
-          field.relationKind = fieldType as RelationKind;
+          field.relationKind = relationKind;
           const argsInner = argsBlock.slice(0, -1);
-          field.relatedModel = extractRelated(argsInner);
+          field.relatedModel =
+            fieldType === 'TaggableManager'
+              ? 'taggit.Tag'
+              : extractRelated(argsInner);
           const onDelete = extractOnDelete(argsInner);
           if (onDelete) field.onDelete = onDelete;
           const relatedName = extractRelatedName(argsInner);
           if (relatedName) field.relatedName = relatedName;
-          if (fieldType === 'ManyToManyField') {
+          if (relationKind === 'ManyToManyField') {
             const throughModel = extractThroughModel(argsInner);
-            if (throughModel) field.throughModel = throughModel;
+            if (throughModel) {
+              field.throughModel = throughModel;
+            } else if (fieldType === 'TaggableManager') {
+              field.throughModel = 'taggit.TaggedItem';
+            }
           }
         }
         model.fields.push(field);

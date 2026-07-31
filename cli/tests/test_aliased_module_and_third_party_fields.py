@@ -90,5 +90,35 @@ class ThirdPartyFieldPackageTest(unittest.TestCase):
         )
 
 
+class TaggableManagerTest(unittest.TestCase):
+    def test_default_relation_metadata(self) -> None:
+        src = (
+            "from django.db import models\n"
+            "from taggit.managers import TaggableManager\n\n"
+            "class Post(models.Model):\n"
+            "    title = models.CharField(max_length=200)\n"
+            "    tags = TaggableManager()\n"
+        )
+        models = parse_models_file("blog/models.py", src)
+        tags = models[0].fields[1]
+        self.assertEqual(tags.type, "TaggableManager")
+        self.assertTrue(tags.is_relation)
+        self.assertEqual(tags.relation_kind, "ManyToManyField")
+        self.assertEqual(tags.related_model, "taggit.Tag")
+        self.assertEqual(tags.through_model, "taggit.TaggedItem")
+
+    def test_explicit_through_overrides_default(self) -> None:
+        src = (
+            "from django.db import models\n"
+            "from taggit.managers import TaggableManager\n\n"
+            "class Post(models.Model):\n"
+            "    tags = TaggableManager(through=CustomTaggedItem)\n"
+        )
+        models = parse_models_file("blog/models.py", src)
+        tags = models[0].fields[0]
+        self.assertEqual(tags.related_model, "taggit.Tag")
+        self.assertEqual(tags.through_model, "CustomTaggedItem")
+
+
 if __name__ == "__main__":
     unittest.main()

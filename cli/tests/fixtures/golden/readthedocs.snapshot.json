@@ -633,6 +633,16 @@
               "type": "BooleanField"
             },
             {
+              "args": "blank=True, ordering=[\"name\"]",
+              "isRelation": true,
+              "lineNumber": 653,
+              "name": "tags",
+              "relatedModel": "taggit.Tag",
+              "relationKind": "ManyToManyField",
+              "throughModel": "taggit.TaggedItem",
+              "type": "TaggableManager"
+            },
+            {
               "args": "\"oauth.RemoteRepository\",\n        verbose_name=_(\"Connected repository\"),\n        help_text=_(\"Repository connected to this project\"),\n        on_delete=models.SET_NULL,\n        related_name=\"projects\",\n        null=True,\n        blank=True,",
               "isRelation": true,
               "lineNumber": 659,
