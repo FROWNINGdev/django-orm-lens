@@ -70,6 +70,7 @@ BARE_FIELD_TYPES = "|".join(
         "GenericIPAddressField",
         "AutoField", "BigAutoField", "SmallAutoField",
         "ForeignKey", "OneToOneField", "ManyToManyField",
+        "TaggableManager",
     ]
 )
 
@@ -541,7 +542,12 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
             if fm:
                 fname, ftype = fm.group(1), fm.group(2)
                 args_block, end_idx = _read_balanced_args(lines, j)
-                is_rel = ftype in RELATION_TYPES
+                relation_kind = (
+                    "ManyToManyField"
+                    if ftype == "TaggableManager"
+                    else ftype if ftype in RELATION_TYPES else None
+                )
+                is_rel = relation_kind is not None
                 field = ParsedField(
                     name=fname,
                     type=ftype,
@@ -550,13 +556,24 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
                     line_number=j,
                 )
                 if is_rel:
-                    field.relation_kind = ftype  # type: ignore[assignment]
+                    field.relation_kind = relation_kind  # type: ignore[assignment]
                     inner = args_block.rstrip(")")
-                    field.related_model = _extract_related(inner)
+                    field.related_model = (
+                        "taggit.Tag"
+                        if ftype == "TaggableManager"
+                        else _extract_related(inner)
+                    )
                     field.on_delete = _extract_on_delete(inner)
                     field.related_name = _extract_related_name(inner)
-                    if ftype == "ManyToManyField":
-                        field.through_model = _extract_through_model(inner)
+                    if relation_kind == "ManyToManyField":
+                        explicit_through = _extract_through_model(inner)
+                        field.through_model = (
+                            explicit_through
+                            if explicit_through is not None
+                            else "taggit.TaggedItem"
+                            if ftype == "TaggableManager"
+                            else None
+                        )
                 model.fields.append(field)
                 j = end_idx + 1
                 continue

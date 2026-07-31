@@ -5,6 +5,13 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Recognize django-taggit `TaggableManager` fields as many-to-many relations,
+  including the default tag and through models and explicit `through=` overrides.
+
 ## [py-1.10.0] - 2026-07-31
 
 Three defects found by running the CLI over real checkouts of django-oscar,

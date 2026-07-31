@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.cli import main
+from django_orm_lens.cli import _build_mermaid, main
 from django_orm_lens.er_formats import build_d2, build_dbml, build_dot, build_plantuml
 from django_orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
 
@@ -182,6 +182,23 @@ class SyntheticSchemaTest(unittest.TestCase):
         )
         for text in (build_dbml(idx), build_d2(idx), build_plantuml(idx), build_dot(idx)):
             self.assertNotIn("polls.Poll", text)
+
+    def test_taggable_manager_external_target_skipped(self) -> None:
+        idx = self._index_for(
+            "from django.db import models\n"
+            "from taggit.managers import TaggableManager\n"
+            "class Post(models.Model):\n"
+            "    tags = TaggableManager()\n"
+        )
+        outputs = (
+            _build_mermaid(idx),
+            build_dbml(idx),
+            build_d2(idx),
+            build_plantuml(idx),
+            build_dot(idx),
+        )
+        for text in outputs:
+            self.assertNotIn("taggit.Tag", text)
 
     def test_fk_ref_targets_explicit_pk_column(self) -> None:
         """A ref must point at the column that exists on the target table —
