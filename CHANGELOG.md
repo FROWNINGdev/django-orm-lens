@@ -9,8 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Recognize django-taggit `TaggableManager` fields as many-to-many relations,
-  including the default tag and through models and explicit `through=` overrides.
+- **django-taggit's `TaggableManager` is a many-to-many relation now.** It
+  declares itself like an ordinary field, but the relation it creates runs
+  through `taggit.TaggedItem` to `taggit.Tag`. The parser saw a field type it
+  did not know and dropped the edge, so every tagged model showed one relation
+  fewer than it has — on the Read the Docs golden fixture the `tags` field was
+  absent outright, which is why that snapshot gains an entry rather than
+  changing one. Explicit `through=` overrides are honoured. Both parsers are
+  updated, Python and TypeScript, so the CLI and the extension keep answering
+  identically. Contributed by [@Guflly](https://github.com/Guflly) in
+  [#63](https://github.com/FROWNINGdev/django-orm-lens/pull/63), closing
+  [#50](https://github.com/FROWNINGdev/django-orm-lens/issues/50).
 
 ## [py-1.10.0] - 2026-07-31
 
