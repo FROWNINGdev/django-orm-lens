@@ -5,9 +5,14 @@ import { Finding, Rule, RuleContext } from './types';
  *
  * Codes DOL021..DOL025 are reserved for datetime handling.
  *
- * Django defaults `USE_TZ=True` since Django 4. The idiomatic clock is
- * `django.utils.timezone.now()`, not `datetime.now()` / `datetime.utcnow()`.
- * Python's `datetime.utcnow()` is deprecated since Python 3.12.
+ * The idiomatic clock is `django.utils.timezone.now()`, not `datetime.now()`
+ * / `datetime.utcnow()`. Python's `datetime.utcnow()` is deprecated since
+ * Python 3.12.
+ *
+ * On `USE_TZ`: the framework default was `False` through Django 4.2 and became
+ * `True` in 5.0. Since 4.0 the `startproject` template writes `USE_TZ = True`
+ * into new settings files, which is a different thing — a project upgraded to
+ * 4.x keeps `False` unless it opts in. Do not write "the default since 4.0".
  *
  * Public callers: src/rules/index.ts aggregates datetimeRules into ALL_RULES.
  */
@@ -31,8 +36,8 @@ function isCommentLine(text: string): boolean {
  * ("RuntimeWarning: DateTimeField received a naive datetime"). The safe
  * replacement is `timezone.now()`.
  *
- * Applicability: suggestion — safe when USE_TZ=True (the modern default),
- * unsafe if the project explicitly opted into naive datetimes.
+ * Applicability: suggestion — safe when USE_TZ=True, unsafe if the project
+ * explicitly opted into naive datetimes.
  */
 const DOL021: Rule = {
   meta: {
