@@ -5,6 +5,34 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`DOL021` documented the `USE_TZ` default wrongly, and overstated what
+  `timezone.now()` returns.** The page claimed `USE_TZ=True` was "Django's
+  default since 4.0". It was not: the framework default in
+  `django.conf.global_settings` stayed `False` through 4.2 and became `True`
+  only in 5.0. Since 4.0 the `startproject` template writes `USE_TZ = True`
+  into generated settings, which is a separate thing — a project upgraded to
+  4.x keeps `False` until someone sets it. Collapsing the two misled exactly
+  the most common reader: an existing 4.x project with the setting untouched.
+  The page also called `timezone.now()` "an aware UTC datetime" flatly, when
+  it follows the setting and returns naive local time under `USE_TZ=False`.
+  The same claim was duplicated in `src/rules/datetime.ts` and is corrected
+  there too. Found by [@Justine0211](https://github.com/Justine0211) while
+  translating the page, by declining to translate a statement they could not
+  verify against the Django release notes.
+
+### Changed
+
+- The `parity_input.py` test fixture now carries the `from django.db import
+  models` import a real `models.py` would have. No behaviour change — the
+  parity test asserts model shape, never line numbers — but the fixture reads
+  as genuine Django, and starts clean if that directory is ever linted.
+  Contributed by [@RinZ27](https://github.com/RinZ27) in
+  [#64](https://github.com/FROWNINGdev/django-orm-lens/pull/64).
+
 ## [py-1.11.0] - 2026-07-31
 
 ### Added
