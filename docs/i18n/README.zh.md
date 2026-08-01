@@ -562,7 +562,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 |---|---|---|
 | [Queryset](../rules/README.md) | `DOL001`–`DOL007` | `.count() > 0` → `.exists()`、循环中访问 FK（N+1） |
 | [模型定义](../rules/README.md) | `DOL011`–`DOL015` | 缺少 `on_delete` 的 `ForeignKey`、字符串字段上的 `null=True` |
-| [日期时间](../rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
+| 日期时间 | [`DOL021`](rules/zh/DOL021.md) · [`DOL022`](rules/zh/DOL022.md) | `datetime.now()` → `timezone.now()` |
 | [表单 / 视图](../rules/README.md) | `DOL031`–`DOL032` | `render()` 中使用 `locals()`、`Meta.fields = '__all__'` |
 | [迁移风险](../rules/migrations.md) | 16 条规则 | 无默认值的 NOT NULL 新增、锁表的索引构建、不可逆的数据迁移 |
 | [静态 N+1](../rules/nplusone.md) | 1 个分析器 | 循环中访问 FK/M2M 而未用 `select_related` / `prefetch_related` |
