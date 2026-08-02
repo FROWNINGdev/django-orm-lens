@@ -39,3 +39,31 @@
   mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' });
   await mermaid.run({ querySelector: 'pre.mermaid' });
 </script>
+
+<style>
+  /* Reserve the hero's box before the bytes arrive, so the text below it does
+     not jump once it loads. This cannot live in the README: GitHub strips the
+     style attribute from README HTML, and a pixel `height` attribute would
+     fight the `width="100%"` that keeps it responsive there. Pages-only is the
+     right home for it. */
+  img[src$="media/hero.png"] { aspect-ratio: 1280 / 640; height: auto; }
+</style>
+
+<script>
+  /* The 21 badges are markdown `![](...)`, so no attribute can be attached at
+     the source without rewriting them as raw HTML — which would break the
+     [![badge](img)](link) wrapping and make the README worse on GitHub, where
+     most people actually read it. Setting the attributes here keeps the
+     markdown idiomatic and applies the change only to the published page.
+
+     The first image is left eager on purpose: it is the hero, and lazy-loading
+     the largest above-the-fold image delays the very paint it should speed up.
+     Everything after it sits below the fold on any realistic viewport. */
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('img').forEach((img, i) => {
+      if (i === 0) return;
+      if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+      if (!img.hasAttribute('decoding')) img.setAttribute('decoding', 'async');
+    });
+  });
+</script>
