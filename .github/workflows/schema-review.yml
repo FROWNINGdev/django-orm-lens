@@ -16,7 +16,7 @@ jobs:
   blast-radius:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Install the checkout, not the release. The action installs from PyPI by
       # default, which can only ever expose commands that have shipped — so a
