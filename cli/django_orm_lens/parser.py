@@ -38,6 +38,17 @@ from .models import (
 
 RELATION_TYPES: tuple[str, ...] = ("ForeignKey", "ManyToManyField", "OneToOneField")
 
+# django-mptt's Tree* fields are thin subclasses of Django's own relation
+# fields — same ``to``, same ``on_delete``, same ``related_name``. Mapping the
+# name to its Django counterpart is therefore the whole fix: every extractor
+# below keeps working unchanged, and a ``TreeForeignKey('self', ...)`` produces
+# the same self-edge a plain ``ForeignKey('self', ...)`` does.
+TREE_FIELD_ALIASES: dict[str, str] = {
+    "TreeForeignKey": "ForeignKey",
+    "TreeOneToOneField": "OneToOneField",
+    "TreeManyToManyField": "ManyToManyField",
+}
+
 # ``(?:\s*\[[^\]]*\])?`` — optional PEP-695 generic type parameter list
 # introduced in Python 3.12, e.g. ``class Container[T](models.Model):``.
 # Only handles a single-line, non-nested bracket group — nested brackets in
@@ -71,6 +82,7 @@ BARE_FIELD_TYPES = "|".join(
         "AutoField", "BigAutoField", "SmallAutoField",
         "ForeignKey", "OneToOneField", "ManyToManyField",
         "TaggableManager",
+        "TreeForeignKey", "TreeOneToOneField", "TreeManyToManyField",
     ]
 )
 
@@ -402,7 +414,8 @@ def _looks_like_model(base_classes: list[str]) -> bool:
         if re.search(r"models\.Model$", b):
             return True
         if re.match(
-            r"^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel)$",
+            r"^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel"
+            r"|PolymorphicModel|MPTTModel)$",
             tail,
         ):
             return True
@@ -545,7 +558,8 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
                 relation_kind = (
                     "ManyToManyField"
                     if ftype == "TaggableManager"
-                    else ftype if ftype in RELATION_TYPES else None
+                    else TREE_FIELD_ALIASES.get(ftype)
+                    or (ftype if ftype in RELATION_TYPES else None)
                 )
                 is_rel = relation_kind is not None
                 field = ParsedField(

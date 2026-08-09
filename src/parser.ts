@@ -15,6 +15,17 @@ const RELATION_TYPES: RelationKind[] = [
   'OneToOneField',
 ];
 
+// django-mptt's Tree* fields are thin subclasses of Django's own relation
+// fields — same `to`, same `on_delete`, same `related_name`. Mapping the name
+// to its Django counterpart is the whole fix: every extractor below keeps
+// working unchanged. Mirrors TREE_FIELD_ALIASES in cli/django_orm_lens/parser.py;
+// the two must stay in step or the sidebar and the CLI disagree about a schema.
+const TREE_FIELD_ALIASES: Record<string, RelationKind> = {
+  TreeForeignKey: 'ForeignKey',
+  TreeOneToOneField: 'OneToOneField',
+  TreeManyToManyField: 'ManyToManyField',
+};
+
 const USER_BASE_MARKERS = new Set(['AbstractUser', 'AbstractBaseUser']);
 
 /**
@@ -112,6 +123,7 @@ const BARE_FIELD_TYPES = [
   'AutoField', 'BigAutoField', 'SmallAutoField',
   'ForeignKey', 'OneToOneField', 'ManyToManyField',
   'TaggableManager',
+  'TreeForeignKey', 'TreeOneToOneField', 'TreeManyToManyField',
 ].join('|');
 
 function buildBodyRegexes(indent: number) {
@@ -266,7 +278,7 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
       if (NON_MODEL_TAIL.test(tail)) return false;
       return (
         /models\.Model$/.test(b) ||
-        /^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel)$/.test(tail) ||
+        /^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel|MPTTModel)$/.test(tail) ||
         /^Abstract[A-Z]/.test(tail) ||
         /Mixin$/.test(tail)
       );
@@ -325,9 +337,10 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
         const relationKind =
           fieldType === 'TaggableManager'
             ? 'ManyToManyField'
-            : RELATION_TYPES.includes(fieldType as RelationKind)
-            ? (fieldType as RelationKind)
-            : undefined;
+            : TREE_FIELD_ALIASES[fieldType] ??
+              (RELATION_TYPES.includes(fieldType as RelationKind)
+                ? (fieldType as RelationKind)
+                : undefined);
         const isRel = relationKind !== undefined;
         const field: ParsedField = {
           name: fieldName,

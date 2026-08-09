@@ -860,6 +860,82 @@
         {
           "appName": "product",
           "baseClasses": [
+            "ModelWithMetadata",
+            "MPTTModel",
+            "SeoModel"
+          ],
+          "fields": [
+            {
+              "args": "max_length=250",
+              "isRelation": false,
+              "lineNumber": 57,
+              "name": "name",
+              "type": "CharField"
+            },
+            {
+              "args": "max_length=255, unique=True, allow_unicode=True",
+              "isRelation": false,
+              "lineNumber": 58,
+              "name": "slug",
+              "type": "SlugField"
+            },
+            {
+              "args": "blank=True",
+              "isRelation": false,
+              "lineNumber": 60,
+              "name": "description_plaintext",
+              "type": "TextField"
+            },
+            {
+              "args": "auto_now=True, blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 61,
+              "name": "updated_at",
+              "type": "DateTimeField"
+            },
+            {
+              "args": "\"self\", null=True, blank=True, related_name=\"children\", on_delete=models.CASCADE",
+              "isRelation": true,
+              "lineNumber": 62,
+              "name": "parent",
+              "onDelete": "CASCADE",
+              "relatedModel": "self",
+              "relatedName": "children",
+              "relationKind": "ForeignKey",
+              "type": "ForeignKey"
+            },
+            {
+              "args": "upload_to=\"category-backgrounds\", blank=True, null=True",
+              "isRelation": false,
+              "lineNumber": 65,
+              "name": "background_image",
+              "type": "ImageField"
+            },
+            {
+              "args": "max_length=128, blank=True",
+              "isRelation": false,
+              "lineNumber": 68,
+              "name": "background_image_alt",
+              "type": "CharField"
+            },
+            {
+              "args": "",
+              "isRelation": false,
+              "lineNumber": 70,
+              "name": "objects",
+              "type": "Manager"
+            }
+          ],
+          "filePath": "saleor/product/models.py",
+          "lineNumber": 56,
+          "meta": {
+            "indexes": "[ *ModelWithMetadata.Meta.indexes, GinIndex( name=\"category_search_name_slug_gin\", # `opclasses` and `fields` should be the same length fields=[\"name\", \"slug\", \"description_plaintext\"], opclasses=[\"gin_trgm_ops\"] * 3, ), BTreeIndex(fields=[\"updated_at\"], name=\"updated_at_idx\"), ]"
+          },
+          "name": "Category"
+        },
+        {
+          "appName": "product",
+          "baseClasses": [
             "models.Model"
           ],
           "fields": [

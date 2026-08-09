@@ -5,7 +5,33 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [py-1.12.0] - 2026-08-09
+
+### Added
+
+- **django-mptt models are no longer invisible.** `MPTTModel` matched none of
+  the base-class patterns the parser recognises, so a `class Category(MPTTModel)`
+  was dropped before a single field was read — absent from the sidebar, the ER
+  diagram, and every analyzer. Closing that alone would not have been enough:
+  `TreeForeignKey`, `TreeOneToOneField` and `TreeManyToManyField` are checked
+  against a literal whitelist too, so the model would have surfaced with its
+  scalar fields and no edges at all — worse than hidden, because it looks
+  complete. Both halves are fixed. The `Tree*` fields are thin subclasses of
+  Django's own relation fields, so they are reported as the field they
+  subclass: `TreeForeignKey('self', ...)` produces exactly the self-edge a
+  plain `ForeignKey('self', ...)` does, honouring `on_delete` and
+  `related_name`, and nothing downstream needs to learn about mptt.
+
+  Measured on the vendored corpus: Saleor's `product.Category` — a real
+  `MPTTModel` with a self-referential `parent` — now appears in the golden
+  snapshot with all of its fields and its `children` edge. The snapshot diff
+  is 76 added lines and no removed ones, so nothing that used to parse was
+  disturbed.
+
+  Additive and import-free by design: no `django-mptt` dependency, so the
+  parser keeps working against a project whose venv is broken. Mirrored in
+  `src/parser.ts` so the extension and the CLI cannot disagree about a schema.
+  Closes #49.
 
 ### Fixed
 
