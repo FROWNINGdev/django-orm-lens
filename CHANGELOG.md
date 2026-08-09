@@ -5,6 +5,25 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-08-09
+
+### Added
+
+- **The sidebar and the ER diagram now see django-mptt models.** The extension
+  ships the TypeScript half of the parser change released as py-1.12.0: a class
+  built on `MPTTModel` used to be skipped before any field was read, and
+  `TreeForeignKey` / `TreeOneToOneField` / `TreeManyToManyField` were dropped
+  against the field whitelist even inside a model that was detected. Both are
+  fixed, and the `Tree*` fields are reported as the Django field they subclass,
+  so a `TreeForeignKey('self', ...)` draws the same self-edge a plain
+  `ForeignKey('self', ...)` does.
+
+  Cut as its own release rather than folded into a later one: between
+  py-1.12.0 shipping and this version, the CLI and the extension disagreed
+  about what a django-mptt schema contains, which is the exact failure the
+  shared golden fixture exists to prevent. See the py-1.12.0 entry below for
+  the full reasoning and the Saleor measurement.
+
 ## [py-1.12.0] - 2026-08-09
 
 ### Added
