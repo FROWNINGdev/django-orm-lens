@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { findUserModel, resolveRelatedTail, scanWorkspace } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
 import { isGraphOpen, showGraph } from './graphWebview';
+import { maybeAskForStar } from './starPrompt';
 import { DjangoHoverProvider } from './hoverProvider';
 import { DjangoCodeLensProvider } from './codeLensProvider';
 import { registerCodeFixes } from './codeActionProvider';
@@ -279,6 +280,11 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('djangoOrmLens.showGraph', async () => {
       if (currentIndex.apps.length === 0) await refresh();
       showGraph(context, treeProvider.applyVisibility(currentIndex));
+      // Counted here rather than inside showGraph: this is the user asking
+      // for a diagram, whereas showGraph also runs on sidebar refreshes the
+      // user did not initiate. Not awaited — the prompt must never sit in
+      // front of the panel it is thanking the user for opening.
+      void maybeAskForStar(context);
     })
   );
 

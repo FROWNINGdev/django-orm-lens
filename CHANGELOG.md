@@ -5,6 +5,35 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-08-12
+
+### Added
+
+- **The extension now asks for a GitHub star — once, and only after it has
+  been useful.** Measured on 2026-08-12: 62 Marketplace installs against 61
+  GitHub stars. Installs overtaking stars says people find the extension in
+  the Marketplace, use it, and never open the repository; the ask was absent
+  entirely, so its conversion was not low, it was zero by construction.
+
+  The prompt is deliberately not shown on install — a prompt that arrives
+  before the tool has done anything gets dismissed reflexively, and that
+  dismissal is permanent in the user's mind whether or not it is in ours. It
+  fires on the third *user-initiated* ER diagram open. Sidebar refreshes that
+  re-render an already-open panel are not counted: they are not the user
+  asking for anything, and counting them would inflate the trigger into
+  something closer to a timer.
+
+  "Later" and "Don't ask again" are stored as separate states. Conflating
+  them either nags someone who declined or silently drops someone who was
+  merely busy. A deferral re-arms the ask exactly once, twelve opens later;
+  ignored twice, it goes quiet for good. Two prompts, lifetime maximum.
+
+  The decision is a pure function (`shouldPrompt`) with the thresholds
+  injectable, so the policy is covered by six tests that need no VS Code
+  host. Everything touching `vscode` is confined to one function, and it
+  swallows its own errors: a broken nag must not break the diagram it is
+  attached to.
+
 ## [0.11.0] - 2026-08-09
 
 ### Added
