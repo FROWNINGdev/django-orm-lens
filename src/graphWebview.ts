@@ -155,6 +155,29 @@ function makeNonce(): string {
   return randomBytes(24).toString('base64').replace(/[^A-Za-z0-9]/g, '');
 }
 
+// `html-to-image` hands back two different data-URL flavours: `toPng` produces
+// `data:image/png;base64,…` while `toSvg` produces
+// `data:image/svg+xml;charset=utf-8,<percent-encoded markup>`. Decoding the
+// latter as base64 does not throw — the decoder simply drops `%`, `<` and every
+// other non-alphabet character — so the .svg used to land on disk as garbage.
+export function decodeExportPayload(dataUrl: string): Buffer {
+  const comma = dataUrl.indexOf(',');
+  if (!dataUrl.startsWith('data:') || comma < 0) {
+    return Buffer.from(dataUrl, 'utf-8');
+  }
+  const params = dataUrl.slice('data:'.length, comma).split(';');
+  const body = dataUrl.slice(comma + 1);
+  if (params.some((p) => p.trim().toLowerCase() === 'base64')) {
+    return Buffer.from(body, 'base64');
+  }
+  try {
+    return Buffer.from(decodeURIComponent(body), 'utf-8');
+  } catch {
+    // Malformed escape sequence — keep the raw text rather than lose the export.
+    return Buffer.from(body, 'utf-8');
+  }
+}
+
 async function saveExport(
   format: 'png' | 'svg',
   dataUrl: string
@@ -171,12 +194,7 @@ async function saveExport(
         : { 'SVG Image': ['svg'] },
   });
   if (!target) return;
-  const comma = dataUrl.indexOf(',');
-  const bytes =
-    comma >= 0 && dataUrl.startsWith('data:')
-      ? Buffer.from(dataUrl.slice(comma + 1), 'base64')
-      : Buffer.from(dataUrl, 'utf-8');
-  await vscode.workspace.fs.writeFile(target, bytes);
+  await vscode.workspace.fs.writeFile(target, decodeExportPayload(dataUrl));
   const open = 'Open File';
   const choice = await vscode.window.showInformationMessage(
     `Saved to ${target.fsPath}`,

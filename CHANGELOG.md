@@ -5,6 +5,28 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-08-14
+
+### Fixed
+
+- **Export as SVG wrote an unopenable file.** Reported by a user; PNG export
+  was never affected, which is why this survived since the feature landed.
+
+  `html-to-image` returns two different data-URL flavours. `toPng` gives
+  `data:image/png;base64,…`; `toSvg` gives
+  `data:image/svg+xml;charset=utf-8,` followed by *percent-encoded* markup.
+  The save path assumed base64 for anything starting with `data:`, and
+  base64-decoding percent-encoded text does not fail — the decoder silently
+  drops `%`, `<`, `"` and every other character outside its alphabet and
+  happily returns bytes. A 48-character `<svg>` document came out as
+  `dc 2b 2f 83 6d 31 9a 59 …`, so the file on disk had the right name, a
+  plausible size, and no valid content anywhere in it.
+
+  The transfer encoding is now read from the data URL header instead of
+  guessed from the `data:` prefix, so base64 and percent-encoded payloads each
+  take their own path. A malformed escape sequence falls back to writing the
+  raw text rather than throwing away the export.
+
 ## [0.12.0] - 2026-08-12
 
 ### Added
