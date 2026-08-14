@@ -233,6 +233,49 @@ test('DOL007 flags a queryset-producing chain off a variable', () => {
   assert.equal(findings[0].fixHint, 'profile');
 });
 
+test('DOL007 recognises every queryset-producing method off a variable', () => {
+  const rule = ruleByCode('DOL007');
+  // The whole documented set, not just the two names a review happened to
+  // notice: a chain rooted on a variable is a queryset source for the same
+  // reason as one rooted on a manager, so every method that returns a new
+  // QuerySet has to be recognised or the loop is silently skipped.
+  const methods = [
+    'all',
+    'filter',
+    'exclude',
+    'annotate',
+    'alias',
+    'order_by',
+    'reverse',
+    'distinct',
+    'values',
+    'values_list',
+    'dates',
+    'datetimes',
+    'none',
+    'union',
+    'intersection',
+    'difference',
+    'select_related',
+    'prefetch_related',
+    'extra',
+    'defer',
+    'only',
+    'using',
+    'select_for_update',
+    'raw',
+  ];
+  for (const method of methods) {
+    const src = [
+      `for post in qs.${method}("author"):`,
+      '    print(post.author)',
+    ].join('\n');
+    const findings = rule.check(makeCtx(src));
+    assert.equal(findings.length, 1, `expected a finding for: qs.${method}()`);
+    assert.equal(findings[0].fixHint, 'author');
+  }
+});
+
 test('DOL007 still flags a bare-name loop source', () => {
   const rule = ruleByCode('DOL007');
   // A bare name carries no evidence either way — `users = User.objects.all()`

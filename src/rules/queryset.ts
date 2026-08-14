@@ -32,8 +32,8 @@ const LOOP_VAR_ATTR_RE = /\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\b/g;
 const MAX_LOOP_LINES = 15;
 
 /**
- * Methods that return a lazily-evaluated QuerySet and accept a
- * `select_related()` / `prefetch_related()` chain after them.
+ * Method names that produce a new QuerySet, so a call ending in one is
+ * still a QuerySet and the loop over it stays in scope.
  */
 const QS_SOURCE_METHODS = new Set([
   'all',
@@ -50,6 +50,17 @@ const QS_SOURCE_METHODS = new Set([
   'only',
   'defer',
   'using',
+  'alias',
+  'dates',
+  'datetimes',
+  'union',
+  'intersection',
+  'difference',
+  'select_related',
+  'prefetch_related',
+  'extra',
+  'select_for_update',
+  'raw',
 ]);
 
 function isCommentLine(text: string): boolean {
