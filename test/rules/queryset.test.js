@@ -132,6 +132,32 @@ test('DOL007 does not flag .pk / .id / .save / dunder', () => {
   assert.equal(findings.length, 0);
 });
 
+test('DOL007 does not flag UPPER_SNAKE class-constant access (issue #72)', () => {
+  const rule = ruleByCode('DOL007');
+  // Loop iterates over model *classes* (apps.get_models()), so
+  // model.ANONYMISE_AFTER is an in-memory class-constant lookup, not a query.
+  const src = [
+    'for model in auditory_models():',
+    '    if model.ANONYMISE_AFTER is None:',
+    '        continue',
+    '    sweep(model)',
+  ].join('\n');
+  const findings = rule.check(makeCtx(src));
+  assert.equal(findings.length, 0);
+});
+
+test('DOL007 still flags a real N+1 alongside a class-constant access', () => {
+  const rule = ruleByCode('DOL007');
+  const src = [
+    'for user in User.objects.all():',
+    '    print(user.DEFAULT_ROLE)',
+    '    print(user.profile)',
+  ].join('\n');
+  const findings = rule.check(makeCtx(src));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'profile');
+});
+
 test('DOL007 stops scanning at outdent', () => {
   const rule = ruleByCode('DOL007');
   const src = [

@@ -297,6 +297,11 @@ const DOL007: Rule = {
           const attr = m[2];
           if (attr.startsWith('_')) continue;
           if (attr === 'id' || attr === 'pk' || attr === 'save') continue;
+          // UPPER_SNAKE names are class-level constants, not fields or
+          // relations — e.g. a loop over model *classes* reading
+          // `model.ANONYMISE_AFTER` (issue #72). select_related() /
+          // prefetch_related() have nothing to act on there.
+          if (/^[A-Z][A-Z0-9_]*$/.test(attr)) continue;
           out.push({
             code: 'DOL007',
             messageId: 'default',
