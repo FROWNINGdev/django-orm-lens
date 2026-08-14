@@ -20,24 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   there. Loops over `range(...)`, `os.listdir(...)` and any other helper call
   were reported the same way.
 
-  The loop head is now gated on its source, the way the CLI's schema-aware
-  `nplusone` analyzer already gates `_process_loop`: a chain is in scope only
-  when it roots at `<Model>.objects.…` or begins with a queryset-producing
-  method (`filter`, `exclude`, `annotate`, `order_by`, …). The two still do
-  not report the same loops, and cannot: the analyzer works from an AST and
-  resolves what a helper returns, splicing that chain in, so helper-call
-  sources such as `for p in recent():` or `for o in self.get_queryset():`
-  still report there while they stop reporting here — a line-oriented rule
-  has no helper-return resolution to apply.
+  The loop head is now gated on its source. A source containing a `(` is in
+  scope only when the text before that first `(` is
+  `<Model>.objects.<method>` — exactly three dotted segments with `objects`
+  in the middle — or a dotted chain ending in a queryset-producing method
+  (`filter`, `exclude`, `annotate`, `order_by`, …). `range(...)`,
+  `os.listdir(...)`, `apps.get_models()` and a helper call such as
+  `auditory_models()` are skipped. The cost is a false negative: a helper
+  that does return a queryset, `recent()` or `self.get_queryset()`, is
+  skipped as well, because a line-oriented rule cannot follow what a callee
+  returns.
 
-  A bare name (`for user in users:`) is still reported: it names no call, so
-  it is evidence neither way, and `users = User.objects.all()` is the common
-  idiom — one the analyzer reports as well, resolving the name through an AST
-  tracker that binds it to the queryset assigned to it. The divergence is
-  narrower than the loop head suggests: only a name that tracker cannot bind
-  to a queryset — a function parameter, an import, or a name assigned
-  anything else, a helper call included even when the helper returns a
-  queryset — reports here and not there.
+  A source containing no `(` — a bare name (`for user in users:`) or a
+  dotted chain (`for entry in self.pending:`) — is still in scope: it names
+  no call, so it is evidence neither way, and `users = User.objects.all()`
+  is the common idiom.
 
 ## [0.12.1] - 2026-08-14
 

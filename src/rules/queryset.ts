@@ -33,8 +33,7 @@ const MAX_LOOP_LINES = 15;
 
 /**
  * Methods that return a lazily-evaluated QuerySet and accept a
- * `select_related()` / `prefetch_related()` chain after them. Mirrors
- * `_QS_SOURCE_METHODS` in the CLI's `django_orm_lens/query_analyzer.py`.
+ * `select_related()` / `prefetch_related()` chain after them.
  */
 const QS_SOURCE_METHODS = new Set([
   'all',
@@ -60,21 +59,18 @@ function isCommentLine(text: string): boolean {
 /**
  * Can `expr` — the iterable of a `for` head — be a QuerySet?
  *
- * A chain is in scope only when it roots at `<Model>.objects.<method>(...)`
- * or begins with a queryset-producing method. Anything else — `range(10)`,
- * `os.listdir(path)`, `apps.get_models()` — iterates ranges, lists or model
- * *classes*, where attribute access is an in-memory lookup and
- * `select_related()` has nothing to act on.
+ * An `expr` containing no `(` — a bare name, a dotted chain — is in
+ * scope: it names no call, so the line carries no evidence either way, and
+ * `users = User.objects.all()` is the common idiom.
  *
- * The CLI's N+1 analyzer tests a loop source the same way in
- * `_process_loop`, but the two do not report the same loops, because it
- * resolves inputs a single line cannot name. It follows a helper's return,
- * so `for p in recent():` is in scope there and skipped here; and it
- * resolves a bare name through an assignment tracker, so `for u in users:`
- * is in scope there only when `users` was bound to a queryset chain in the
- * same file. Here every bare name is in scope: it names no call, so it is
- * evidence neither way, and `users = User.objects.all()` is the common
- * idiom.
+ * One that does contain a `(` is in scope only when the text before that
+ * first `(` is exactly three dotted segments with `objects` in the middle
+ * (`<Model>.objects.<method>`), or a dotted chain ending in a
+ * queryset-producing method. Every other call-shaped source is skipped —
+ * `range(10)`, `os.listdir(path)`, `apps.get_models()`,
+ * `auditory_models()`, `self.get_queryset()` — because the call name alone
+ * says nothing about what comes back and a line-oriented rule cannot
+ * follow a callee's return.
  */
 function mayIterateQuerySet(expr: string): boolean {
   const callAt = expr.indexOf('(');
@@ -313,8 +309,8 @@ const DOL006: Rule = {
 /**
  * DOL007 — N+1 heuristic. After `for x in qs:` scan the loop body for
  * `x.<attr>` where `<attr>` is not a bare id/pk/save-like operation.
- * The loop head is gated by `mayIterateQuerySet` so loops over ranges,
- * lists and model classes stay out of scope.
+ * The loop head is gated by `mayIterateQuerySet`, which skips a source
+ * that looks like a call unless it names a queryset-producing method.
  * Unsafe — cannot programmatically distinguish an FK access from a
  * plain field access without type info; user must review before fixing.
  */
