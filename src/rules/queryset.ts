@@ -60,17 +60,21 @@ function isCommentLine(text: string): boolean {
 /**
  * Can `expr` — the iterable of a `for` head — be a QuerySet?
  *
- * Mirrors the source gate the CLI's N+1 analyzer applies in
- * `_process_loop`: a chain is in scope only when it roots at
- * `<Model>.objects.<method>(...)` or begins with a queryset-producing
- * method. Anything else — `range(10)`, `os.listdir(path)`,
- * `apps.get_models()` — iterates ranges, lists or model *classes*, where
- * attribute access is an in-memory lookup and `select_related()` has
- * nothing to act on.
+ * A chain is in scope only when it roots at `<Model>.objects.<method>(...)`
+ * or begins with a queryset-producing method. Anything else — `range(10)`,
+ * `os.listdir(path)`, `apps.get_models()` — iterates ranges, lists or model
+ * *classes*, where attribute access is an in-memory lookup and
+ * `select_related()` has nothing to act on.
  *
- * A bare name (`for user in users:`) names no call, so it is evidence
- * neither way: the CLI resolves it through an AST binding tracker, which a
- * line-oriented rule has no equivalent of, so those loops keep reporting.
+ * The CLI's N+1 analyzer tests a loop source the same way in
+ * `_process_loop`, but the two do not report the same loops, because it
+ * resolves inputs a single line cannot name. It follows a helper's return,
+ * so `for p in recent():` is in scope there and skipped here; and it
+ * resolves a bare name through an assignment tracker, so `for u in users:`
+ * is in scope there only when `users` was bound to a queryset chain in the
+ * same file. Here every bare name is in scope: it names no call, so it is
+ * evidence neither way, and `users = User.objects.all()` is the common
+ * idiom.
  */
 function mayIterateQuerySet(expr: string): boolean {
   const callAt = expr.indexOf('(');

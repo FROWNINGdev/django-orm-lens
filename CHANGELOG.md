@@ -23,19 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The loop head is now gated on its source, the way the CLI's schema-aware
   `nplusone` analyzer already gates `_process_loop`: a chain is in scope only
   when it roots at `<Model>.objects.…` or begins with a queryset-producing
-  method (`filter`, `exclude`, `annotate`, `order_by`, …). The two gates now
-  have the same shape, but they do not agree in every case: the analyzer
-  resolves what a helper returns and splices that chain in, so helper-call
+  method (`filter`, `exclude`, `annotate`, `order_by`, …). The two still do
+  not report the same loops, and cannot: the analyzer works from an AST and
+  resolves what a helper returns, splicing that chain in, so helper-call
   sources such as `for p in recent():` or `for o in self.get_queryset():`
   still report there while they stop reporting here — a line-oriented rule
   has no helper-return resolution to apply.
 
   A bare name (`for user in users:`) is still reported: it names no call, so
   it is evidence neither way, and `users = User.objects.all()` is the common
-  idiom. The CLI resolves those through an AST binding tracker and only flags
-  the names it has bound to a queryset; a line-oriented rule has no
-  equivalent, so that case keeps its previous behaviour — it reports here and
-  not there.
+  idiom — one the analyzer reports as well, resolving the name through an AST
+  tracker that binds it to the queryset assigned to it. The divergence is
+  narrower than the loop head suggests: only a name that tracker cannot bind
+  to a queryset — a function parameter, an import, or a name assigned
+  anything else, a helper call included even when the helper returns a
+  queryset — reports here and not there.
 
 ## [0.12.1] - 2026-08-14
 
