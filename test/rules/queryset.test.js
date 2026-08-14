@@ -132,10 +132,10 @@ test('DOL007 does not flag .pk / .id / .save / dunder', () => {
   assert.equal(findings.length, 0);
 });
 
-test('DOL007 does not flag UPPER_SNAKE class-constant access (issue #72)', () => {
+test('DOL007 does not flag a loop over model classes (issue #72)', () => {
   const rule = ruleByCode('DOL007');
-  // Loop iterates over model *classes* (apps.get_models()), so
-  // model.ANONYMISE_AFTER is an in-memory class-constant lookup, not a query.
+  // `auditory_models()` returns model *classes*, so every attribute read on
+  // the loop variable is an in-memory __mro__ lookup, not a query.
   const src = [
     'for model in auditory_models():',
     '    if model.ANONYMISE_AFTER is None:',
@@ -146,13 +146,83 @@ test('DOL007 does not flag UPPER_SNAKE class-constant access (issue #72)', () =>
   assert.equal(findings.length, 0);
 });
 
-test('DOL007 still flags a real N+1 alongside a class-constant access', () => {
+test('DOL007 does not flag class-level access in a model-class loop', () => {
+  const rule = ruleByCode('DOL007');
+  // Every one of these is idiomatic on a model *class* and involves no
+  // per-iteration query, so none of them is an N+1 (issue #72).
+  const sources = [
+    // The reporter's sweep, with the body its `...` elides.
+    [
+      'for model in auditory_models():',
+      '    if model.ANONYMISE_AFTER is None:',
+      '        continue',
+      '    model.objects.filter(created__lt=cutoff).update(anonymised=True)',
+    ],
+    ['for model in apps.get_models():', '    print(model.Meta)'],
+    [
+      'for model in apps.get_models():',
+      '    try:',
+      '        handle(model)',
+      '    except model.DoesNotExist:',
+      '        pass',
+    ],
+  ];
+  for (const lines of sources) {
+    const findings = rule.check(makeCtx(lines.join('\n')));
+    assert.equal(findings.length, 0, `expected no finding for: ${lines[0]}`);
+  }
+});
+
+test('DOL007 flags an UPPER_CASE relation on a real queryset loop', () => {
+  const rule = ruleByCode('DOL007');
+  // Django permits uppercase field names, so the attribute's casing says
+  // nothing about whether the access hits the database.
+  const src = [
+    'for order in Order.objects.all():',
+    '    print(order.CUSTOMER.name)',
+  ].join('\n');
+  const findings = rule.check(makeCtx(src));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'CUSTOMER');
+});
+
+test('DOL007 flags a single-uppercase-letter attribute on a queryset loop', () => {
+  const rule = ruleByCode('DOL007');
+  const src = ['for p in Point.objects.all():', '    print(p.X)'].join('\n');
+  const findings = rule.check(makeCtx(src));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'X');
+});
+
+test('DOL007 does not flag loops over non-queryset call sources', () => {
+  const rule = ruleByCode('DOL007');
+  const sources = [
+    ['for i in range(10):', '    print(i.bit_length())'],
+    ['for name in os.listdir(path):', '    print(name.upper())'],
+    ['for model in apps.get_models():', '    print(model.objects.count())'],
+  ];
+  for (const lines of sources) {
+    const findings = rule.check(makeCtx(lines.join('\n')));
+    assert.equal(findings.length, 0, `expected no finding for: ${lines[0]}`);
+  }
+});
+
+test('DOL007 flags a queryset-producing chain off a variable', () => {
   const rule = ruleByCode('DOL007');
   const src = [
-    'for user in User.objects.all():',
-    '    print(user.DEFAULT_ROLE)',
+    'for user in qs.filter(active=True):',
     '    print(user.profile)',
   ].join('\n');
+  const findings = rule.check(makeCtx(src));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'profile');
+});
+
+test('DOL007 still flags a bare-name loop source', () => {
+  const rule = ruleByCode('DOL007');
+  // A bare name carries no evidence either way — `users = User.objects.all()`
+  // is the common idiom — so the unrecognisable case keeps the old behaviour.
+  const src = ['for user in users:', '    print(user.profile)'].join('\n');
   const findings = rule.check(makeCtx(src));
   assert.equal(findings.length, 1);
   assert.equal(findings[0].fixHint, 'profile');

@@ -31,8 +31,56 @@ const RE_FOR_LOOP_HEAD =
 const LOOP_VAR_ATTR_RE = /\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\b/g;
 const MAX_LOOP_LINES = 15;
 
+/**
+ * Methods that return a lazily-evaluated QuerySet and accept a
+ * `select_related()` / `prefetch_related()` chain after them. Mirrors
+ * `_QS_SOURCE_METHODS` in the CLI's `django_orm_lens/query_analyzer.py`.
+ */
+const QS_SOURCE_METHODS = new Set([
+  'all',
+  'filter',
+  'exclude',
+  'annotate',
+  'distinct',
+  'order_by',
+  'values',
+  'values_list',
+  'reverse',
+  'none',
+  'iterator',
+  'only',
+  'defer',
+  'using',
+]);
+
 function isCommentLine(text: string): boolean {
   return text.trimStart().startsWith('#');
+}
+
+/**
+ * Can `expr` — the iterable of a `for` head — be a QuerySet?
+ *
+ * Mirrors the source gate the CLI's N+1 analyzer applies in
+ * `_process_loop`: a chain is in scope only when it roots at
+ * `<Model>.objects.<method>(...)` or begins with a queryset-producing
+ * method. Anything else — `range(10)`, `os.listdir(path)`,
+ * `apps.get_models()` — iterates ranges, lists or model *classes*, where
+ * attribute access is an in-memory lookup and `select_related()` has
+ * nothing to act on.
+ *
+ * A bare name (`for user in users:`) names no call, so it is evidence
+ * neither way: the CLI resolves it through an AST binding tracker, which a
+ * line-oriented rule has no equivalent of, so those loops keep reporting.
+ */
+function mayIterateQuerySet(expr: string): boolean {
+  const callAt = expr.indexOf('(');
+  if (callAt === -1) return true;
+  const segments = expr.slice(0, callAt).split('.');
+  // A bare `helper()` call is not a method call, so there is no chain.
+  if (segments.length < 2) return false;
+  // `<Model>.objects.<anything>()` is a manager call whatever follows.
+  if (segments.length === 3 && segments[1] === 'objects') return true;
+  return QS_SOURCE_METHODS.has(segments[segments.length - 1]);
 }
 
 /** DOL001 — `qs.count() > 0` → `qs.exists()`. */
@@ -261,6 +309,8 @@ const DOL006: Rule = {
 /**
  * DOL007 — N+1 heuristic. After `for x in qs:` scan the loop body for
  * `x.<attr>` where `<attr>` is not a bare id/pk/save-like operation.
+ * The loop head is gated by `mayIterateQuerySet` so loops over ranges,
+ * lists and model classes stay out of scope.
  * Unsafe — cannot programmatically distinguish an FK access from a
  * plain field access without type info; user must review before fixing.
  */
@@ -284,6 +334,7 @@ const DOL007: Rule = {
       if (!head) continue;
       const loopVar = head[1];
       const qsExpr = head[2];
+      if (!mayIterateQuerySet(qsExpr)) continue;
       const window = ctx.windowAfter(i, MAX_LOOP_LINES);
       let seenForThisHead = false;
       for (let j = 0; j < window.length; j++) {
@@ -297,11 +348,6 @@ const DOL007: Rule = {
           const attr = m[2];
           if (attr.startsWith('_')) continue;
           if (attr === 'id' || attr === 'pk' || attr === 'save') continue;
-          // UPPER_SNAKE names are class-level constants, not fields or
-          // relations — e.g. a loop over model *classes* reading
-          // `model.ANONYMISE_AFTER` (issue #72). select_related() /
-          // prefetch_related() have nothing to act on there.
-          if (/^[A-Z][A-Z0-9_]*$/.test(attr)) continue;
           out.push({
             code: 'DOL007',
             messageId: 'default',

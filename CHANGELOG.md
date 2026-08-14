@@ -5,6 +5,32 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **DOL007 reported an N+1 on loops that iterate model classes.** Reported in
+  [#72](https://github.com/FROWNINGdev/django-orm-lens/issues/72).
+
+  The rule treated every `for x in <expr>:` head as a loop over a queryset, so
+  a sweep like `for model in auditory_models():` was in scope and
+  `model.ANONYMISE_AFTER` — a plain class attribute resolved through the MRO,
+  no database involved — came back as a possible N+1 suggesting
+  `select_related()` / `prefetch_related()`, which have nothing to act on
+  there. Loops over `range(...)`, `os.listdir(...)` and any other helper call
+  were reported the same way.
+
+  The loop head is now gated on its source, the way the CLI's schema-aware
+  `nplusone` analyzer already gates `_process_loop`: a chain is in scope only
+  when it roots at `<Model>.objects.…` or begins with a queryset-producing
+  method (`filter`, `exclude`, `annotate`, `order_by`, …). The two
+  implementations now agree on what counts as a queryset loop.
+
+  A bare name (`for user in users:`) is still reported: it names no call, so
+  it is evidence neither way, and `users = User.objects.all()` is the common
+  idiom. The CLI resolves those through an AST binding tracker; a line-oriented
+  rule has no equivalent, so that case keeps its previous behaviour.
+
 ## [0.12.1] - 2026-08-14
 
 ### Fixed
