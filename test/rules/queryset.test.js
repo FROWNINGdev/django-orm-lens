@@ -207,6 +207,21 @@ test('DOL007 does not flag loops over non-queryset call sources', () => {
   }
 });
 
+test('DOL007 does not flag a helper-call loop source (issue #72 boundary)', () => {
+  const rule = ruleByCode('DOL007');
+  // The CLI's analyzer resolves what a helper returns and still reports
+  // these; a line-oriented rule cannot, so helper-call sources stay out of
+  // scope here. Pin the boundary so it cannot silently widen again.
+  const sources = [
+    ['for p in recent():', '    print(p.author)'],
+    ['for o in self.get_queryset():', '    print(o.author)'],
+  ];
+  for (const lines of sources) {
+    const findings = rule.check(makeCtx(lines.join('\n')));
+    assert.equal(findings.length, 0, `expected no finding for: ${lines[0]}`);
+  }
+});
+
 test('DOL007 flags a queryset-producing chain off a variable', () => {
   const rule = ruleByCode('DOL007');
   const src = [
