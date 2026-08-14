@@ -235,10 +235,10 @@ test('DOL007 flags a queryset-producing chain off a variable', () => {
 
 test('DOL007 recognises every queryset-producing method off a variable', () => {
   const rule = ruleByCode('DOL007');
-  // The whole documented set, not just the two names a review happened to
-  // notice: a chain rooted on a variable is a queryset source for the same
-  // reason as one rooted on a manager, so every method that returns a new
-  // QuerySet has to be recognised or the loop is silently skipped.
+  // Pin the whole set rather than one member of it: a chain rooted on a
+  // variable is a queryset source for the same reason as one rooted on a
+  // manager, so every method that returns a new QuerySet has to be listed
+  // here or the loop over it is skipped silently.
   const methods = [
     'all',
     'filter',
