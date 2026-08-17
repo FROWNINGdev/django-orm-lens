@@ -31,8 +31,67 @@ const RE_FOR_LOOP_HEAD =
 const LOOP_VAR_ATTR_RE = /\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\b/g;
 const MAX_LOOP_LINES = 15;
 
+/**
+ * Method names that produce a new QuerySet, so a call ending in one is
+ * still a QuerySet and the loop over it stays in scope.
+ */
+const QS_SOURCE_METHODS = new Set([
+  'all',
+  'filter',
+  'exclude',
+  'annotate',
+  'distinct',
+  'order_by',
+  'values',
+  'values_list',
+  'reverse',
+  'none',
+  'iterator',
+  'only',
+  'defer',
+  'using',
+  'alias',
+  'dates',
+  'datetimes',
+  'union',
+  'intersection',
+  'difference',
+  'select_related',
+  'prefetch_related',
+  'extra',
+  'select_for_update',
+  'raw',
+]);
+
 function isCommentLine(text: string): boolean {
   return text.trimStart().startsWith('#');
+}
+
+/**
+ * Can `expr` — the iterable of a `for` head — be a QuerySet?
+ *
+ * An `expr` containing no `(` — a bare name, a dotted chain — is in
+ * scope: it names no call, so the line carries no evidence either way, and
+ * `users = User.objects.all()` is the common idiom.
+ *
+ * One that does contain a `(` is in scope only when the text before that
+ * first `(` is exactly three dotted segments with `objects` in the middle
+ * (`<Model>.objects.<method>`), or a dotted chain ending in a
+ * queryset-producing method. Every other call-shaped source is skipped —
+ * `range(10)`, `os.listdir(path)`, `apps.get_models()`,
+ * `auditory_models()`, `self.get_queryset()` — because the call name alone
+ * says nothing about what comes back and a line-oriented rule cannot
+ * follow a callee's return.
+ */
+function mayIterateQuerySet(expr: string): boolean {
+  const callAt = expr.indexOf('(');
+  if (callAt === -1) return true;
+  const segments = expr.slice(0, callAt).split('.');
+  // A bare `helper()` call is not a method call, so there is no chain.
+  if (segments.length < 2) return false;
+  // `<Model>.objects.<anything>()` is a manager call whatever follows.
+  if (segments.length === 3 && segments[1] === 'objects') return true;
+  return QS_SOURCE_METHODS.has(segments[segments.length - 1]);
 }
 
 /** DOL001 — `qs.count() > 0` → `qs.exists()`. */
@@ -261,6 +320,8 @@ const DOL006: Rule = {
 /**
  * DOL007 — N+1 heuristic. After `for x in qs:` scan the loop body for
  * `x.<attr>` where `<attr>` is not a bare id/pk/save-like operation.
+ * The loop head is gated by `mayIterateQuerySet`, which skips a source
+ * that looks like a call unless it names a queryset-producing method.
  * Unsafe — cannot programmatically distinguish an FK access from a
  * plain field access without type info; user must review before fixing.
  */
@@ -284,6 +345,7 @@ const DOL007: Rule = {
       if (!head) continue;
       const loopVar = head[1];
       const qsExpr = head[2];
+      if (!mayIterateQuerySet(qsExpr)) continue;
       const window = ctx.windowAfter(i, MAX_LOOP_LINES);
       let seenForThisHead = false;
       for (let j = 0; j < window.length; j++) {

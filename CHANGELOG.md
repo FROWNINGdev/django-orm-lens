@@ -5,6 +5,37 @@ All notable changes to Django ORM Lens will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **DOL007 reported an N+1 on loops that iterate model classes.** Reported in
+  [#72](https://github.com/FROWNINGdev/django-orm-lens/issues/72).
+
+  The rule treated every `for x in <expr>:` head as a loop over a queryset, so
+  a sweep like `for model in auditory_models():` was in scope and
+  `model.ANONYMISE_AFTER` — a plain class attribute resolved through the MRO,
+  no database involved — came back as a possible N+1 suggesting
+  `select_related()` / `prefetch_related()`, which have nothing to act on
+  there. Loops over `range(...)`, `os.listdir(...)` and any other helper call
+  were reported the same way.
+
+  The loop head is now gated on its source. A source containing a `(` is in
+  scope only when the text before that first `(` is
+  `<Model>.objects.<method>` — exactly three dotted segments with `objects`
+  in the middle — or a dotted chain ending in a queryset-producing method
+  (`filter`, `exclude`, `annotate`, `order_by`, …). `range(...)`,
+  `os.listdir(...)`, `apps.get_models()` and a helper call such as
+  `auditory_models()` are skipped. The cost is a false negative: a helper
+  that does return a queryset, `recent()` or `self.get_queryset()`, is
+  skipped as well, because a line-oriented rule cannot follow what a callee
+  returns.
+
+  A source containing no `(` — a bare name (`for user in users:`) or a
+  dotted chain (`for entry in self.pending:`) — is still in scope: it names
+  no call, so it is evidence neither way, and `users = User.objects.all()`
+  is the common idiom.
+
 ## [0.12.1] - 2026-08-14
 
 ### Fixed
