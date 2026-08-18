@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/frowningdev-django-orm-lens-badge.png)](https://mseep.ai/app/frowningdev-django-orm-lens)
+
 **English** · [Русский](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.ru.md) · [Español](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.es.md) · [中文](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/i18n/README.zh.md)
 
 <div align="center" markdown="1">
