@@ -89,6 +89,27 @@ const FIX_DOL006: Fixer = {
 };
 
 /**
+ * DOL008: replace the misspelled lookup segment with the suggested name.
+ *
+ * The finding's range covers exactly that segment — not the whole keyword
+ * argument — so the surrounding path and the value are left untouched and
+ * `author__emial` becomes `author__email` rather than losing its prefix.
+ *
+ * The suggestion is read back out of the rendered message rather than carried
+ * on the finding, because `Finding.args` is the only channel the rule has and
+ * a fixer already receives the resolved message.
+ */
+const FIX_DOL008: Fixer = {
+  code: 'DOL008',
+  title: 'Use the suggested field name',
+  build(ctx) {
+    const suggestion = ctx.finding.args?.suggestion;
+    if (typeof suggestion !== 'string' || !suggestion) return null;
+    return replaceRange(ctx.finding, suggestion);
+  },
+};
+
+/**
  * DOL011: replace `null=True` with `blank=True` inside the flagged field call.
  * The finding range covers `models.CharField(...)`; we do a surgical replace
  * of `null=True` within that window.
@@ -213,6 +234,7 @@ export const ALL_FIXERS: Fixer[] = [
   FIX_DOL003,
   FIX_DOL004,
   FIX_DOL006,
+  FIX_DOL008,
   FIX_DOL011,
   FIX_DOL013,
   FIX_DOL014,

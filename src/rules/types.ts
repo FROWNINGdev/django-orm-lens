@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { WorkspaceIndex } from '../types';
 
 /**
  * Django ORM Lens — rules engine core types.
@@ -125,6 +126,15 @@ export interface RuleContext {
   windowBefore(lineIndex: number, n: number): string[];
   /** Return up to `n` lines starting at `lineIndex + 1`. */
   windowAfter(lineIndex: number, n: number): string[];
+  /**
+   * The parsed workspace, when the caller has one.
+   *
+   * Optional because most rules are pure text shape — `.count() > 0` needs no
+   * schema — and because a rule pass must still run before the first scan
+   * completes. A rule that needs the schema returns no findings when this is
+   * absent rather than guessing, so a cold start is quiet, not wrong.
+   */
+  index?: WorkspaceIndex;
 }
 
 /** The rule object itself. Metadata + a pure check function. */
@@ -198,11 +208,15 @@ export function renderMessage(
  * cannot reach into TextDocument APIs directly — makes them testable with
  * a minimal shim in unit tests.
  */
-export function makeRuleContext(document: vscode.TextDocument): RuleContext {
+export function makeRuleContext(
+  document: vscode.TextDocument,
+  index?: WorkspaceIndex
+): RuleContext {
   const lineCount = document.lineCount;
   return {
     document,
     lineCount,
+    index,
     lineAt(index: number): string {
       if (index < 0 || index >= lineCount) return '';
       return document.lineAt(index).text;

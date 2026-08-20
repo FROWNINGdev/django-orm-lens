@@ -30,6 +30,7 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL005](DOL005.md) | Consider `Q(...)` over `.filter().exclude()` chain | queryset | hint | suggestion |
 | [DOL006](DOL006.md) | Drop `list()` around a QuerySet in for-loop | queryset | info | safe |
 | [DOL007](DOL007.md) | Possible N+1: attribute access inside for-loop | queryset | warning | unsafe |
+| [DOL008](DOL008.md) | Field name in a lookup looks misspelled | correctness | warning | suggestion |
 | [DOL011](DOL011.md) | `null=True` on CharField/TextField | model | warning | suggestion |
 | [DOL012](DOL012.md) | Model without `__str__` method | model | info | suggestion |
 | [DOL013](DOL013.md) | ForeignKey without `on_delete` | model | error | suggestion |

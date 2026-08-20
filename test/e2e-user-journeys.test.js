@@ -385,12 +385,15 @@ test('Journey 12: parse + rules + factory in one flow yields consistent output',
  * Bonus — sanity checks over the whole registry
  * ============================================================== */
 test('Registry sanity: every fixer targets a real rule code', () => {
-  const knownCodes = new Set([
-    'DOL001', 'DOL002', 'DOL003', 'DOL004', 'DOL005', 'DOL006', 'DOL007',
-    'DOL011', 'DOL012', 'DOL013', 'DOL014', 'DOL015',
-    'DOL021', 'DOL022',
-    'DOL031', 'DOL032',
-  ]);
+  // Derived from the rules themselves rather than a hand-kept list. The list
+  // version failed on DOL008 for no better reason than that nobody had added
+  // the string to it — noise that says nothing about whether a fixer points at
+  // a rule, which is the only thing this test is for.
+  const knownCodes = new Set(
+    [...querysetRules, ...modelRules, ...datetimeRules, ...formsRules].map(
+      (r) => r.meta.code,
+    ),
+  );
   for (const fixer of ALL_FIXERS) {
     assert.ok(knownCodes.has(fixer.code), `unknown fixer code ${fixer.code}`);
   }

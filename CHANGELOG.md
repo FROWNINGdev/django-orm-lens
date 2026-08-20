@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-08-20
+
+### Added
+
+- **DOL008 — a lookup name that looks misspelled.** Point 4 of the original
+  [#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3) sketch, and the
+  last of it. `Post.objects.filter(titel="x")` is flagged with `title` as the
+  suggestion, and a QuickFix replaces exactly that segment, so
+  `author__emial` becomes `author__email` rather than losing its prefix.
+
+  Django raises `FieldError` for a bad lookup name, but only when the queryset
+  is evaluated — which for a filter inside a branch may be in production
+  rather than in a test.
+
+  The rule waited three releases on purpose. A completion that stays silent
+  when unsure costs nothing; an error squiggle that is wrong when unsure puts
+  a red underline on correct code and teaches people to turn the extension
+  off. Two properties hold the precision, and both are structural rather than
+  tuned:
+
+  **It cannot fire on anything completion would offer.** The check asks the
+  completion resolver for the names valid at that position and reports only
+  what is missing from that list — the same resolver, not a weaker second copy
+  that would drift from it. Inherited fields, cross-file bases, reverse
+  accessors, `pk` and per-type lookups are all covered for free, which is
+  exactly why this needed v0.15.0, v0.16.0 and v0.17.0 to land first. Shipped
+  earlier it would have underlined `Author.objects.filter(posts__title=...)`,
+  which is ordinary Django.
+
+  **It only fires when there is a near match to name.** "I do not recognise
+  this" is a low-precision claim — annotations, custom lookups and unparsed
+  mixins all land there. "This looks like a misspelling of that" is a
+  high-precision one and comes with something actionable. One edit of slack for
+  names of four characters or fewer, two for longer; the first character must
+  match, since that is the letter people get right even when they fumble the
+  rest.
+
+  It stays silent entirely on a line carrying `.annotate()`, `.alias()` or
+  `.extra()`, on arguments containing a nested call such as `Q(...)`, when the
+  model does not resolve, and past the first unrecognised segment of a path.
+  The fix is `suggestion`, never auto-applied: however close the spelling, the
+  suggestion is a guess about intent, and renaming a lookup unattended could
+  change what a query returns.
+
+### Changed
+
+- **`RuleContext` can carry the parsed workspace.** Optional, because most
+  rules are pure text shape — `.count() > 0` needs no schema — and because the
+  rule pass must still run before the first scan completes. A rule that needs
+  the schema returns nothing when it is absent rather than guessing, so a cold
+  start is quiet rather than wrong.
+
+- **One Levenshtein implementation instead of two.** Extracted to
+  `src/textDistance.ts` when the typo detector became a second caller. Two
+  independent copies is how "the rename detector and the typo detector
+  disagree about what counts as close" becomes a bug nobody can reproduce.
+
+- **The fixer registry test derives rule codes from the rules.** It held a
+  hand-kept list of code strings and failed on DOL008 for no better reason
+  than that nobody had added the string to it — noise that says nothing about
+  whether a fixer points at a real rule, which is the only thing the test is
+  for.
+
 ## [0.17.0] - 2026-08-20
 
 ### Fixed

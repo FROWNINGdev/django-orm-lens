@@ -323,7 +323,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // `.count() > 0` -> `.exists()`, `.first() is None` -> `not .exists()`,
   // and N+1 attribute-access-in-loop diagnostics. Feature-flagged via
   // djangoOrmLens.codeFixes.enabled (default true).
-  for (const d of registerCodeFixes(context)) {
+  for (const d of registerCodeFixes(context, () => currentIndex)) {
     context.subscriptions.push(d);
   }
 

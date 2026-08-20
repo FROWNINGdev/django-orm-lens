@@ -54,7 +54,7 @@ Cold clone, broken venv, no settings module — you still get every app, model, 
 
 | You are | Install | You get |
 |---|---|---|
-| **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Field autocomplete in `.filter()`, sidebar tree, live ER diagram, hover cards, 16 QuickFix rules |
+| **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Field autocomplete in `.filter()`, sidebar tree, live ER diagram, hover cards, 17 QuickFix rules |
 | **Terminal / CI user** | `pip install django-orm-lens` | 17 subcommands, SARIF + PR annotations, pre-commit hooks, a GitHub Action |
 | **AI-agent user** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 13 read-only MCP tools answering schema questions from ground truth |
 
@@ -273,7 +273,7 @@ Django's own check needs a working settings module, an importable app registry a
 <tr>
 <td width="50%" valign="top">
 
-### 🎯 Inline QuickFixes (16 rules)
+### 🎯 Inline QuickFixes (17 rules)
 
 Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL032`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()` and a dozen more.
 

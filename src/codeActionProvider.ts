@@ -7,6 +7,7 @@ import {
   toDiagnosticSeverity,
 } from './rules';
 import { FixEdit, makeRuleContext } from './rules/types';
+import { WorkspaceIndex } from './types';
 
 /**
  * Django ORM Lens — code-action / diagnostics orchestrator.
@@ -111,6 +112,7 @@ export class DjangoCodeFixesProvider implements vscode.CodeActionProvider {
 export function refreshDiagnosticsForDoc(
   doc: vscode.TextDocument,
   collection: vscode.DiagnosticCollection,
+  getIndex?: () => WorkspaceIndex,
 ): void {
   if (doc.languageId !== 'python') {
     collection.delete(doc.uri);
@@ -122,7 +124,7 @@ export function refreshDiagnosticsForDoc(
     return;
   }
 
-  const findings = scanDocument(doc);
+  const findings = scanDocument(doc, getIndex?.());
 
   const diags: vscode.Diagnostic[] = findings.map(
     ({ finding, rule, severity, renderedMessage }) => {
@@ -161,6 +163,10 @@ export function refreshDiagnosticsForDoc(
  */
 export function registerCodeFixes(
   _context: vscode.ExtensionContext,
+  // A getter rather than the index itself, matching how the hover and code
+  // lens providers take it: the index is replaced wholesale on every scan, and
+  // a captured value would go stale the first time a models.py is saved.
+  getIndex?: () => WorkspaceIndex,
 ): vscode.Disposable[] {
   const collection = vscode.languages.createDiagnosticCollection('djangoOrmLens');
   const provider = new DjangoCodeFixesProvider(collection);
@@ -172,11 +178,11 @@ export function registerCodeFixes(
       provider,
       { providedCodeActionKinds: DjangoCodeFixesProvider.providedCodeActionKinds },
     ),
-    vscode.workspace.onDidOpenTextDocument((d) => refreshDiagnosticsForDoc(d, collection)),
+    vscode.workspace.onDidOpenTextDocument((d) => refreshDiagnosticsForDoc(d, collection, getIndex)),
     vscode.workspace.onDidChangeTextDocument((e) =>
       refreshDiagnosticsForDoc(e.document, collection),
     ),
-    vscode.workspace.onDidSaveTextDocument((d) => refreshDiagnosticsForDoc(d, collection)),
+    vscode.workspace.onDidSaveTextDocument((d) => refreshDiagnosticsForDoc(d, collection, getIndex)),
     vscode.workspace.onDidCloseTextDocument((d) => collection.delete(d.uri)),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
@@ -186,14 +192,14 @@ export function registerCodeFixes(
         e.affectsConfiguration('djangoOrmLens.rulesIgnore')
       ) {
         for (const doc of vscode.workspace.textDocuments) {
-          refreshDiagnosticsForDoc(doc, collection);
+          refreshDiagnosticsForDoc(doc, collection, getIndex);
         }
       }
     }),
   ];
 
   for (const doc of vscode.workspace.textDocuments) {
-    refreshDiagnosticsForDoc(doc, collection);
+    refreshDiagnosticsForDoc(doc, collection, getIndex);
   }
 
   return disposables;

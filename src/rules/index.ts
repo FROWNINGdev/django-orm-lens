@@ -4,6 +4,7 @@ import { modelRules } from './models';
 import { datetimeRules } from './datetime';
 import { formsRules } from './forms';
 import { ALL_FIXERS, findFixersForCode } from './fixers';
+import { WorkspaceIndex } from '../types';
 import {
   DIAGNOSTIC_SOURCE,
   Finding,
@@ -201,10 +202,13 @@ function isSuppressed(
  * returns resolved findings. Callers turn each `ResolvedFinding` into a
  * `vscode.Diagnostic` and (optionally) a `vscode.CodeAction`.
  */
-export function scanDocument(document: vscode.TextDocument): ResolvedFinding[] {
+export function scanDocument(
+  document: vscode.TextDocument,
+  index?: WorkspaceIndex
+): ResolvedFinding[] {
   if (document.languageId !== 'python') return [];
   const cfg = readConfig();
-  const ctx = makeRuleContext(document);
+  const ctx = makeRuleContext(document, index);
   const suppr = buildSuppressions(ctx);
 
   const out: ResolvedFinding[] = [];

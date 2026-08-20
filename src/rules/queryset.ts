@@ -1,4 +1,5 @@
 import { Finding, Rule, RuleContext } from './types';
+import { lookupTypos } from '../lookupTypos';
 
 /**
  * QuerySet anti-patterns.
@@ -380,6 +381,55 @@ const DOL007: Rule = {
   },
 };
 
+
+/**
+ * DOL008 — a lookup name that looks like a misspelling of a real one.
+ *
+ * The check itself lives in `lookupTypos`, which reuses the completion
+ * resolver: it can only report a name completion would not have offered, and
+ * only when there is a near match to suggest. That is what keeps a red
+ * underline off correct code — see the module comment there for why the bar
+ * is higher for a diagnostic than for a completion.
+ *
+ * Silent without `ctx.index`. A cold start, or a document scanned before the
+ * first workspace scan finishes, has no schema to judge against, and guessing
+ * would be exactly the failure this rule is designed around.
+ */
+const DOL008: Rule = {
+  meta: {
+    code: 'DOL008',
+    title: 'Field name in a lookup looks misspelled',
+    category: 'correctness',
+    defaultSeverity: 'warning',
+    docsUrl: `${DOCS_BASE}/DOL008.md`,
+    since: '0.18.0',
+    messages: {
+      default: '{typed} is not a field on this model. Did you mean {suggestion}?',
+    },
+  },
+  check(ctx: RuleContext): Finding[] {
+    if (!ctx.index) return [];
+    const out: Finding[] = [];
+    for (let i = 0; i < ctx.lineCount; i++) {
+      const text = ctx.lineAt(i);
+      if (isCommentLine(text)) continue;
+      for (const typo of lookupTypos(text, ctx.index)) {
+        out.push({
+          code: 'DOL008',
+          messageId: 'default',
+          args: { typed: typo.typed, suggestion: typo.suggestion },
+          range: { line: i, startCol: typo.startCol, endCol: typo.endCol },
+          // The suggestion is a guess about intent, however close the spelling
+          // is. Renaming a lookup unattended could silently change what a
+          // query returns, so it is offered and never auto-applied.
+          applicability: 'suggestion',
+        });
+      }
+    }
+    return out;
+  },
+};
+
 export const querysetRules: Rule[] = [
   DOL001,
   DOL002,
@@ -388,4 +438,5 @@ export const querysetRules: Rule[] = [
   DOL005,
   DOL006,
   DOL007,
+  DOL008,
 ];

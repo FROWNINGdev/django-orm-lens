@@ -134,6 +134,7 @@ test('ALL_FIXERS has expected v0.8 codes', () => {
     'DOL003',
     'DOL004',
     'DOL006',
+    'DOL008',
     'DOL011',
     'DOL013',
     'DOL014',
