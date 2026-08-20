@@ -396,6 +396,41 @@ function reverseAsField(edge: ReverseEdge): ParsedField {
   };
 }
 
+/**
+ * A model's own fields plus everything it inherits from bases in the index.
+ *
+ * `ParsedModel.fields` holds only what a class declares itself, so a model
+ * built on the near-universal `class Post(TimeStamped)` pattern reported no
+ * `created` column — valid in every lookup, and absent from the list. The walk
+ * covers both abstract bases, whose columns land on the child's own table, and
+ * concrete parents, whose columns stay on theirs: either way the lookup is
+ * legal, which is what completion is answering.
+ *
+ * A child redeclaring a base field wins, matching Python's MRO. `seen` guards
+ * against a cycle in the declared bases — impossible in valid Python, cheap to
+ * survive in text that is being typed.
+ */
+function inheritedFields(
+  model: ParsedModel,
+  byName: Map<string, ParsedModel>,
+  seen: Set<string> = new Set()
+): ParsedField[] {
+  if (seen.has(model.name)) return [];
+  seen.add(model.name);
+  const out: ParsedField[] = [...model.fields];
+  const taken = new Set(out.map((f) => f.name));
+  for (const base of model.baseClasses) {
+    const parent = byName.get(base.split('.').pop() ?? base);
+    if (!parent) continue;
+    for (const field of inheritedFields(parent, byName, seen)) {
+      if (taken.has(field.name)) continue;
+      taken.add(field.name);
+      out.push(field);
+    }
+  }
+  return out;
+}
+
 /** Resolve `field`'s target model, following `'self'` back to its owner. */
 function relatedModelOf(
   field: ParsedField,
@@ -440,7 +475,9 @@ export function completionsAt(
   let lastField: ParsedField | undefined;
   for (const step of walked) {
     if (!current) return [];
-    const field: ParsedField | undefined = current.fields.find((f) => f.name === step);
+    const field: ParsedField | undefined = inheritedFields(current, byName).find(
+      (f) => f.name === step
+    );
     if (field) {
       lastField = field;
       current = relatedModelOf(field, current, byName);
@@ -461,7 +498,7 @@ export function completionsAt(
   const out: CompletionSuggestion[] = [];
 
   if (current) {
-    for (const field of current.fields) {
+    for (const field of inheritedFields(current, byName)) {
       const related = relatedModelOf(field, current, byName);
       out.push({
         label: prefix + field.name,

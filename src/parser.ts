@@ -245,6 +245,12 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
     .split(/\r?\n/)
     .map((l) => l.replace(/\t/g, '    '));
   const models: ParsedModel[] = [];
+  /**
+   * Class names accepted as models so far in this file, so a subclass of a
+   * project-local base is recognised without that base having to be named
+   * something the heuristics below already know.
+   */
+  const seenModelNames = new Set<string>();
   const parent = path.basename(path.dirname(filePath));
   const appName =
     parent === 'models' ? path.basename(path.dirname(path.dirname(filePath))) : parent || 'app';
@@ -280,7 +286,19 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
         /models\.Model$/.test(b) ||
         /^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel|MPTTModel)$/.test(tail) ||
         /^Abstract[A-Z]/.test(tail) ||
-        /Mixin$/.test(tail)
+        /Mixin$/.test(tail) ||
+        // A class already recognised as a model in this file makes its
+        // subclasses models too. Without this the recogniser was a fixed list
+        // of names — `Abstract*`, `*Mixin`, `TimeStampedModel` — so a very
+        // common project-local base under any other name (`TimeStamped`,
+        // `BaseModel`, `Auditable`, `SoftDelete`) left every model beneath it
+        // invisible to the whole extension: sidebar, ER diagram, hover, rules.
+        //
+        // A single forward pass is enough within a file, because Python
+        // requires the base to be defined before the subclass that uses it. A
+        // base imported from another module is not covered here and still
+        // relies on the name heuristics above.
+        seenModelNames.has(tail)
       );
     });
     if (!looksLikeModel) {
@@ -378,6 +396,7 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
     }
 
     models.push(model);
+    seenModelNames.add(modelName);
     i = j;
   }
 

@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-08-20
+
+### Fixed
+
+- **Models built on a project-local abstract base were invisible to the whole
+  extension.** The recogniser was a fixed list of base names — `models.Model`,
+  `Abstract*`, `*Mixin`, `TimeStampedModel` and a few more. A base under any
+  other name matched none of them, so this parsed as one model instead of two:
+
+  ```python
+  class TimeStamped(models.Model):          # found
+      created = models.DateTimeField(auto_now_add=True)
+      class Meta:
+          abstract = True
+
+  class Post(TimeStamped):                  # not found at all
+      title = models.CharField(max_length=200)
+  ```
+
+  `Post` was missing from the sidebar, from the ER diagram, from hover, and
+  from every DOL rule — not merely missing some fields. `class Post(TimeStamped)`
+  is about as common as Django patterns get, and any project whose base is
+  called `BaseModel`, `Auditable` or `SoftDelete` hit this for its entire model
+  layer.
+
+  A class already recognised as a model in a file now makes its subclasses
+  models too. One forward pass covers it, because Python requires the base to
+  be defined before the subclass — so a class declared *above* its base is
+  still not retroactively a model, which would be inventing one. The
+  non-model guard is unchanged and tested: `ModelForm`, `ModelAdmin` and their
+  kind stay out however local a base is in reach. A base imported from another
+  module is still matched by name only; that is a separate, larger fix.
+
+### Added
+
+- **Completion offers inherited fields.** `ParsedModel.fields` holds only what
+  a class declares itself, so even once `Post(TimeStamped)` parsed, `created`
+  was absent from its completion list while being legal in every lookup. The
+  walk now climbs the declared bases, covering abstract bases — whose columns
+  land on the child's own table — and concrete parents, whose columns stay on
+  theirs. Either way the lookup is legal, which is the question completion is
+  answering. A child redeclaring a base field wins, matching the MRO, and an
+  inherited field keeps its own typed lookups: `created__year` follows a
+  `DateTimeField` through the inheritance walk.
+
 ## [0.15.0] - 2026-08-20
 
 ### Added

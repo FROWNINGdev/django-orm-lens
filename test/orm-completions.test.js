@@ -212,6 +212,98 @@ test('relations sort after plain fields', () => {
   assert.ok(groups.field < groups.relation, 'plain fields sort first');
 });
 
+// --- inherited fields ------------------------------------------------------
+//
+// `ParsedModel.fields` holds only what a class declares itself, so the
+// near-universal `class Post(TimeStamped)` pattern reported no `created`
+// column — legal in every lookup, and absent from the list.
+
+const withBases = (name, fields, baseClasses) => ({
+  ...model(name, fields),
+  baseClasses,
+});
+
+const INHERIT_INDEX = {
+  scannedAt: 0,
+  apps: [
+    {
+      name: 'blog',
+      path: 'blog',
+      models: [
+        withBases('TimeStamped', [field('created', 'DateTimeField')], ['models.Model']),
+        withBases('Auditable', [field('updated_by', 'CharField')], ['TimeStamped']),
+        withBases('Post', [field('title', 'CharField')], ['Auditable']),
+        withBases(
+          'Override',
+          [field('created', 'CharField')],
+          ['TimeStamped']
+        ),
+      ],
+    },
+  ],
+};
+
+const ilabels = (line) => completionsAt(line, INHERIT_INDEX).map((s) => s.label);
+
+test('a field from the abstract base is offered', () => {
+  assert.ok(ilabels('Post.objects.filter(').includes('created'));
+});
+
+test('inheritance composes through two levels of base', () => {
+  const got = ilabels('Post.objects.filter(');
+  for (const name of ['title', 'updated_by', 'created', 'pk']) {
+    assert.ok(got.includes(name), `missing ${name}: ${got.join(', ')}`);
+  }
+});
+
+test('a redeclared field wins over the base, matching the MRO', () => {
+  const created = completionsAt('Override.objects.filter(created', INHERIT_INDEX).find(
+    (s) => s.label === 'created'
+  );
+  assert.equal(created.detail, 'CharField', 'the child declaration should win');
+});
+
+test('an inherited field carries its own lookups', () => {
+  // `created` is a DateTimeField on the base, so the date parts must follow it
+  // through the inheritance walk rather than being lost with the declaration.
+  assert.ok(ilabels('Post.objects.filter(created__ye').includes('created__year'));
+});
+
+test('a base that is not itself a model is skipped, not crashed on', () => {
+  const idx = {
+    scannedAt: 0,
+    apps: [
+      {
+        name: 'blog',
+        path: 'blog',
+        models: [withBases('Thing', [field('name', 'CharField')], ['SomeUnknownMixin'])],
+      },
+    ],
+  };
+  assert.deepEqual(
+    completionsAt('Thing.objects.filter(na', idx).map((s) => s.label),
+    ['name']
+  );
+});
+
+test('a cycle in declared bases terminates', () => {
+  const idx = {
+    scannedAt: 0,
+    apps: [
+      {
+        name: 'blog',
+        path: 'blog',
+        models: [
+          withBases('A', [field('a', 'CharField')], ['B']),
+          withBases('B', [field('b', 'CharField')], ['A']),
+        ],
+      },
+    ],
+  };
+  const got = completionsAt('A.objects.filter(', idx).map((s) => s.label);
+  assert.ok(got.includes('a') && got.includes('b'), got.join(', '));
+});
+
 // --- reverse accessors -----------------------------------------------------
 //
 // Django puts an accessor on the *target* of every relation. These are as
