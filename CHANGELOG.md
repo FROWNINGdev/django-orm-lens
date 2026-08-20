@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-08-20
+
+### Added
+
+- **Field completion inside `Post.objects.filter(...)`** — the moat feature
+  from [#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3), open
+  since the project's second day. Typing inside `filter`, `exclude`, `get`,
+  `annotate`, `order_by`, `values`, `only`, `defer` and their siblings offers
+  the model's fields, and `author__` walks the ForeignKey to offer the *related*
+  model's fields. Two edges compose: `parent__author__name`. A
+  self-referential `ForeignKey('self')` resolves back to its own model.
+
+  Lookups are typed rather than a flat list. `title__` offers `icontains` and
+  `istartswith` but not `gt`; `views__` offers `gte` and `range` but not
+  `icontains`; `created__` adds `year`, `month`, `hour` and `date`; a
+  `BooleanField` stays at `exact` / `in` / `isnull`, because listing ordered
+  lookups there is noise in the one place the list should be shortest.
+
+  The decision is `completionsAt()` in `src/ormCompletions.ts` — a pure
+  function over a line of text and the parsed index, with no `vscode` import,
+  covered by 30 tests. Scope is "best effort, never wrong-looking": resolving a
+  queryset's model in general needs type inference across assignments and
+  managers, so what is implemented is the literal `<Model>.objects.<method>(`
+  shape that covers the great majority of real calls, and everything outside it
+  returns nothing rather than a guess. An empty list costs the user nothing; a
+  list of fields from the wrong model costs them a debugging session. In that
+  spirit the cursor being past an `=` — typing a *value* — offers nothing, and
+  a paren inside a string literal does not open a completion context at all.
+
+  Two details that are invisible until they are wrong: `_` is a trigger
+  character alongside `(` and `,`, because a lookup path never leaves a word
+  and VS Code would not re-query after `author__` on its own; and the replaced
+  range is the whole lookup path rather than VS Code's default word range,
+  which stops at the last `__` and would land `author__name` as
+  `author__author__name`. Both have tests.
+
+  New setting `djangoOrmLens.completions.enabled` (default `true`), read per
+  request so toggling it needs no window reload.
+
 ## [py-1.13.0] - 2026-08-20
 
 ### Added

@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "See your entire Django schema in your editor, and gate it in CI. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
-  "version": "0.12.2",
+  "version": "0.13.0",
   "preview": false,
   "galleryBanner": {
     "color": "#0c4b33",
@@ -267,6 +267,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show inline QuickFix diagnostics for Django ORM anti-patterns (DOL001-DOL032). Disable to silence the whole rule set."
+        },
+        "djangoOrmLens.completions.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Complete model field names and lookups inside Post.objects.filter(...) and its siblings, traversing ForeignKey edges for author__name paths. Disable if another extension already owns Python completion here."
         },
         "djangoOrmLens.rules": {
           "type": "object",

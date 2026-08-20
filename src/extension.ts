@@ -15,6 +15,7 @@ import { DIAGNOSTIC_SOURCE } from './rules';
 import { diffSchemas, diffToMarkdown } from './schemaDiff';
 import { TreeNode, WorkspaceIndex } from './types';
 import { parseModelsFile } from './parser';
+import { completionsAt, lookupPathLength } from './ormCompletions';
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
 let treeProvider: DjangoTreeProvider;
@@ -242,6 +243,61 @@ export async function activate(context: vscode.ExtensionContext) {
   codeLensProvider = new DjangoCodeLensProvider(() => currentIndex);
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
+  );
+
+  // #3 — field completion inside `Post.objects.filter(...)`. The provider is
+  // a shell on purpose: every decision lives in `ormCompletions`, which knows
+  // nothing about vscode and is therefore testable without a host.
+  //
+  // `_` is a trigger character alongside `(` and `,` because a lookup path is
+  // written without ever leaving a word — VS Code would not re-query after
+  // `author__` on its own, so traversal would appear only for users who
+  // remembered to press Ctrl+Space.
+  context.subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      { language: 'python' },
+      {
+        provideCompletionItems(document, position) {
+          // Read per-request rather than captured at activation, so toggling
+          // the setting takes effect without a window reload.
+          if (
+            !vscode.workspace
+              .getConfiguration('djangoOrmLens')
+              .get<boolean>('completions.enabled', true)
+          ) {
+            return [];
+          }
+          const linePrefix = document
+            .lineAt(position.line)
+            .text.slice(0, position.character);
+          const pathLength = lookupPathLength(linePrefix);
+          return completionsAt(linePrefix, currentIndex).map((s) => {
+            const item = new vscode.CompletionItem(
+              s.label,
+              s.kind === 'relation'
+                ? vscode.CompletionItemKind.Reference
+                : s.kind === 'lookup'
+                  ? vscode.CompletionItemKind.Operator
+                  : vscode.CompletionItemKind.Field
+            );
+            item.detail = s.detail;
+            // The label carries the whole traversal path, so the range being
+            // replaced has to start where that path starts. Left to its own
+            // word-boundary logic VS Code replaces only the segment after the
+            // last `__`, and `author__name` lands as `author__author__name`.
+            item.range = new vscode.Range(
+              position.with({ character: position.character - pathLength }),
+              position
+            );
+            item.sortText = `${s.sortGroup}${s.label}`;
+            return item;
+          });
+        },
+      },
+      '(',
+      ',',
+      '_'
+    )
   );
 
   // v0.8 · WOW-feature #3 from Discussion #27 — static-analysis QuickFixes:
