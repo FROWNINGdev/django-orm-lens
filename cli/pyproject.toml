@@ -55,8 +55,8 @@ dependencies = []
 
 # Default install is zero-dependency. Add [mcp] or [full] to enable MCP server for AI agents.
 [project.optional-dependencies]
-mcp = ["mcp>=1.0,<2"]
-full = ["mcp>=1.0,<2"]
+mcp = ["mcp>=1.0,<3"]
+full = ["mcp>=1.0,<3"]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "build>=1.2", "twine>=5.1"]
 
 [project.scripts]
