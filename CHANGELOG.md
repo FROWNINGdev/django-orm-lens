@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The webview message guard has a test that runs without a browser.** The
+  guard reported in [#55](https://github.com/FROWNINGdev/django-orm-lens/issues/55)
+  — every `postMessage` from the extension host dropped, so an open ER panel
+  never updated — was fixed on the day it was measured, in `f93e5fd`, and has
+  shipped since v0.10.0. What did not ship was anything to stop it happening
+  again.
+
+  It could not have: the policy lived inside `src/webview/`, which tsconfig
+  excludes from `tsc` because esbuild bundles it separately, so nothing in it
+  reaches `out/` and nothing in it can be `require`d by a test. A guard that
+  rejected every real message was invisible to a fully green suite — the same
+  shape of failure as the py-1.9 → 1.12 wave, and the reason the first paint
+  kept working is that initial state is embedded in the HTML rather than sent
+  over the channel, so the bug only appeared on *update*.
+
+  The decision is now `acceptsMessage()` in `src/webviewMessages.ts`, a pure
+  function importable from both the bundle and the test, covered by ten cases:
+  an `index` and a `theme` push are accepted regardless of `source` — the
+  regression itself — while a foreign origin, an origin that merely prefixes
+  ours, a missing origin, an unknown `type`, and a non-object payload are all
+  rejected without throwing.
+
 ### Fixed
 
 - **DOL007 reported an N+1 on loops that iterate model classes.** Reported in

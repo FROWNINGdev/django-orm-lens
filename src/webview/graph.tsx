@@ -21,6 +21,7 @@ import { toPng, toSvg } from 'html-to-image';
 import { ModelNode, type ModelNodeData } from './ModelNode';
 import { autoLayout } from './layout';
 import type { WireField, WireIndex, WireModel, ExtensionMessage, VsCodeApi } from './types';
+import { acceptsMessage } from '../webviewMessages';
 
 // Inject bundled stylesheets. Esbuild loads .css as text via the build script
 // (--loader:.css=text) so we get raw CSS strings we can push into <style> tags.
@@ -184,20 +185,12 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
 
   useEffect(() => {
     const onMsg = (event: MessageEvent<ExtensionMessage>) => {
-      // Origin check — CodeQL js/missing-origin-check. This compares
-      // `origin`, not `source`. Comparing against `window` was wrong: a
-      // legitimate `index` push measured as matching neither `window` nor
-      // `window.parent` (see #55), so every message the extension host sent
-      // was dropped and an open panel never updated.
-      //
-      // `e.origin === window.origin` is what the VS Code maintainers
-      // recommend over hardcoding `vscode-webview:` — the scheme differs
-      // between desktop and vscode.dev, and the webview's own origin is
-      // correct in both.
-      // https://github.com/microsoft/vscode-discussions/discussions/1061
-      if (event.origin !== window.origin) return;
+      // Origin check — CodeQL js/missing-origin-check. The policy lives in
+      // ../webviewMessages because src/webview/ is excluded from tsc and so
+      // nothing in it can be required by a test; see the comment there for
+      // why this compares `origin` rather than `source` (#55).
+      if (!acceptsMessage(event, window.origin)) return;
       const data = event.data;
-      if (!data || typeof data !== 'object') return;
       if (data.type === 'index') {
         setIndex(data.payload);
       } else if (data.type === 'theme') {
