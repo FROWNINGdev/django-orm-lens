@@ -86,14 +86,29 @@ All of it is here, MIT-licensed, with no tier gate, no seat count, no account, a
 
 <div align="center" markdown="1">
 
-<!-- Traction — LIVE counters only, no hardcoded numbers -->
+<!-- Traction — LIVE counters only, no hardcoded numbers.
+
+     The two VS Code counters deliberately do not come from shields.io. Its
+     whole `visual-studio-marketplace/*` family is retired and now answers
+     every request with a grey "retired badge" — which is exactly what the
+     rating badge on this page had silently become, reporting nothing while
+     looking like it reported something. vsmarketplacebadges.dev reads the
+     same Marketplace gallery API and is live, so those two keep counting.
+
+     Open VSX is listed separately from the Marketplace rather than folded
+     into one "editor installs" number: they are different registries with
+     different audiences (VSCodium, Gitpod, Eclipse Theia), and the download
+     counts differ by an order of magnitude, so summing them would hide the
+     more interesting of the two. -->
 
 [![GitHub stars](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=eab308&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
 [![Forks](https://img.shields.io/github/forks/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/network/members)
+[![Contributors](https://img.shields.io/github/contributors/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=contributors&color=8b5cf6&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/graphs/contributors)
 [![PyPI monthly](https://img.shields.io/pypi/dm/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI%2Fmonth&color=3775a9&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
 [![Total downloads](https://img.shields.io/pepy/dt/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=total%20downloads&color=3775a9&labelColor=1e293b)](https://pepy.tech/project/django-orm-lens)
-[![Marketplace rating](https://img.shields.io/visual-studio-marketplace/r/frowningdev.django-orm-lens?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=rating&color=c160ef&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
-[![Contributors](https://img.shields.io/github/contributors/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=contributors&color=8b5cf6&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/graphs/contributors)
+[![Open VSX downloads](https://img.shields.io/open-vsx/dt/frowningdev/django-orm-lens?style=for-the-badge&logo=eclipseide&logoColor=white&label=Open%20VSX&color=c160ef&labelColor=1e293b)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
+[![VS Code installs](https://vsmarketplacebadges.dev/installs-short/frowningdev.django-orm-lens.svg?style=for-the-badge&colorA=1e293b&colorB=0c4b33&label=VS%20Code%20installs)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
+[![Marketplace rating](https://vsmarketplacebadges.dev/rating-star/frowningdev.django-orm-lens.svg?style=for-the-badge&colorA=1e293b&colorB=c160ef&label=rating)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
 [![Last commit](https://img.shields.io/github/last-commit/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=last%20commit&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/commits/main)
 
 <br/>
@@ -732,6 +747,25 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 - [x] `DOL021` states the `USE_TZ` default correctly — `False` through Django 4.2, `True` from 5.0, with the `startproject` template's `USE_TZ = True` since 4.0 called out as the separate thing it is — and no longer claims `timezone.now()` is always aware UTC — found by [@Justine0211](https://github.com/Justine0211) while translating the page ([#52](https://github.com/FROWNINGdev/django-orm-lens/issues/52))
 - [x] The `parity_input.py` fixture carries the `models` import a real `models.py` would have — contributed by [@RinZ27](https://github.com/RinZ27) ([#64](https://github.com/FROWNINGdev/django-orm-lens/pull/64))
 
+**py-1.9 → 1.12** — the real-checkout wave
+
+Found by running the CLI over actual checkouts of django-oscar, django-guardian, django-allauth and django-cms rather than over fixtures. Every one of these was invisible to a green test suite, and two of them made the tool answer confidently with something false.
+
+- [x] Models declared inside a module-level block parse — the swappable-model idiom (`if not is_model_registered(...):` and then an indented `class`) that every pluggable Django framework uses, against class discovery anchored on `^class`. django-oscar went from 12 models, every one of them from its own `tests/` directory, to 82. All six golden snapshots stayed byte-identical: a column-0 class parses exactly as before
+- [x] `abstract_models.py` is read alongside `models.py` — pluggable frameworks keep the abstract base there and leave `models.py` holding only the concrete subclass, so 72 of django-oscar's 83 models reported zero fields between them. Now 8, and those 8 are correct: they subclass *concrete* models, where multi-table inheritance leaves the columns on the parent's table
+- [x] `drift` no longer fails a build over two app directories sharing a name — replayed migration state is merged per app name, matching how the declared side is already keyed. On a real django-guardian checkout the blocking count goes 1 → 0 and the contradictory duplicate row disappears, while a genuinely unmigrated field still blocks
+- [x] django-mptt models are no longer invisible — `MPTTModel` is a recognised base, and `TreeForeignKey` / `TreeOneToOneField` / `TreeManyToManyField` are reported as the Django fields they subclass, so `TreeForeignKey('self', ...)` draws exactly the self-edge a plain `ForeignKey('self', ...)` does. No `django-mptt` dependency is added — the parser keeps working against a broken venv. Saleor's `product.Category` and its `children` edge now appear in the golden snapshot: 76 added lines, none removed (closing [#49](https://github.com/FROWNINGdev/django-orm-lens/issues/49))
+- [x] The MCP server reports its own version — `FastMCP` forwards none, so the SDK fell back to `importlib.metadata.version("mcp")` and every `initialize` response named the wrong project's release number to the client
+
+**v0.9 → v0.12.1** — the extension catches up
+
+- [x] **v0.9.0** — Partial `UniqueConstraint` tracking in Time-Travel Schema Diff: `add` / `drop` / `change` / `rename` as typed events, with `fromCondition` carrying the pre-change predicate so a review comment can show `Q(is_primary=True) → Q(is_primary=True, deleted=False)`, and a rename no longer showing up as a lossy `add + drop` pair. Multiple unnamed constraints on one model key onto `#anon-<index>` instead of collapsing into a single event. Prompted by django-extensions [#1813](https://github.com/django-extensions/django-extensions/issues/1813), where `sqldiff` drops the `condition=` predicate so migration reviewers never see what changed
+- [x] **v0.10.0** — Impact-analysis layer detection runs on the workspace-relative path. It used to match `/tests/` and `/views.py` anywhere in a file's *absolute* path, so a project checked out under any directory called `tests` — or a monorepo with `services/tests/` above it — had every file reported as that layer, `views.py` as a test, `admin.py` as a test. Also: webview messages validated by origin rather than by source, and conflicting leaf migrations detected — two migrations claiming the same parent, which Django only complains about at `migrate` time
+- [x] **v0.10.1** — The Marketplace listing names impact analysis, blast radius and schema drift, and says plainly that the tool is free and MIT with no Pro tier. The store page had still described the extension as a sidebar and an ER diagram — what it was two waves earlier — so nobody searching for those features found it. Metadata takes effect only on publish, which is why it needed a release of its own
+- [x] **v0.11.0** — The TypeScript half of django-mptt support, cut as its own release rather than folded into a later one: between py-1.12.0 shipping and this build, the CLI and the extension disagreed about what a django-mptt schema contains, which is the exact failure the shared golden fixture exists to prevent
+- [x] **v0.12.0** — The extension asks for a GitHub star, on the third *user-initiated* ER-diagram open. Not on install: a prompt arriving before the tool has done anything gets dismissed reflexively, and that dismissal is permanent in the user's mind. Sidebar refreshes that re-render an already-open panel are not counted — they are not the user asking for anything. "Later" and "Don't ask again" are stored as separate states, so a deferral re-arms the ask exactly once, twelve opens later; two prompts is the lifetime maximum. The policy is a pure function covered by six tests that need no VS Code host
+- [x] **v0.12.1** — Export as SVG wrote an unopenable file. `toSvg` returns percent-encoded markup where `toPng` returns base64; the save path assumed base64 for anything starting with `data:`, and base64-decoding percent-encoded text does not fail — the decoder silently drops every character outside its alphabet and returns bytes. A 48-character `<svg>` document reached disk with the right name, a plausible size and no valid content anywhere in it. The transfer encoding is now read from the data-URL header instead of guessed from the prefix
+
 **Next**
 
 - [ ] ORM query autocomplete inside `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
@@ -740,7 +774,7 @@ Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type "Django ORM L
 
 **Later**
 
-- [ ] Third-party field support (`django-mptt`, `django-taggit`, `django-model-utils`)
+- [ ] Third-party field support — `django-model-utils` (`django-taggit` shipped in py-1.11.0, `django-mptt` in py-1.12.0 / v0.11.0)
 - [ ] JetBrains / PyCharm plugin (if there is demand)
 
 Vote by 👍-ing the corresponding [issue](https://github.com/FROWNINGdev/django-orm-lens/issues).
