@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-20
+
+### Added
+
+- **Completion resolves a queryset bound to a name**
+  ([#83](https://github.com/FROWNINGdev/django-orm-lens/issues/83)). v0.13.0
+  handled the literal `Post.objects.filter(` and nothing else, which meant the
+  single most common real shape — anything that builds a queryset
+  conditionally — offered nothing:
+
+  ```python
+  qs = Post.objects.all()
+  if request.GET.get("mine"):
+      qs = qs.exclude(published=False)
+  qs = qs.filter(auth        # now offers `author`
+  ```
+
+  The scan walks backwards from the cursor for the binding of that name and
+  follows `qs = qs.filter(...)` hops back to the model. The nearest binding
+  wins, because a rebinding makes the earlier one dead as far as the cursor is
+  concerned.
+
+  Three refusals matter as much as the resolution, and each has a test. A
+  binding whose right-hand side is not recognised — `qs = build_queryset(request)`
+  — **poisons** the lookup rather than falling through to an older binding of
+  the same name, which would answer with a model the code no longer holds. A
+  binding on the far side of a `def` or `class` is a different variable and is
+  not used. And a dotted receiver like `self.qs.filter(` is not treated as the
+  local `qs`, however similar the trailing name looks.
+
+  The module stays a pure function: the preceding lines are a parameter, not a
+  document read from inside it, so all twelve new cases run without a VS Code
+  host. The provider passes at most 200 lines of context — the scan stops at
+  the enclosing `def` anyway, so this only bounds a module-level binding with a
+  very long file under it.
+
 ## [0.13.1] - 2026-08-20
 
 ### Changed

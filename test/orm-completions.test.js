@@ -212,6 +212,78 @@ test('relations sort after plain fields', () => {
   assert.ok(groups.field < groups.relation, 'plain fields sort first');
 });
 
+// --- resolving through an assignment chain (#83) ---------------------------
+
+const ctxWith = (lines, prefix) => parseQueryContext(prefix, lines);
+
+test('a queryset bound to a name resolves to its model', () => {
+  const ctx = ctxWith(['qs = Post.objects.all()'], 'qs = qs.filter(ti');
+  assert.deepEqual(ctx, { model: 'Post', method: 'filter', partial: 'ti' });
+});
+
+test('suggestions come through the bound name, not just the context', () => {
+  const got = completionsAt('qs.filter(auth', INDEX, ['qs = Post.objects.all()']);
+  assert.deepEqual(got.map((s) => s.label), ['author']);
+});
+
+test('traversal works through a bound name', () => {
+  const got = completionsAt('qs.filter(author__na', INDEX, ['qs = Post.objects.all()']);
+  assert.deepEqual(got.map((s) => s.label), ['author__name']);
+});
+
+test('a rebinding chain is followed back to the model', () => {
+  const lines = [
+    'qs = Post.objects.all()',
+    'if flag:',
+    '    qs = qs.exclude(published=False)',
+  ];
+  assert.equal(ctxWith(lines, 'qs = qs.filter(ti').model, 'Post');
+});
+
+// The nearest binding is the one in effect. An older binding of the same name
+// is dead code as far as the cursor is concerned.
+test('the nearest binding wins over an earlier one', () => {
+  const lines = ['qs = Author.objects.all()', 'qs = Post.objects.all()'];
+  assert.equal(ctxWith(lines, 'qs.filter(ti').model, 'Post');
+});
+
+// The important half. Falling through to the older binding here would answer
+// with a model the code no longer holds.
+test('a binding from something unrecognised poisons the lookup', () => {
+  const lines = ['qs = Post.objects.all()', 'qs = build_queryset(request)'];
+  assert.equal(ctxWith(lines, 'qs.filter(ti'), null);
+  assert.deepEqual(completionsAt('qs.filter(ti', INDEX, lines), []);
+});
+
+test('a binding on the far side of a def is a different variable', () => {
+  const lines = ['qs = Post.objects.all()', '', 'def other(request):'];
+  assert.equal(ctxWith(lines, '    qs.filter(ti'), null);
+});
+
+test('a class body is a scope boundary too', () => {
+  const lines = ['qs = Post.objects.all()', 'class Thing:'];
+  assert.equal(ctxWith(lines, '    qs.filter(ti'), null);
+});
+
+test('an unbound name resolves to nothing', () => {
+  assert.equal(ctxWith(['x = 1'], 'qs.filter(ti'), null);
+  assert.equal(ctxWith([], 'qs.filter(ti'), null);
+});
+
+test('a dotted receiver is not treated as a local queryset name', () => {
+  // `self.qs` is not the local `qs`, however tempting the trailing name looks.
+  assert.equal(ctxWith(['qs = Post.objects.all()'], 'self.qs.filter(ti'), null);
+});
+
+test('the literal form still wins without any preceding lines', () => {
+  assert.equal(parseQueryContext('Post.objects.filter(ti').model, 'Post');
+});
+
+test('a self-rebinding does not hang', () => {
+  // `qs = qs.filter(...)` with no origin above it must terminate, not recurse.
+  assert.equal(ctxWith(['qs = qs.filter(x=1)'], 'qs.filter(ti'), null);
+});
+
 // --- the replace range ----------------------------------------------------
 //
 // Accepting a suggestion has to consume the whole path already typed. VS

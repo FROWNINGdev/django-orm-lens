@@ -17,6 +17,15 @@ import { TreeNode, WorkspaceIndex } from './types';
 import { parseModelsFile } from './parser';
 import { completionsAt, lookupPathLength } from './ormCompletions';
 
+/**
+ * How far above the cursor completion looks for `qs = Post.objects.all()`.
+ *
+ * The backward scan stops at the enclosing `def` on its own, so this only
+ * bounds the pathological case — a binding at module level with hundreds of
+ * lines under it. Django view and manager bodies are far shorter than this.
+ */
+const LOOKBACK_LINES = 200;
+
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
 let treeProvider: DjangoTreeProvider;
 let codeLensProvider: DjangoCodeLensProvider;
@@ -270,8 +279,18 @@ export async function activate(context: vscode.ExtensionContext) {
           const linePrefix = document
             .lineAt(position.line)
             .text.slice(0, position.character);
+          // Lines above the cursor let `qs = Post.objects.all()` on an earlier
+          // line resolve `qs.filter(` here (#83). Bounded rather than the
+          // whole file: the scan stops at the enclosing `def` anyway, and
+          // reading an unbounded prefix on every keystroke in a 5000-line
+          // views.py is work with no answer to show for it.
+          const from = Math.max(0, position.line - LOOKBACK_LINES);
+          const precedingLines: string[] = [];
+          for (let i = from; i < position.line; i++) {
+            precedingLines.push(document.lineAt(i).text);
+          }
           const pathLength = lookupPathLength(linePrefix);
-          return completionsAt(linePrefix, currentIndex).map((s) => {
+          return completionsAt(linePrefix, currentIndex, precedingLines).map((s) => {
             const item = new vscode.CompletionItem(
               s.label,
               s.kind === 'relation'

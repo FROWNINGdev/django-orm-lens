@@ -164,6 +164,73 @@ function partialToken(args: string): string | null {
 /** Expression wrappers worth stepping out of to find the naming call. */
 const WRAPPERS = /\b(Q|F|Count|Sum|Avg|Min|Max|Exists|OuterRef|Subquery)\s*$/;
 
+/** `qs = Post.objects.all()` — one binding, captured as name and expression. */
+const ASSIGN_RE = /^\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*$/;
+
+/**
+ * A line that starts a new scope. Scanning backwards stops here: a binding on
+ * the far side of a `def` is a different `qs` than the one under the cursor,
+ * and completing from it would be exactly the confidently-wrong answer this
+ * module refuses to give.
+ */
+const SCOPE_RE = /^\s*(async\s+def|def|class)\s/;
+
+/** How many `qs = qs.filter(...)` hops to follow before giving up. */
+const MAX_HOPS = 4;
+
+/**
+ * Walk backwards from `start` for the binding of `name`, and report the model
+ * it ultimately came from.
+ *
+ * Nearest binding wins, because that is the one in effect at the cursor — a
+ * queryset narrowed in a branch is rebound, and the earlier binding is dead.
+ *
+ * A binding whose right-hand side is not recognised returns `null` instead of
+ * continuing the scan. That is the important half: falling through to an older
+ * binding of the same name would answer with a model the code no longer holds,
+ * and a confidently wrong field list is worse than none.
+ */
+function resolveName(
+  name: string,
+  lines: readonly string[],
+  start: number,
+  depth: number
+): string | null {
+  if (depth > MAX_HOPS) return null;
+  for (let i = start; i >= 0; i--) {
+    const line = lines[i];
+    if (SCOPE_RE.test(line)) return null;
+    const assign = line.match(ASSIGN_RE);
+    if (!assign || assign[1] !== name) continue;
+    const rhs = assign[2];
+    const direct = rhs.match(/^([A-Za-z_]\w*)\s*\.\s*objects\b/);
+    if (direct) return direct[1];
+    // `qs = qs.filter(...)` / `narrowed = base.exclude(...)` — the model is
+    // whatever the left-hand name resolved to further up. Continue above this
+    // line so a self-rebinding does not recurse onto itself.
+    const chained = rhs.match(/^([A-Za-z_]\w*)\s*\.\s*(\w+)\s*\(/);
+    if (chained && QUERY_METHODS.has(chained[2])) {
+      return resolveName(chained[1], lines, i - 1, depth + 1);
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Resolve a bare receiver name — the `qs` of `qs.filter(` — through the lines
+ * above it.
+ *
+ * The `[^.\w]` guard means only a *bare* name qualifies: `Foo.bar.filter(`
+ * leaves `bar` preceded by a dot and resolves to nothing, rather than being
+ * treated as a local queryset variable that happens to share the name.
+ */
+function resolveReceiverName(before: string, lines: readonly string[]): string | null {
+  const m = before.match(/(?:^|[^.\w])([A-Za-z_]\w*)\s*$/);
+  if (!m) return null;
+  return resolveName(m[1], lines, lines.length - 1, 0);
+}
+
 /**
  * Pull the model name out of `... Post.objects` / `... Post.objects.filter(x)`.
  *
@@ -181,10 +248,16 @@ function receiverModel(before: string): string | null {
  * Work out which model's fields belong at the cursor.
  *
  * :param linePrefix: text from the start of the line up to the cursor.
+ * :param precedingLines: the lines above the cursor, in source order. Used
+ *   only to resolve a bare receiver name; omit and the literal
+ *   `<Model>.objects.<method>(` shape is all that resolves.
  * :returns: the context, or `null` when the cursor is not in a recognised
  *   manager call.
  */
-export function parseQueryContext(linePrefix: string): QueryContext | null {
+export function parseQueryContext(
+  linePrefix: string,
+  precedingLines: readonly string[] = []
+): QueryContext | null {
   let head = linePrefix;
   // What the user is typing is always read from the *innermost* call, because
   // that is where the cursor is. Stepping outward afterwards only looks for
@@ -208,7 +281,8 @@ export function parseQueryContext(linePrefix: string): QueryContext | null {
     const call = before.match(/^(.*)\.\s*([A-Za-z_]\w*)\s*$/);
     const method = call?.[2];
     if (call && method && QUERY_METHODS.has(method)) {
-      const model = receiverModel(call[1]);
+      const model =
+        receiverModel(call[1]) ?? resolveReceiverName(call[1], precedingLines);
       if (!model) return null;
       return { model, method, partial };
     }
@@ -274,14 +348,16 @@ function relatedModelOf(
  * Complete the lookup path at the cursor.
  *
  * :param linePrefix: text from the start of the line up to the cursor.
+ * :param precedingLines: the lines above the cursor, in source order.
  * :returns: suggestions, or an empty array when nothing resolves with
  *   confidence. Never a guess.
  */
 export function completionsAt(
   linePrefix: string,
-  index: WorkspaceIndex
+  index: WorkspaceIndex,
+  precedingLines: readonly string[] = []
 ): CompletionSuggestion[] {
-  const ctx = parseQueryContext(linePrefix);
+  const ctx = parseQueryContext(linePrefix, precedingLines);
   if (!ctx) return [];
   const byName = modelIndex(index);
   const root = byName.get(ctx.model);
