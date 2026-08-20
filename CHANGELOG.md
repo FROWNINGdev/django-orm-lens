@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-08-20
+
+### Added
+
+- **Completion offers reverse accessors.** Django puts an accessor on the
+  *target* of every relation, named by `related_name` or, failing that, by the
+  declaring model in lower case. These are as valid in a lookup as any declared
+  column, and they are invisible in `ParsedModel.fields`, which holds only what
+  a model declares itself. So until now the "one" side of every ForeignKey in
+  a project offered nothing but its own columns:
+
+  ```python
+  Author.objects.filter(          # offered: name, pk
+  Author.objects.filter(          # now also: books, edited_book
+  Author.objects.filter(books__author__name=...)   # traverses back out again
+  ```
+
+  `related_name='+'` is Django's opt-out and suppresses the accessor entirely,
+  so those are not offered — naming one would name something that does not
+  exist.
+
+  Suggestions now sort in four groups: declared fields, forward relations,
+  reverse accessors, then lookups. A lookup never pushes a field name down the
+  list, since a lookup is what you reach for *after* picking a field.
+
 ## [0.14.0] - 2026-08-20
 
 ### Added

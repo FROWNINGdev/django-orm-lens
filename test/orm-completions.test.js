@@ -212,6 +212,100 @@ test('relations sort after plain fields', () => {
   assert.ok(groups.field < groups.relation, 'plain fields sort first');
 });
 
+// --- reverse accessors -----------------------------------------------------
+//
+// Django puts an accessor on the *target* of every relation. These are as
+// valid in a lookup as any declared column and are invisible in
+// `ParsedModel.fields`, so without them the "one" side of every ForeignKey
+// offered nothing but its own columns.
+
+const REVERSE_INDEX = {
+  scannedAt: 0,
+  apps: [
+    {
+      name: 'blog',
+      path: 'blog',
+      models: [
+        model('Author', [field('name', 'CharField')]),
+        model('Book', [
+          field('title', 'CharField'),
+          field('author', 'ForeignKey', {
+            isRelation: true,
+            relatedModel: 'Author',
+            relationKind: 'ForeignKey',
+            relatedName: 'books',
+          }),
+          field('scratch', 'ForeignKey', {
+            isRelation: true,
+            relatedModel: 'Author',
+            relationKind: 'ForeignKey',
+            relatedName: '+',
+          }),
+        ]),
+        model('Review', [
+          field('stars', 'IntegerField'),
+          field('book', 'ForeignKey', {
+            isRelation: true,
+            relatedModel: 'Book',
+            relationKind: 'ForeignKey',
+          }),
+        ]),
+      ],
+    },
+  ],
+};
+
+const rlabels = (line) => completionsAt(line, REVERSE_INDEX).map((s) => s.label);
+
+test('related_name appears on the target model', () => {
+  assert.ok(rlabels('Author.objects.filter(').includes('books'));
+});
+
+test('without related_name the accessor is the lowercased model name', () => {
+  assert.ok(rlabels('Book.objects.filter(').includes('review'));
+});
+
+test("related_name='+' suppresses the accessor, so it is not offered", () => {
+  const got = rlabels('Author.objects.filter(');
+  assert.ok(!got.includes('+'), got.join(', '));
+  assert.ok(!got.includes('scratch'), 'the forward field belongs to Book, not Author');
+});
+
+test('a reverse accessor traverses to the declaring model', () => {
+  const got = rlabels('Author.objects.filter(books__');
+  assert.ok(got.includes('books__title'), got.join(', '));
+  assert.ok(got.includes('books__author'), got.join(', '));
+});
+
+test('reverse traversal composes with a forward edge', () => {
+  assert.ok(rlabels('Author.objects.filter(books__author__na').includes('books__author__name'));
+});
+
+test('a reverse accessor offers relation lookups', () => {
+  const got = rlabels('Author.objects.filter(books__is');
+  assert.deepEqual(got, ['books__isnull']);
+});
+
+test('a reverse suggestion names the field it came from', () => {
+  const books = completionsAt('Author.objects.filter(books', REVERSE_INDEX).find(
+    (s) => s.label === 'books'
+  );
+  assert.equal(books.kind, 'relation');
+  assert.equal(books.detail, 'reverse ForeignKey ← Book.author');
+});
+
+test('lookups never sort above field names', () => {
+  const all = completionsAt('Author.objects.filter(', REVERSE_INDEX);
+  const worstField = Math.max(
+    ...all.filter((s) => s.kind !== 'lookup').map((s) => s.sortGroup)
+  );
+  const bestLookup = Math.min(
+    ...all.filter((s) => s.kind === 'lookup').map((s) => s.sortGroup),
+    Infinity
+  );
+  assert.ok(bestLookup > worstField || bestLookup === Infinity);
+});
+
 // --- resolving through an assignment chain (#83) ---------------------------
 
 const ctxWith = (lines, prefix) => parseQueryContext(prefix, lines);

@@ -331,6 +331,71 @@ function modelIndex(index: WorkspaceIndex): Map<string, ParsedModel> {
   return byName;
 }
 
+/**
+ * One reverse edge: what `Author.objects.filter(books__…)` traverses.
+ *
+ * Django creates an accessor on the *target* of every relation, named by
+ * `related_name` or, failing that, by the declaring model in lower case. These
+ * are as valid in a lookup as any declared field and are invisible in
+ * `ParsedModel.fields`, which holds only what the model itself declares — so
+ * without this, completion on the "one" side of every ForeignKey in the
+ * project silently offered nothing but its own columns.
+ */
+interface ReverseEdge {
+  /** The name written in the lookup path. */
+  accessor: string;
+  /** The model the accessor traverses to — the one that declared the field. */
+  owner: ParsedModel;
+  field: ParsedField;
+}
+
+/**
+ * Map every model name to the reverse accessors pointing at it.
+ *
+ * `related_name='+'` is Django's opt-out: it suppresses the accessor entirely,
+ * so offering it would name something that does not exist.
+ */
+function reverseIndex(
+  index: WorkspaceIndex,
+  byName: Map<string, ParsedModel>
+): Map<string, ReverseEdge[]> {
+  const out = new Map<string, ReverseEdge[]>();
+  for (const app of index.apps) {
+    for (const owner of app.models) {
+      for (const field of owner.fields) {
+        if (!field.isRelation || !field.relatedModel) continue;
+        if (field.relatedName === '+') continue;
+        const target =
+          field.relatedModel === 'self'
+            ? owner
+            : byName.get(field.relatedModel.split('.').pop() ?? field.relatedModel);
+        if (!target) continue;
+        const accessor = field.relatedName || owner.name.toLowerCase();
+        const list = out.get(target.name);
+        const edge: ReverseEdge = { accessor, owner, field };
+        if (list) list.push(edge);
+        else out.set(target.name, [edge]);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * A stand-in field for a reverse edge, so lookups and detail text can be
+ * produced by the same code paths as a declared relation.
+ */
+function reverseAsField(edge: ReverseEdge): ParsedField {
+  return {
+    name: edge.accessor,
+    type: `reverse ${edge.field.relationKind ?? 'relation'}`,
+    args: '',
+    isRelation: true,
+    relatedModel: edge.owner.name,
+    lineNumber: edge.field.lineNumber,
+  };
+}
+
 /** Resolve `field`'s target model, following `'self'` back to its owner. */
 function relatedModelOf(
   field: ParsedField,
@@ -362,6 +427,7 @@ export function completionsAt(
   const byName = modelIndex(index);
   const root = byName.get(ctx.model);
   if (!root) return [];
+  const reverse = reverseIndex(index, byName);
 
   // Everything before the final `__` is already-committed traversal; the tail
   // is what the user is still typing.
@@ -375,13 +441,21 @@ export function completionsAt(
   for (const step of walked) {
     if (!current) return [];
     const field: ParsedField | undefined = current.fields.find((f) => f.name === step);
-    if (!field) {
-      // Not a field. It may be a lookup that is already complete
-      // (`title__icontains`), in which case there is nothing further to offer.
-      return [];
+    if (field) {
+      lastField = field;
+      current = relatedModelOf(field, current, byName);
+      continue;
     }
-    lastField = field;
-    current = relatedModelOf(field, current, byName);
+    const edge = reverse.get(current.name)?.find((e) => e.accessor === step);
+    if (edge) {
+      lastField = reverseAsField(edge);
+      current = edge.owner;
+      continue;
+    }
+    // Neither a declared field nor a reverse accessor. It may be a lookup that
+    // is already complete (`title__icontains`), in which case there is nothing
+    // further to offer.
+    return [];
   }
 
   const out: CompletionSuggestion[] = [];
@@ -396,6 +470,16 @@ export function completionsAt(
           : field.type,
         kind: field.isRelation ? 'relation' : 'field',
         sortGroup: field.isRelation ? 1 : 0,
+      });
+    }
+    // Reverse accessors sort last of the traversable things: they are real
+    // lookups but less often what someone reaching into a model wants first.
+    for (const edge of reverse.get(current.name) ?? []) {
+      out.push({
+        label: prefix + edge.accessor,
+        detail: `reverse ${edge.field.relationKind ?? 'relation'} ← ${edge.owner.name}.${edge.field.name}`,
+        kind: 'relation',
+        sortGroup: 2,
       });
     }
     // `pk` is not in `fields` — the parser reports declared fields — but it is
@@ -416,7 +500,10 @@ export function completionsAt(
         label: prefix + lookup,
         detail: `lookup on ${lastField.type}`,
         kind: 'lookup',
-        sortGroup: 2,
+        // Last: fields (0), forward relations (1), reverse accessors (2),
+        // then lookups. A lookup is what you reach for after picking a field,
+        // so it should never push a field name down the list.
+        sortGroup: 3,
       });
     }
   }
