@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.13.0] - 2026-08-20
+
+### Added
+
+- **The MCP server runs on mcp 2.x, and 3.9 keeps mcp 1.x.** mcp 2.0.0 deleted
+  `mcp.server.fastmcp`, the only name `mcp_server.main()` knew, so the extra
+  installed cleanly and then told the user `requires the 'mcp' package` about a
+  package sitting in site-packages. The bound was capped at `<2` to stop that;
+  this lifts the cap by teaching the bootstrap both SDKs rather than by
+  widening a version range and hoping.
+
+  `_load_server_class()` prefers `MCPServer` from `mcp.server` and falls back
+  to `FastMCP`. The decorator and `run()` halves are identical between the two,
+  so that import is the whole difference — except for one improvement: 2.x
+  takes `version=` at construction, which is exactly what
+  `_advertise_our_version()` exists to fake on 1.x, so on 2.x the version now
+  reaches `initialize` through supported API instead of a private attribute.
+
+  The extra splits on an environment marker rather than dropping a Python:
+  `mcp>=1.0,<2` below 3.10 and `mcp>=2.0,<3` at 3.10 and up. mcp 2.0 requires
+  3.10, and this package supports 3.9 — dropping 3.9 across a CLI whose whole
+  pitch is working against old, broken checkouts, to satisfy one optional
+  extra, would be the tail wagging the dog. Both ceilings stay closed, so a 3.0
+  that removes `MCPServer` the way 2.0 removed `FastMCP` fails a test rather
+  than a user's terminal.
+
+  Verified against a real mcp 2.0.0 install, not only against the import logic:
+  all thirteen tools register through the 2.x decorator, `workspace_root`
+  appears in every `inputSchema`, and `initialize` reports this package's
+  version.
+
+### Fixed
+
+- **CI never once constructed the MCP server against a real SDK.** The `dev`
+  extra does not pull `mcp`, so every test touching it hit its `FastMCP is
+  None` sentinel and skipped — twelve green matrix legs, zero coverage of the
+  bootstrap. That is precisely how an SDK deleting the module this server
+  imports became a user-visible failure instead of a red build. One leg
+  (3.12 / Django 5.2, where the marker resolves mcp 2.x) now installs the
+  extra. The SDK path does not vary by Django version, so one leg buys the
+  coverage and the other eleven buy only install time.
+
+- **`_advertise_our_version()` silently did nothing on mcp 2.x.** It looked for
+  `_mcp_server`, the FastMCP handle; `MCPServer` calls it `_lowlevel_server`
+  and raises `AttributeError` for the old name. Measured, not assumed. The
+  handle is now resolved through `_lowlevel_handle()`, which tries both and
+  degrades to leaving the version alone rather than throwing if a third SDK
+  names it something else again.
+
 ## [0.12.2] - 2026-08-20
 
 ### Added

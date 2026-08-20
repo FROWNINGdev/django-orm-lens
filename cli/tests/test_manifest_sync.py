@@ -126,13 +126,22 @@ def test_mcp_tool_count_matches_module_docstring() -> None:
     )
 
 
-def test_mcp_extra_excludes_the_2x_api() -> None:
-    """The `mcp` extra must stay below 2.0 until the server is ported.
+def test_mcp_extra_pins_each_api_to_a_python_that_has_it() -> None:
+    """Each mcp major must be bounded, and gated on a Python that can run it.
 
-    mcp 2.0.0 removed `mcp.server.fastmcp`, which `mcp_server.main()` imports.
-    With a bare `>=1.0` a fresh install resolved 2.0.0 and every MCP user got
-    "requires the 'mcp' package" from a package that was installed. Widening
-    this bound without porting the bootstrap reintroduces that.
+    mcp 2.0.0 removed `mcp.server.fastmcp`. While the bootstrap only knew that
+    name, a bare `>=1.0` resolved 2.0.0 and every MCP user got "requires the
+    'mcp' package" from a package that was installed — which is why this test
+    used to demand a flat `<2` cap.
+
+    `mcp_server._load_server_class()` now accepts either SDK, so the cap moves
+    up rather than away. What replaces it is the constraint that actually
+    binds: mcp 2.0 requires Python >= 3.10 while this package supports 3.9, so
+    the two majors have to be split on an environment marker. Without the
+    marker, pip on 3.9 finds no installable mcp 2.x and fails the whole extra.
+
+    Both ceilings stay closed. A 3.0 that removes `MCPServer` the way 2.0
+    removed `FastMCP` must fail here, not in a user's terminal.
     """
     text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(
         encoding="utf-8"
@@ -143,4 +152,11 @@ def test_mcp_extra_excludes_the_2x_api() -> None:
             for row in text.splitlines()
             if row.strip().startswith(f"{extra} = [")
         )
-        assert "<2" in line, f"{extra} extra must cap mcp below 2.0: {line}"
+        assert "mcp>=1.0,<2" in line, f"{extra} must keep a 1.x branch: {line}"
+        assert "mcp>=2.0,<3" in line, f"{extra} must cap 2.x below 3.0: {line}"
+        assert (
+            "python_version < '3.10'" in line
+        ), f"{extra} must gate 1.x to Python 3.9: {line}"
+        assert (
+            "python_version >= '3.10'" in line
+        ), f"{extra} must gate 2.x to Python 3.10+: {line}"

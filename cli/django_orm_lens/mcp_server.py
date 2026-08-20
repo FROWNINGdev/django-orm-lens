@@ -528,26 +528,86 @@ def _advertise_our_version(server: Any) -> str | None:
 
     :returns: the version set, or ``None`` if the SDK shape was unexpected.
     """
-    low = getattr(server, "_mcp_server", None)
+    low = _lowlevel_handle(server)
     if low is None or not hasattr(low, "version"):
         return None
     low.version = __version__
     return __version__
 
 
-def main() -> int:
-    """Start the MCP stdio server. Lazy-imports the ``mcp`` package."""
+# The wrapper's handle on the low-level ``Server`` is private in both SDKs and
+# is named differently in each: ``_mcp_server`` on FastMCP (1.x),
+# ``_lowlevel_server`` on MCPServer (2.x). Measured, not assumed — 2.0.0 raises
+# AttributeError for the 1.x name. Both are listed so the version keeps
+# reaching ``initialize`` whichever SDK resolved, and a third name in some
+# future release degrades to "leave it alone" rather than to a traceback.
+_LOWLEVEL_ATTRS = ("_mcp_server", "_lowlevel_server")
+
+
+def _lowlevel_handle(server: Any) -> Any | None:
+    """Return the wrapped low-level ``Server``, or ``None`` if unrecognised."""
+    for attr in _LOWLEVEL_ATTRS:
+        low = getattr(server, attr, None)
+        if low is not None:
+            return low
+    return None
+
+
+def _load_server_class():
+    """Return ``(server_class, takes_version)`` for whichever SDK is installed.
+
+    mcp 2.0 deleted ``mcp.server.fastmcp``; the equivalent is ``MCPServer``,
+    exported from ``mcp.server``. The decorator and ``run()`` halves of the API
+    that this module uses are unchanged between the two, so the whole port is
+    which name to import and whether the constructor takes a version.
+
+    Both are supported rather than one, because the floor is not ours to move:
+    this package declares ``requires-python = ">=3.9"`` and mcp 2.0 requires
+    3.10. Dropping 3.9 across a CLI whose whole pitch is working against old,
+    broken checkouts, in order to satisfy one optional extra, would be the tail
+    wagging the dog. The extra carries an environment marker so 3.9 resolves
+    mcp 1.x and 3.10+ resolves 2.x, and this function accepts whichever
+    arrived.
+
+    :returns: ``None`` when neither import succeeds, i.e. the extra is absent.
+    """
+    try:
+        from mcp.server import MCPServer  # type: ignore
+
+        return MCPServer, True
+    except ImportError:
+        pass
     try:
         from mcp.server.fastmcp import FastMCP  # type: ignore
+
+        return FastMCP, False
     except ImportError:
+        return None
+
+
+def main() -> int:
+    """Start the MCP stdio server. Lazy-imports the ``mcp`` package."""
+    loaded = _load_server_class()
+    if loaded is None:
         print(
             "django-orm-lens MCP requires the 'mcp' package.\n"
             "install with: pip install 'django-orm-lens[mcp]'",
             file=sys.stderr,
         )
         return 3
+    server_class, takes_version = loaded
 
-    server = FastMCP("django-orm-lens")
+    # mcp 2.x takes the version at construction, which is what the workaround
+    # below exists to fake on 1.x. Passing it here is not merely tidier: it is
+    # supported API, so it keeps working if the private handle ever moves.
+    server = (
+        server_class("django-orm-lens", version=__version__)
+        if takes_version
+        else server_class("django-orm-lens")
+    )
+    # Still called on both. On 1.x it is the only thing that sets the version;
+    # on 2.x it writes the same value the constructor already stored, and
+    # returns None harmlessly if that SDK stops exposing the handle.
     _advertise_our_version(server)
 
     # Subtle star-ask on startup (stderr — stdout is reserved for JSON-RPC).

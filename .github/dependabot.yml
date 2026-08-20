@@ -19,21 +19,6 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
-    ignore:
-      # mcp 2.0 removed `mcp.server.fastmcp`, which `mcp_server.main()`
-      # imports, so widening the bound ships an extra that installs cleanly
-      # and then reports "requires the 'mcp' package" from a package that is
-      # right there. `test_mcp_extra_excludes_the_2x_api` guards the bound and
-      # caught exactly this on 2026-08-20 — after the widening PR was merged,
-      # which is later than it should have been noticed.
-      #
-      # Dependabot cannot know the bootstrap has not been ported, so it will
-      # reopen that PR every Monday. Ignoring the major keeps patch and minor
-      # updates flowing. Remove this entry in the same commit that ports
-      # `mcp_server` to the 2.x API — not before.
-      - dependency-name: "mcp"
-        update-types: ["version-update:semver-major"]
-
   # Node — root package.json backs the VS Code extension bundle.
   - package-ecosystem: "npm"
     directory: "/"

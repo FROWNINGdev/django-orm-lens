@@ -25,20 +25,30 @@ import unittest
 from pathlib import Path
 
 try:  # the ``mcp`` extra is optional — the base install must stay zero-dep
-    from mcp.server.fastmcp import FastMCP
-except ImportError:  # pragma: no cover - exercised only without the extra
-    # A sentinel rather than a per-test ``try/except`` around the import: with
-    # the import inside a test, the ``except`` branch calls ``self.skipTest``
-    # and static analysis cannot know that raises, so every later use of the
-    # name reads as a possibly-unbound local (CodeQL py/uninitialized-local-
-    # variable, alerts #36 and #37). Binding it once here keeps the name
-    # defined on both paths.
-    FastMCP = None  # type: ignore[assignment, misc]
+    # mcp 2.x first: 2.0 deleted ``mcp.server.fastmcp`` and the 3.10+ half of
+    # the extra resolves there, so on a modern matrix leg this is the branch
+    # that binds. The name stays ``FastMCP`` because every use below only
+    # constructs it and reads the private low-level handle, which both SDKs
+    # expose identically.
+    from mcp.server import MCPServer as FastMCP
+except ImportError:
+    try:
+        from mcp.server.fastmcp import FastMCP
+    except ImportError:  # pragma: no cover - only without the extra
+        # A sentinel rather than a per-test ``try/except`` around the import:
+        # with the import inside a test, the ``except`` branch calls
+        # ``self.skipTest`` and static analysis cannot know that raises, so
+        # every later use of the name reads as a possibly-unbound local
+        # (CodeQL py/uninitialized-local-variable, alerts #36 and #37).
+        # Binding it once here keeps the name defined on all three paths.
+        FastMCP = None  # type: ignore[assignment, misc]
 
 from django_orm_lens import __version__
 from django_orm_lens.mcp_server import (
     TOOLS,
     _advertise_our_version,
+    _load_server_class,
+    _lowlevel_handle,
     _resolve,
     _tool_cascade_preview,
     _tool_describe_migration_dependency,
@@ -347,7 +357,7 @@ class AdvertisedVersionTest(unittest.TestCase):
             self.skipTest("mcp extra not installed")
         server = FastMCP("django-orm-lens")
         self.assertEqual(_advertise_our_version(server), __version__)
-        self.assertEqual(server._mcp_server.version, __version__)
+        self.assertEqual(_lowlevel_handle(server).version, __version__)
 
     def test_the_value_reaching_initialize_is_ours(self) -> None:
         """Assert the wire field, not just the attribute we wrote.
@@ -360,7 +370,7 @@ class AdvertisedVersionTest(unittest.TestCase):
             self.skipTest("mcp extra not installed")
         server = FastMCP("django-orm-lens")
         _advertise_our_version(server)
-        opts = server._mcp_server.create_initialization_options()
+        opts = _lowlevel_handle(server).create_initialization_options()
         self.assertEqual(opts.server_version, __version__)
         self.assertEqual(opts.server_name, "django-orm-lens")
 
@@ -371,6 +381,76 @@ class AdvertisedVersionTest(unittest.TestCase):
             pass
 
         self.assertIsNone(_advertise_our_version(Stub()))
+
+
+class LoadServerClassTests(unittest.TestCase):
+    """Both mcp majors must bootstrap, and neither may be silently required.
+
+    These drive the import through ``sys.modules`` rather than installing two
+    SDKs, so one matrix leg covers both branches. That matters because the
+    branch a leg does *not* have installed is exactly the one no test would
+    otherwise reach — which is how ``mcp.server.fastmcp`` disappearing became
+    a user-visible failure instead of a red build.
+    """
+
+    def _run_with_modules(self, modules: dict):
+        """Call ``_load_server_class`` with ``sys.modules`` swapped."""
+        import sys as _sys
+        import types
+
+        saved = {k: _sys.modules.get(k) for k in ("mcp", "mcp.server", "mcp.server.fastmcp")}
+        try:
+            for name in ("mcp", "mcp.server", "mcp.server.fastmcp"):
+                _sys.modules.pop(name, None)
+            for name, mod in modules.items():
+                if mod is None:
+                    continue
+                _sys.modules[name] = mod
+            # A parent package must exist for `from mcp.server import X` to
+            # resolve out of sys.modules at all.
+            if "mcp" not in _sys.modules and modules:
+                _sys.modules["mcp"] = types.ModuleType("mcp")
+            return _load_server_class()
+        finally:
+            for name, mod in saved.items():
+                if mod is None:
+                    _sys.modules.pop(name, None)
+                else:
+                    _sys.modules[name] = mod
+
+    def test_mcp_2x_is_preferred_and_takes_a_version(self) -> None:
+        import types
+
+        server_mod = types.ModuleType("mcp.server")
+        server_mod.MCPServer = object  # type: ignore[attr-defined]
+        loaded = self._run_with_modules({"mcp.server": server_mod})
+        self.assertIsNotNone(loaded)
+        cls, takes_version = loaded  # type: ignore[misc]
+        self.assertIs(cls, object)
+        self.assertTrue(takes_version, "2.x constructor accepts version=")
+
+    def test_mcp_1x_is_the_fallback_and_takes_no_version(self) -> None:
+        import types
+
+        server_mod = types.ModuleType("mcp.server")  # no MCPServer on 1.x
+        fast_mod = types.ModuleType("mcp.server.fastmcp")
+        fast_mod.FastMCP = object  # type: ignore[attr-defined]
+        loaded = self._run_with_modules(
+            {"mcp.server": server_mod, "mcp.server.fastmcp": fast_mod}
+        )
+        self.assertIsNotNone(loaded)
+        cls, takes_version = loaded  # type: ignore[misc]
+        self.assertIs(cls, object)
+        self.assertFalse(takes_version, "1.x constructor rejects version=")
+
+    def test_no_sdk_at_all_returns_none_rather_than_raising(self) -> None:
+        """The base install is zero-dep; a missing extra is a message, not a
+        traceback."""
+        import types
+
+        self.assertIsNone(
+            self._run_with_modules({"mcp.server": types.ModuleType("mcp.server")})
+        )
 
 
 if __name__ == "__main__":

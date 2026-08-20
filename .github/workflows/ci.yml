@@ -46,6 +46,20 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pip install "Django==${{ matrix.django-version }}.*"
+      # The mcp extra is installed on one leg only. `dev` does not pull it, so
+      # until now every test that touches the SDK hit its `FastMCP is None`
+      # sentinel and skipped — the whole matrix reported green while the
+      # bootstrap was never once constructed against a real SDK. That is how
+      # mcp 2.0 deleting `mcp.server.fastmcp` reached users instead of a build.
+      #
+      # One leg rather than all twelve: the SDK path does not vary by Django
+      # version, so the other eleven would buy nothing for the install time.
+      # 3.12 also means the marker in the extra resolves mcp 2.x, so it is the
+      # newer of the two APIs that gets exercised.
+      - name: Install the mcp extra (exercises the real SDK bootstrap)
+        if: matrix.python-version == '3.12' && matrix.django-version == '5.2'
+        working-directory: cli
+        run: pip install -e ".[mcp]"
       - name: Run pytest
         working-directory: cli
         run: python -m pytest -q
