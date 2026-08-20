@@ -72,6 +72,33 @@ export function resolveRelatedTail(
 // `(?:\s*\[[^\]]*\])?` — optional PEP-695 generic type parameter list
 // introduced in Python 3.12, e.g. `class Container[T](models.Model):`.
 // Only handles a single-line, non-nested bracket group.
+/**
+ * Bases that mark a class as a Django model on their name alone.
+ *
+ * This is only the seed. `resolveAndFilter` grows the set transitively, so a
+ * project-local base under any other name — `TimeStamped`, `BaseModel`,
+ * `Auditable` — still makes its subclasses models once the base itself is
+ * recognised. Mirrors `_looks_like_model` in cli/django_orm_lens/parser.py.
+ */
+const NON_MODEL_TAIL =
+  /^(ModelAdmin|ModelForm|ModelSerializer|ModelChoiceField|ModelMultipleChoiceField|Serializer|Form|Admin|View|ViewSet|Manager|QuerySet|Config|AppConfig|Response|Handler|Middleware|Backend|Command)$/;
+
+export function looksLikeModel(baseClasses: string[]): boolean {
+  for (const b of baseClasses) {
+    const tail = b.split('.').pop() ?? '';
+    if (NON_MODEL_TAIL.test(tail)) return false;
+    if (
+      /models\.Model$/.test(b) ||
+      /^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel|MPTTModel)$/.test(tail) ||
+      /^Abstract[A-Z]/.test(tail) ||
+      /Mixin$/.test(tail)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const CLASS_RE =
   /^class\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]*\])?\s*\(([^)]*)\)\s*:/;
 const CLASS_START_RE =
@@ -230,7 +257,15 @@ function readBalancedArgs(lines: string[], startIdx: number): {
   return { argsBlock: buffer.replace(/^\(/, ''), endIdx: lines.length - 1 };
 }
 
-export function parseModelsFile(filePath: string, content: string): ParsedModel[] {
+/**
+ * Pass 1 only: collect every class definition (name, bases, fields, Meta).
+ *
+ * No model recognition, no abstract filtering, no inheritance. Callers combine
+ * the result with definitions from other files before calling
+ * `resolveAndFilter`, so a base declared in another module is still found.
+ * Mirrors `_collect_defs` in cli/django_orm_lens/parser.py.
+ */
+export function collectDefs(filePath: string, content: string): ParsedModel[] {
   // Strip leading BOM (U+FEFF) — Windows editors (Notepad, VS Code with
   // certain settings) save UTF-8 files with a byte-order mark. Without this
   // the first line becomes "﻿class Foo..." and CLASS_RE fails to match.
@@ -245,12 +280,6 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
     .split(/\r?\n/)
     .map((l) => l.replace(/\t/g, '    '));
   const models: ParsedModel[] = [];
-  /**
-   * Class names accepted as models so far in this file, so a subclass of a
-   * project-local base is recognised without that base having to be named
-   * something the heuristics below already know.
-   */
-  const seenModelNames = new Set<string>();
   const parent = path.basename(path.dirname(filePath));
   const appName =
     parent === 'models' ? path.basename(path.dirname(path.dirname(filePath))) : parent || 'app';
@@ -277,41 +306,13 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const NON_MODEL_TAIL =
-      /^(ModelAdmin|ModelForm|ModelSerializer|ModelChoiceField|ModelMultipleChoiceField|Serializer|Form|Admin|View|ViewSet|Manager|QuerySet|Config|AppConfig|Response|Handler|Middleware|Backend|Command)$/;
-    const looksLikeModel = baseClasses.some((b) => {
-      const tail = b.split('.').pop() ?? '';
-      if (NON_MODEL_TAIL.test(tail)) return false;
-      return (
-        /models\.Model$/.test(b) ||
-        /^(Model|AbstractModel|AbstractBaseModel|TimeStampedModel|PolymorphicModel|MPTTModel)$/.test(tail) ||
-        /^Abstract[A-Z]/.test(tail) ||
-        /Mixin$/.test(tail) ||
-        // A class already recognised as a model in this file makes its
-        // subclasses models too. Without this the recogniser was a fixed list
-        // of names — `Abstract*`, `*Mixin`, `TimeStampedModel` — so a very
-        // common project-local base under any other name (`TimeStamped`,
-        // `BaseModel`, `Auditable`, `SoftDelete`) left every model beneath it
-        // invisible to the whole extension: sidebar, ER diagram, hover, rules.
-        //
-        // A single forward pass is enough within a file, because Python
-        // requires the base to be defined before the subclass that uses it. A
-        // base imported from another module is not covered here and still
-        // relies on the name heuristics above.
-        seenModelNames.has(tail)
-      );
-    });
-    if (!looksLikeModel) {
-      i++;
-      continue;
-    }
-
     const model: ParsedModel = {
       name: modelName,
       appName,
       filePath,
       lineNumber: i,
       fields: [],
+      inheritedFields: [],
       meta: {},
       baseClasses,
     };
@@ -396,11 +397,127 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
     }
 
     models.push(model);
-    seenModelNames.add(modelName);
     i = j;
   }
 
   return models;
+}
+
+/** Django drops a model with `Meta.abstract = True` — it has no table. */
+function isAbstract(model: ParsedModel): boolean {
+  return ['True', '1', 'true'].includes((model.meta.abstract ?? '').trim());
+}
+
+/**
+ * Fields `model` inherits from its **abstract** bases, parent-first.
+ *
+ * Only abstract bases contribute. A concrete base is multi-table inheritance,
+ * where the parent keeps its own table and the child gains a `parent_ptr`
+ * rather than copies of the columns — counting those as the child's own would
+ * invent columns no migration will ever create.
+ *
+ * Bases are walked in declaration order and the first declaration of a name
+ * wins, which is the direction Python's MRO resolves for the single-
+ * inheritance chains this actually matters for. `stack` breaks cycles in
+ * malformed source instead of recursing forever.
+ *
+ * Mirrors `_abstract_bases_fields` in cli/django_orm_lens/parser.py.
+ */
+function abstractBasesFields(
+  model: ParsedModel,
+  byName: Map<string, ParsedModel>,
+  stack: readonly string[] = []
+): ParsedField[] {
+  const out: ParsedField[] = [];
+  const taken = new Set<string>();
+  for (const base of model.baseClasses) {
+    const tail = base.split('.').pop() ?? '';
+    if (stack.includes(tail)) continue;
+    const parent = byName.get(tail);
+    if (!parent || parent === model || !isAbstract(parent)) continue;
+    const contributed: ParsedField[] = [
+      ...abstractBasesFields(parent, byName, [...stack, tail]),
+      ...parent.fields.map((f) => ({
+        ...f,
+        inheritedFrom: f.inheritedFrom ?? parent.name,
+      })),
+    ];
+    for (const f of contributed) {
+      if (taken.has(f.name)) continue;
+      taken.add(f.name);
+      out.push(f);
+    }
+  }
+  return out;
+}
+
+/**
+ * Populate `inheritedFields` on every def, in place.
+ *
+ * Runs before the abstract classes are dropped — they are the only source of
+ * inherited fields, so the merge has to happen while they are still present. A
+ * field the class declares itself shadows the inherited one of the same name,
+ * exactly as an override does in Django.
+ */
+function attachInheritedFields(allDefs: ParsedModel[]): void {
+  const byName = new Map<string, ParsedModel>();
+  for (const m of allDefs) {
+    // First definition wins when two files declare the same class name; the
+    // parser has no import graph to disambiguate with.
+    if (!byName.has(m.name)) byName.set(m.name, m);
+  }
+  for (const m of allDefs) {
+    const own = new Set(m.fields.map((f) => f.name));
+    m.inheritedFields = abstractBasesFields(m, byName).filter((f) => !own.has(f.name));
+  }
+}
+
+/**
+ * Pass 2: transitive model recognition, then the abstract drop.
+ *
+ * `allDefs` may be one file's definitions (`parseModelsFile`) or the union of
+ * every file in a scan (`scanWorkspace`). Recognition matches each base's tail
+ * name against whatever definitions are present, so a base class defined in
+ * another file is found when the union is passed.
+ *
+ * The loop runs to a **fixed point** rather than in source order. Order-
+ * dependent recognition misses `class Post(TimeStamped)` written above its
+ * base, which is ordinary once the base is imported rather than declared
+ * locally. Mirrors `_resolve_and_filter` in cli/django_orm_lens/parser.py; the
+ * two must stay in step or the sidebar and the CLI disagree about a schema.
+ */
+export function resolveAndFilter(allDefs: ParsedModel[]): ParsedModel[] {
+  attachInheritedFields(allDefs);
+  const isModelName = new Set(
+    allDefs.filter((m) => looksLikeModel(m.baseClasses)).map((m) => m.name)
+  );
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const m of allDefs) {
+      if (isModelName.has(m.name)) continue;
+      for (const b of m.baseClasses) {
+        if (isModelName.has(b.split('.').pop() ?? '')) {
+          isModelName.add(m.name);
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+  return allDefs.filter((m) => isModelName.has(m.name) && !isAbstract(m));
+}
+
+/**
+ * Parse a single models.py-style file. Returns 0..N Django model classes.
+ *
+ * Resolution here is scoped to this one file's definitions. Use
+ * `scanWorkspace` when bases may live in another parsed module (a shared
+ * abstract base imported from elsewhere in the project) — it collects
+ * definitions across every file first and resolves the union once.
+ */
+export function parseModelsFile(filePath: string, content: string): ParsedModel[] {
+  return resolveAndFilter(collectDefs(filePath, content));
 }
 
 function appDirFor(fsPath: string): { dir: string; name: string } {
@@ -433,6 +550,18 @@ function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
   };
 }
 
+/**
+ * Files that declare models but are not named `models.py`.
+ *
+ * Pluggable Django frameworks keep their abstract bases in
+ * `abstract_models.py` and leave `models.py` holding only the concrete
+ * subclasses — django-oscar does this in all 14 of its apps. Without reading
+ * these, oscar's models parse as classes with no fields between them: found,
+ * but empty, which reads as a schema that lost its columns. Mirrors
+ * MODEL_SOURCE_FILES in cli/django_orm_lens/parser.py.
+ */
+const MODEL_SOURCE_FILES = new Set(['models.py', 'abstract_models.py']);
+
 // Walk a directory synchronously collecting every models.py and models/*.py.
 // Used as a fallback when vscode.workspace.findFiles returns no results
 // (workspace file index cold, or platform-specific glob quirks that
@@ -460,7 +589,7 @@ function walkForModels(root: string, isExcluded: (rel: string) => boolean): stri
       }
       if (!entry.isFile()) continue;
       if (entry.name === '__init__.py') continue;
-      if (entry.name === 'models.py') {
+      if (MODEL_SOURCE_FILES.has(entry.name)) {
         results.push(full);
         continue;
       }
@@ -484,11 +613,11 @@ export async function scanWorkspace(
   const results = await Promise.all(
     folders.flatMap((folder) => [
       vscode.workspace.findFiles(
-        new vscode.RelativePattern(folder, '**/models.py'),
+        new vscode.RelativePattern(folder, '**/{models,abstract_models}.py'),
         excludePattern
       ),
       vscode.workspace.findFiles(
-        new vscode.RelativePattern(folder, 'models.py'),
+        new vscode.RelativePattern(folder, '{models,abstract_models}.py'),
         excludePattern
       ),
       vscode.workspace.findFiles(
@@ -527,6 +656,12 @@ export async function scanWorkspace(
   }
   const appMap = new Map<string, ParsedApp>();
 
+  // Two passes over the workspace, not one per file. Resolving each file in
+  // isolation cannot see a base declared in another module, so a project with
+  // its abstract bases in `core/models.py` — the usual place to put them —
+  // lost every model that inherits from one. Collect every definition first,
+  // resolve the union once, then group what survives by app.
+  const allDefs: ParsedModel[] = [];
   for (const uri of uris) {
     let content: string;
     try {
@@ -536,18 +671,20 @@ export async function scanWorkspace(
       continue;
     }
     try {
-      const models = parseModelsFile(uri.fsPath, content);
-      if (models.length === 0) continue;
-      const { dir: appDir, name: appName } = appDirFor(uri.fsPath);
-      let app = appMap.get(appDir);
-      if (!app) {
-        app = { name: appName, path: appDir, models: [] };
-        appMap.set(appDir, app);
-      }
-      app.models.push(...models);
+      allDefs.push(...collectDefs(uri.fsPath, content));
     } catch (err) {
       console.error(`django-orm-lens: parser error in ${uri.fsPath}`, err);
     }
+  }
+
+  for (const model of resolveAndFilter(allDefs)) {
+    const { dir: appDir, name: appName } = appDirFor(model.filePath);
+    let app = appMap.get(appDir);
+    if (!app) {
+      app = { name: appName, path: appDir, models: [] };
+      appMap.set(appDir, app);
+    }
+    app.models.push(model);
   }
 
   const apps = Array.from(appMap.values()).sort((a, b) =>

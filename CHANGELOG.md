@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-08-20
+
+### Fixed
+
+- **The TypeScript parser now resolves inheritance the way the Python CLI
+  already did** ([#84](https://github.com/FROWNINGdev/django-orm-lens/issues/84)).
+  v0.16.0 taught it that a subclass of a local model is a model, with a single
+  backward pass. Comparing the result against `cli/django_orm_lens/parser.py`
+  afterwards showed that side had solved the same problem years-of-commits
+  earlier and solved more of it, so the two implementations disagreed. Five
+  gaps, closed together:
+
+  1. **Fixed point instead of source order.** `resolveAndFilter` iterates until
+     nothing changes, so `class Post(TimeStamped)` written *above* its base
+     resolves. The v0.16.0 notes claimed source order was safe because "Python
+     requires the base to be defined before the subclass" — that is untrue once
+     the base is imported, and the Python implementation never relied on it.
+
+  2. **Bases in another file.** `scanWorkspace` now collects every definition
+     first and resolves the union once, matching `scan_workspace`. A project
+     keeping its abstract bases in `core/models.py` — the usual place — used to
+     lose every model that inherits from one.
+
+  3. **`abstract_models.py` is read.** Pluggable frameworks keep abstract bases
+     there and leave `models.py` holding only concrete subclasses; django-oscar
+     does this in all 14 of its apps. The glob and the directory walk both
+     cover it now, as `MODEL_SOURCE_FILES` already did on the Python side.
+
+  4. **Abstract models are dropped.** They have no table, so a schema tool has
+     nothing to show for them. This is a visible change: an abstract base that
+     used to appear in the sidebar and the ER diagram no longer does. It is
+     what the CLI has always done, and one behaviour is better than two.
+
+  5. **`ParsedModel.inheritedFields`.** Fields reaching a model from its
+     abstract bases are exposed as their own list, each carrying
+     `inheritedFrom`, rather than being merged into `fields` at the point of
+     use. Only abstract bases contribute: a concrete parent is multi-table
+     inheritance, where the columns stay on the parent's table and copying them
+     onto the child would invent columns no migration will ever create.
+
+- **The parity fixture had no local base class in it.** `test/parity.test.js`
+  and `cli/tests/test_parity.py` assert against one shared fixture, which is
+  the right design — but `parity_input.py` contained nothing that exercised
+  inheritance, so both suites stayed green while the two parsers disagreed
+  about the most common inheritance pattern in Django. The fixture now carries
+  an abstract `Auditable` and a concrete `Chapter(Auditable)` that redeclares
+  one inherited field, and both suites assert the same answer for it.
+
 ## [0.16.0] - 2026-08-20
 
 ### Fixed

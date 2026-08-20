@@ -23,11 +23,29 @@ class ParityFixtureTest(unittest.TestCase):
         source = FIXTURE_PATH.read_text(encoding="utf-8")
         models = parse_models_file(str(FIXTURE_PATH), source)
 
-        self.assertEqual(len(models), 4, "four top-level model classes")
+        self.assertEqual(len(models), 5, "five concrete model classes")
         self.assertEqual(
             [m.name for m in models],
-            ["Author", "Book", "Tag", "BookTag"],
+            ["Author", "Book", "Tag", "BookTag", "Chapter"],
         )
+
+        # The shape the fixture was missing until 0.17.0, and the reason both
+        # suites were green while the two parsers disagreed: `Chapter(Auditable)`
+        # is only a model because its base is, and its `created` column only
+        # exists because that base is abstract. The TypeScript assertions in
+        # test/parity.test.js mirror these exactly.
+        chapter = models[4]
+        self.assertEqual(
+            [f.name for f in chapter.fields],
+            ["heading", "book", "updated"],
+            "fields holds only what Chapter declares",
+        )
+        self.assertEqual(
+            [f.name for f in chapter.inherited_fields],
+            ["created"],
+            "updated is redeclared on Chapter, so it shadows the base",
+        )
+        self.assertEqual(chapter.inherited_fields[0].inherited_from, "Auditable")
 
         for m in models:
             self.assertEqual(m.app_name, "fixtures", f"{m.name}: app_name derived from parent dir")

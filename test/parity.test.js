@@ -22,11 +22,29 @@ const fixtureSource = fs.readFileSync(fixturePath, 'utf-8');
 test('parity fixture — model shape matches golden expectations', () => {
   const models = parseModelsFile(fixturePath, fixtureSource);
 
-  assert.equal(models.length, 4, 'four top-level model classes');
+  assert.equal(models.length, 5, 'five concrete model classes');
   assert.deepEqual(
     models.map((m) => m.name),
-    ['Author', 'Book', 'Tag', 'BookTag']
+    ['Author', 'Book', 'Tag', 'BookTag', 'Chapter'],
+    'Auditable is abstract and has no table, so it is not among them'
   );
+
+  // The shape the fixture was missing until 0.17.0, and the reason both
+  // suites were green while the two parsers disagreed: `Chapter(Auditable)`
+  // is only a model because its base is, and its `created` column only exists
+  // because that base is abstract.
+  const chapter = models[4];
+  assert.deepEqual(
+    chapter.fields.map((f) => f.name),
+    ['heading', 'book', 'updated'],
+    'fields holds only what Chapter declares'
+  );
+  assert.deepEqual(
+    chapter.inheritedFields.map((f) => f.name),
+    ['created'],
+    'updated is redeclared on Chapter, so it shadows the base'
+  );
+  assert.equal(chapter.inheritedFields[0].inheritedFrom, 'Auditable');
 
   for (const m of models) {
     assert.equal(m.appName, 'fixtures', `${m.name}: appName derived from parent dir`);

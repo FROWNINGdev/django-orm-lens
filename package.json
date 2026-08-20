@@ -2,7 +2,7 @@
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
   "description": "Autocomplete Django model fields and lookups inside .filter(), and see your entire schema in your editor. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "preview": false,
   "galleryBanner": {
     "color": "#0c4b33",

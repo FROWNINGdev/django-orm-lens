@@ -8,7 +8,11 @@ Module._load = function (request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { parseModelsFile } = require('../out/parser');
+const {
+  parseModelsFile,
+  collectDefs,
+  resolveAndFilter,
+} = require('../out/parser');
 
 test.after(() => {
   Module._load = originalLoad;
@@ -37,7 +41,10 @@ class TimeStamped(models.Model):
 class Post(TimeStamped):
     title = models.CharField(max_length=200)
 `;
-  assert.deepEqual(names(src), ['TimeStamped', 'Post']);
+  // `TimeStamped` is absent because it is abstract: no table, so nothing for
+  // a schema tool to show. That is what the Python CLI has always done, and
+  // the two now agree.
+  assert.deepEqual(names(src), ['Post']);
 });
 
 test('recognition chains through several local bases', () => {
@@ -59,7 +66,7 @@ class Auditable(Base):
 class Post(Auditable):
     title = models.CharField(max_length=200)
 `;
-  assert.deepEqual(names(src), ['Base', 'Auditable', 'Post']);
+  assert.deepEqual(names(src), ['Post'], 'both bases are abstract, so both drop');
 });
 
 test('the subclass keeps its own fields and its declared base', () => {
@@ -109,7 +116,7 @@ class PostForm(forms.ModelForm):
 class PostAdmin(admin.ModelAdmin):
     pass
 `;
-  assert.deepEqual(names(src), ['TimeStamped', 'Post']);
+  assert.deepEqual(names(src), ['Post']);
 });
 
 test('an unrelated class hierarchy is untouched', () => {
@@ -123,10 +130,11 @@ class Other(Helper):
   assert.deepEqual(names(src), []);
 });
 
-// Python requires the base to exist before the subclass, so a forward
-// reference is not valid code — and guessing at one would be the recogniser
-// inventing a model the file does not have.
-test('a class declared before its base is not retroactively a model', () => {
+// Recognition runs to a fixed point rather than in source order. A class
+// written above its base is ordinary code once that base is imported rather
+// than declared locally, and an order-dependent pass silently misses it —
+// which is what the first version of this fix did.
+test('a class written above its base is still recognised', () => {
   const src = `from django.db import models
 
 
@@ -138,5 +146,94 @@ class TimeStamped(models.Model):
     class Meta:
         abstract = True
 `;
-  assert.deepEqual(names(src), ['TimeStamped']);
+  assert.deepEqual(names(src), ['Post']);
+});
+
+// --- inherited fields ------------------------------------------------------
+
+const parse = (src) => parseModelsFile('blog/models.py', src);
+
+const INHERIT_SRC = `from django.db import models
+
+
+class TimeStamped(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class Post(TimeStamped):
+    title = models.CharField(max_length=200)
+    updated = models.CharField(max_length=10)
+`;
+
+test('inherited fields are kept apart from declared ones', () => {
+  const post = parse(INHERIT_SRC).find((m) => m.name === 'Post');
+  assert.deepEqual(
+    post.fields.map((f) => f.name),
+    ['title', 'updated'],
+    'fields holds only what the class declares'
+  );
+  assert.deepEqual(
+    post.inheritedFields.map((f) => f.name),
+    ['created'],
+    'updated is declared on Post, so it shadows the base and is not inherited'
+  );
+});
+
+test('an inherited field records the base it came from', () => {
+  const post = parse(INHERIT_SRC).find((m) => m.name === 'Post');
+  assert.equal(post.inheritedFields[0].inheritedFrom, 'TimeStamped');
+});
+
+// Multi-table inheritance keeps the parent's columns on the parent's table and
+// gives the child a parent_ptr. Copying them onto the child would invent
+// columns no migration will ever create.
+test('a concrete parent contributes no inherited fields', () => {
+  const src = `from django.db import models
+
+
+class Place(models.Model):
+    address = models.CharField(max_length=200)
+
+
+class Restaurant(Place):
+    menu = models.TextField()
+`;
+  const models = parse(src);
+  const restaurant = models.find((m) => m.name === 'Restaurant');
+  assert.deepEqual(models.map((m) => m.name), ['Place', 'Restaurant']);
+  assert.deepEqual(restaurant.inheritedFields, []);
+});
+
+// --- resolving across files ------------------------------------------------
+
+test('a base in another file resolves when the union is passed', () => {
+  const base = collectDefs('core/models.py', `from django.db import models
+
+
+class TimeStamped(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+`);
+  const child = collectDefs('blog/models.py', `from core.models import TimeStamped
+
+
+class Post(TimeStamped):
+    title = models.CharField(max_length=200)
+`);
+  // Each file alone cannot see the other, which is the whole reason the
+  // workspace scan resolves the union rather than one file at a time.
+  assert.deepEqual(resolveAndFilter([...child]).map((m) => m.name), []);
+  const resolved = resolveAndFilter([...base, ...child]);
+  assert.deepEqual(resolved.map((m) => m.name), ['Post']);
+  assert.deepEqual(
+    resolved[0].inheritedFields.map((f) => f.name),
+    ['created'],
+    'the field crosses the file boundary too'
+  );
 });
