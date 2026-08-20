@@ -54,7 +54,7 @@ Cold clone, broken venv, no settings module — you still get every app, model, 
 
 | You are | Install | You get |
 |---|---|---|
-| **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Sidebar tree, live ER diagram, hover cards, 16 QuickFix rules |
+| **Editor user** — VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | Field autocomplete in `.filter()`, sidebar tree, live ER diagram, hover cards, 16 QuickFix rules |
 | **Terminal / CI user** | `pip install django-orm-lens` | 17 subcommands, SARIF + PR annotations, pre-commit hooks, a GitHub Action |
 | **AI-agent user** — Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 13 read-only MCP tools answering schema questions from ground truth |
 

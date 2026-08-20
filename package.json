@@ -1,8 +1,8 @@
 {
   "name": "django-orm-lens",
   "displayName": "Django ORM Lens",
-  "description": "See your entire Django schema in your editor, and gate it in CI. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
-  "version": "0.13.0",
+  "description": "Autocomplete Django model fields and lookups inside .filter(), and see your entire schema in your editor. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
+  "version": "0.13.1",
   "preview": false,
   "galleryBanner": {
     "color": "#0c4b33",
@@ -68,7 +68,13 @@
     "pull request",
     "schema drift",
     "impact analysis",
-    "blast radius"
+    "blast radius",
+    "autocomplete",
+    "intellisense",
+    "completion",
+    "queryset",
+    "filter",
+    "lookup"
   ],
   "activationEvents": [
     "onStartupFinished",

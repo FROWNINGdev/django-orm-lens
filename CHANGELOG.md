@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-08-20
+
+### Changed
+
+- **The Marketplace listing leads with autocomplete, and is searchable for
+  it.** v0.13.0 shipped the feature #3 called the moat — the one thing no
+  shipped Django extension does well — and then described the extension
+  without mentioning it. The keyword list had no `autocomplete`, no
+  `intellisense`, no `completion`: the exact words someone types when they
+  want this. A feature nobody can search for is a feature nobody finds.
+
+  This is v0.10.1 repeating, and it needs a release of its own for the same
+  reason: store metadata takes effect only on publish, so it cannot ride along
+  with the next feature without being invisible until then.
+
 ## [0.13.0] - 2026-08-20
 
 ### Added
