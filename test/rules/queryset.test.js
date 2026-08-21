@@ -239,6 +239,14 @@ test('DOL007 recognises every queryset-producing method off a variable', () => {
   // variable is a queryset source for the same reason as one rooted on a
   // manager, so every method that returns a new QuerySet has to be listed
   // here or the loop over it is skipped silently.
+  //
+  // The body reads an attribute the chain does NOT name, and that separation
+  // is deliberate. Two of these methods are `select_related` /
+  // `prefetch_related`, so reading the argument back would be code that has
+  // already taken DOL007's advice — the case-2 false positive from issue #85,
+  // which the coverage gate now suppresses. Asserting a finding there would
+  // pin the bug instead of the behaviour this test is about, which is only
+  // whether the method is recognised as a queryset source.
   const methods = [
     'all',
     'filter',
@@ -268,11 +276,11 @@ test('DOL007 recognises every queryset-producing method off a variable', () => {
   for (const method of methods) {
     const src = [
       `for post in qs.${method}("author"):`,
-      '    print(post.author)',
+      '    print(post.category)',
     ].join('\n');
     const findings = rule.check(makeCtx(src));
     assert.equal(findings.length, 1, `expected a finding for: qs.${method}()`);
-    assert.equal(findings[0].fixHint, 'author');
+    assert.equal(findings[0].fixHint, 'category');
   }
 });
 

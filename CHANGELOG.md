@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **DOL007 no longer fires on attribute accesses that cost nothing.**
+  [#85](https://github.com/FROWNINGdev/django-orm-lens/issues/85) reported four
+  loops the extension flagged and the CLI left alone: a local column, a
+  foreign key the same statement had already covered with `.select_related()`,
+  a `@property` inherited from an abstract base, and a column on an annotated
+  queryset. The rule fired on essentially every list-and-print loop, so the
+  practical response was to disable it workspace-wide — which also costs the
+  true positives it exists to catch.
+
+  The cause was that DOL007 was pure line shape while the CLI's `nplusone`
+  analyzer has always been schema-aware. Per the parser-parity contract the
+  CLI is the reference, so its two gates were ported rather than a third set
+  of semantics invented: an attribute the schema declares as a plain field is
+  skipped, as is one a *known* model does not declare at all — which is what a
+  property looks like from the outside — and a relation the chain already
+  spans is skipped.
+
+  The gates are independent, which matters more than it sounds. The coverage
+  gate needs no schema, so it holds during a cold start, and on its own it
+  fixes the case where the rule contradicted code that had already taken its
+  advice. The scalar gate needs the workspace index and stays off without one,
+  so a pass that runs before the first scan finishes behaves as it did before
+  instead of reporting from a schema it does not have. A model missing from
+  the index is never read as "scalar", so a partial scan cannot silence real
+  findings.
+
+  Verified against the reference rather than against the report: on the
+  reporter's four cases the CLI prints `No N+1 anti-patterns detected` and the
+  extension now returns zero findings on the same files.
+
+- **Diagnostics recomputed on every keystroke had no schema.**
+  `onDidChangeTextDocument` was the one refresh path that did not pass the
+  workspace index, so schema-aware rules ran with their gates off during
+  editing — the path that produces nearly every diagnostic a user actually
+  sees. Three of the four false positives above survived the fix until this
+  was corrected, which is why it is listed separately.
+
+  The QuickFix provider had the same gap from the other side: it re-runs a
+  single rule to recover a finding's `fixHint` and matches by exact range, but
+  it re-ran without the index the diagnostics were produced with. Once a rule
+  returns different findings with and without a schema, that match fails and
+  the fix silently stops being offered — a bug that reads as a missing
+  feature. The provider now takes the same index getter.
+
 ## [0.18.0] - 2026-08-20
 
 ### Added

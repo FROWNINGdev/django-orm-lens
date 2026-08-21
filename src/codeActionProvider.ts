@@ -53,7 +53,22 @@ function applyEdits(
 export class DjangoCodeFixesProvider implements vscode.CodeActionProvider {
   static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
-  constructor(private readonly diagnostics: vscode.DiagnosticCollection) {}
+  /**
+   * `getIndex` is a getter, not a value: the index is replaced wholesale on
+   * every workspace scan, and a captured one would go stale the first time a
+   * models.py is saved.
+   *
+   * It is required rather than convenient. A schema-aware rule returns
+   * different findings with and without the index, and the re-run below
+   * matches findings by exact range to recover `fixHint`. Re-running without
+   * the index the diagnostics were produced with makes that match fail, and a
+   * quick fix that silently stops being offered looks like a missing feature
+   * rather than a bug.
+   */
+  constructor(
+    private readonly diagnostics: vscode.DiagnosticCollection,
+    private readonly getIndex?: () => WorkspaceIndex,
+  ) {}
 
   provideCodeActions(
     document: vscode.TextDocument,
@@ -80,7 +95,7 @@ export class DjangoCodeFixesProvider implements vscode.CodeActionProvider {
       // `applicability` (both are not preserved on the vscode.Diagnostic).
       // Cheap — one regex pass over an already-open document.
       const findings = rule
-        .check(makeRuleContext(document))
+        .check(makeRuleContext(document, this.getIndex?.()))
         .filter(
           (f) =>
             f.range.line === diag.range.start.line &&
@@ -169,7 +184,7 @@ export function registerCodeFixes(
   getIndex?: () => WorkspaceIndex,
 ): vscode.Disposable[] {
   const collection = vscode.languages.createDiagnosticCollection('djangoOrmLens');
-  const provider = new DjangoCodeFixesProvider(collection);
+  const provider = new DjangoCodeFixesProvider(collection, getIndex);
 
   const disposables: vscode.Disposable[] = [
     collection,
@@ -179,8 +194,12 @@ export function registerCodeFixes(
       { providedCodeActionKinds: DjangoCodeFixesProvider.providedCodeActionKinds },
     ),
     vscode.workspace.onDidOpenTextDocument((d) => refreshDiagnosticsForDoc(d, collection, getIndex)),
+    // `getIndex` belongs here as much as on open/save. Without it this path —
+    // the one that runs on every keystroke, and so the one that produces
+    // almost every diagnostic a user actually sees — recomputed schema-aware
+    // rules with no schema, so their gates were off exactly while editing.
     vscode.workspace.onDidChangeTextDocument((e) =>
-      refreshDiagnosticsForDoc(e.document, collection),
+      refreshDiagnosticsForDoc(e.document, collection, getIndex),
     ),
     vscode.workspace.onDidSaveTextDocument((d) => refreshDiagnosticsForDoc(d, collection, getIndex)),
     vscode.workspace.onDidCloseTextDocument((d) => collection.delete(d.uri)),

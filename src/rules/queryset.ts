@@ -1,5 +1,11 @@
 import { Finding, Rule, RuleContext } from './types';
 import { lookupTypos } from '../lookupTypos';
+import {
+  MAX_ASSIGN_LOOKBACK,
+  classifyAttr,
+  isCovered,
+  resolveLoopSource,
+} from '../nPlusOne';
 
 /**
  * QuerySet anti-patterns.
@@ -323,8 +329,20 @@ const DOL006: Rule = {
  * `x.<attr>` where `<attr>` is not a bare id/pk/save-like operation.
  * The loop head is gated by `mayIterateQuerySet`, which skips a source
  * that looks like a call unless it names a queryset-producing method.
- * Unsafe — cannot programmatically distinguish an FK access from a
- * plain field access without type info; user must review before fixing.
+ *
+ * Two gates from `../nPlusOne` keep the shape match from firing on code that
+ * costs nothing, which is what issue #85 reported:
+ *
+ *   1. an attribute the schema says is a plain column — or that a known model
+ *      does not declare at all, which is how a Python property looks — is
+ *      skipped. Needs `ctx.index`; without one this gate is simply off.
+ *   2. a relation the chain already spans with `.select_related(...)` /
+ *      `.prefetch_related(...)` is skipped. Needs no schema, so it applies on
+ *      a cold start too — and it is the gate that stops the rule from
+ *      contradicting code that has already taken its advice.
+ *
+ * Still `unsafe` when it does fire: without type inference an FK access and a
+ * property access can share a shape, so the user reviews before fixing.
  */
 const DOL007: Rule = {
   meta: {
@@ -347,6 +365,13 @@ const DOL007: Rule = {
       const loopVar = head[1];
       const qsExpr = head[2];
       if (!mayIterateQuerySet(qsExpr)) continue;
+      // The chain that produced the loop's source is usually on an earlier
+      // line (`codes = list(Model.objects.select_related("x"))`), so both the
+      // model and its coverage have to be recovered from above the head.
+      const source = resolveLoopSource(
+        qsExpr,
+        ctx.windowBefore(i, MAX_ASSIGN_LOOKBACK),
+      );
       const window = ctx.windowAfter(i, MAX_LOOP_LINES);
       let seenForThisHead = false;
       for (let j = 0; j < window.length; j++) {
@@ -360,6 +385,14 @@ const DOL007: Rule = {
           const attr = m[2];
           if (attr.startsWith('_')) continue;
           if (attr === 'id' || attr === 'pk' || attr === 'save') continue;
+          // Gate 1 — the schema knows this attribute costs nothing.
+          const kind =
+            ctx.index && source.model
+              ? classifyAttr(ctx.index, source.model, attr)
+              : null;
+          if (kind === 'scalar') continue;
+          // Gate 2 — the chain already spans it.
+          if (isCovered(attr, kind, source)) continue;
           out.push({
             code: 'DOL007',
             messageId: 'default',
