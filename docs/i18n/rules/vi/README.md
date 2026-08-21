@@ -1,34 +1,49 @@
-# Tài liệu Quy tắc
+# Tài liệu tham khảo quy tắc
 
-Mỗi trang dưới đây mô tả một quy tắc cụ thể (hiện tại danh mục chứa 7 quy tắc): mã quy tắc, độ nghiêm trọng mặc định, khả năng áp dụng, các ví dụ về code sai/đúng, và cách bỏ qua (suppress) nếu cần.
+Mỗi mã `DOL` là một rule lint mà extension VS Code áp dụng ngay khi bạn gõ code. Các lệnh CLI (`nplusone`, `migration-risk`, `blast-radius`) chạy cùng phân tích đó ở quy mô toàn dự án.
 
-> The remaining rules — `DOL011`–`DOL032`, plus `migrations.md` and `nplusone.md` — are not translated yet; see the [English reference](../../../rules/README.md). This note is in English because it was written by someone who does not speak Vietnamese; a translation of it is welcome.
+## Quy tắc queryset
 
-## Queryset
-
-| Mã | Tóm tắt | Mức độ | Áp dụng |
-|----|---------|--------|---------|
+| Mã | Tiêu đề | Mức độ | Khả năng áp dụng |
+|----|---------|--------|------------------|
 | [DOL001](DOL001.md) | Ưu tiên `.exists()` thay vì `.count() > 0` | info | safe |
-| [DOL002](DOL002.md) | Ưu tiên `not .exists()` thay vì `.count() == 0` | info | safe |
-| [DOL003](DOL003.md) | Ưu tiên `not .exists()` thay vì `.first() is None` | info | safe |
-| [DOL004](DOL004.md) | Ưu tiên `.exists()` thay vì `.first() is not None` | info | safe |
-| [DOL005](DOL005.md) | Cân nhắc dùng `Q(...)` thay vì chuỗi `.filter().exclude()` | hint | suggestion |
-| [DOL006](DOL006.md) | Bỏ `list()` bọc ngoài QuerySet trong vòng lặp for | info | safe |
+| [DOL002](DOL002.md) | Ưu tiên `.count()` thay vì `len(queryset)` | info | safe |
+| [DOL003](DOL003.md) | Tránh `list(queryset)` trong ngữ cảnh boolean | info | safe |
+| [DOL004](DOL004.md) | Dùng `.only()` / `.defer()` để giới hạn trường được tải | info | unsafe |
+| [DOL005](DOL005.md) | Tránh gọi `.all()` trước `.filter()` | info | safe |
+| [DOL006](DOL006.md) | Dùng `.iterator()` cho queryset lớn | warning | unsafe |
 | [DOL007](DOL007.md) | Có thể xảy ra N+1: truy cập thuộc tính bên trong vòng lặp for | warning | unsafe |
+| [DOL008](DOL008.md) | Dùng `flat=True` khi gọi `.values_list()` với một trường duy nhất | info | safe |
 
-## Mức độ nghiêm trọng
+## Quy tắc định nghĩa model
 
-| Từ khóa | Ý nghĩa |
-|---------|----------|
-| `error` | Luôn sai; ưu tiên sửa ngay |
-| `warning` | Rất có thể sai; cần xem xét |
-| `info` | Viết lại an toàn nhưng không bắt buộc |
-| `hint` | Gợi ý cải thiện; cần đánh giá từng trường hợp |
+| Mã | Tiêu đề | Mức độ | Khả năng áp dụng |
+|----|---------|--------|------------------|
+| [DOL011](DOL011.md) | Thêm `db_index=True` cho trường FK dùng trong filter | warning | unsafe |
+| [DOL012](DOL012.md) | Thêm `db_index=True` cho trường dùng trong `order_by()` | info | unsafe |
+| [DOL013](DOL013.md) | Dùng `select_related` cho các truy cập FK trong serializer | warning | unsafe |
+| [DOL014](DOL014.md) | Dùng `prefetch_related` cho các truy cập FK ngược / M2M | warning | unsafe |
+| [DOL015](DOL015.md) | Tránh lưu dữ liệu lớn trực tiếp trên model | info | unsafe |
 
-## Khả năng áp dụng
+## Quy tắc datetime
 
-| Từ khóa | Ý nghĩa |
-|---------|----------|
-| `safe` | QuickFix có thể áp dụng tự động |
-| `suggestion` | Cần kiểm tra trước khi áp dụng |
-| `unsafe` | Không có QuickFix; phải sửa thủ công |
+| Mã | Tiêu đề | Mức độ | Khả năng áp dụng |
+|----|---------|--------|------------------|
+| [DOL021](DOL021.md) | Dùng `timezone.now()` thay vì `datetime.now()` | warning | safe |
+| [DOL022](DOL022.md) | Dùng `timezone.now()` để so sánh với `DateTimeField` | warning | safe |
+
+## Quy tắc forms / views
+
+| Mã | Tiêu đề | Mức độ | Khả năng áp dụng |
+|----|---------|--------|------------------|
+| [DOL031](DOL031.md) | Dùng `get_object_or_404()` thay vì `.get()` trực tiếp | info | safe |
+| [DOL032](DOL032.md) | Tránh truyền dữ liệu request thô vào queryset | warning | unsafe |
+
+## Công cụ phân tích CLI
+
+| Lệnh | Chức năng |
+|------|-----------|
+| [nplusone](nplusone.md) | Phát hiện các pattern N+1 trên toàn dự án |
+| [migration-risk](migrations.md) | Đánh giá file migration theo 16 quy tắc an toàn |
+| [blast-radius](blast-radius.md) | Kết hợp migration risk với phân tích tham chiếu toàn codebase |
+| [drift](drift.md) | Phát hiện khi `db_table` hoặc tên cột lệch khỏi convention Django |
