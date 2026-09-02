@@ -43,6 +43,14 @@ updates:
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # @types/vscode is not a normal dev dep: it must track engines.vscode
+      # (currently ^1.85.0), not latest. vsce refuses to package when the
+      # types outrun the declared engine --
+      #   '@types/vscode ^1.134.0 greater than engines.vscode ^1.85.0'
+      # -- which is exactly what turned PR #89 red on 2026-08-24. Raise this
+      # by hand, together with engines.vscode, when we deliberately drop
+      # support for older VS Code builds.
+      - dependency-name: "@types/vscode"
 
   # Docker — root Dockerfile bakes the GHCR image.
   - package-ecosystem: "docker"
