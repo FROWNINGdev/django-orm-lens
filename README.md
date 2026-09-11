@@ -404,7 +404,7 @@ Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migra
 
 ### MCP server
 
-Register it once with your agent and it exposes ten read-only tools:
+Register it once with your agent and it exposes thirteen read-only tools:
 
 | Tool | Purpose |
 | --- | --- |
@@ -417,6 +417,9 @@ Register it once with your agent and it exposes ten read-only tools:
 | `describe_migration_dependency` | Per-app migration DAG: roots, leaves, cross-app deps |
 | `suggest_indexes` | `Meta.indexes` proposals from observed QuerySet usage |
 | `signal_graph` | Sender→signal→handler graph from `@receiver` decorators |
+| `blast_radius` | What a destructive migration hits: its risks, the code still reading it, the cascade fallout |
+| `drift` | `makemigrations --check` without booting Django — migrations diffed against `models.py` |
+| `impact` | Every reference to a field or model name, grouped by Django layer |
 | `nplusone_scan` | Static N+1 findings for the whole workspace |
 
 ```bash
