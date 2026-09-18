@@ -273,9 +273,9 @@ Django's own check needs a working settings module, an importable app registry a
 <tr>
 <td width="50%" valign="top">
 
-### 🎯 Inline QuickFixes (18 rules)
+### 🎯 Inline diagnostics & QuickFixes (18 rules)
 
-Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL041`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()`, planner GUCs forced off in raw SQL, and a dozen more.
+Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL041`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()`, planner-GUC overrides in raw SQL (`enable_*`, `plan_cache_mode`, `jit*`; diagnostic-only), and a dozen more.
 
 Suppress inline with `# django-orm-lens-disable-next-line DOL007`.
 

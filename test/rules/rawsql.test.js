@@ -35,6 +35,7 @@ function makeCtx(source) {
   };
 }
 
+/** Look up a rule by code, failing loudly when it is not registered. */
 function ruleByCode(code) {
   const r = rawSqlRules.find((r) => r.meta.code === code);
   assert.ok(r, `rule ${code} must exist`);
@@ -58,15 +59,21 @@ test('DOL041 flags both GUCs in a parameterized multi-statement SET', () => {
 
 test('DOL041 flags SET LOCAL and SESSION variants', () => {
   const rule = ruleByCode('DOL041');
-  assert.equal(
-    rule.check(makeCtx('SET LOCAL enable_seqscan = off')).length,
-    1,
+  const local = rule.check(makeCtx('SET LOCAL enable_seqscan = off'));
+  assert.equal(local.length, 1);
+  assert.equal(local[0].messageId, 'local');
+  const session = rule.check(
+    makeCtx('cur.execute("SET SESSION enable_bitmapscan = off")'),
   );
-  assert.equal(
-    rule.check(makeCtx('cur.execute("SET SESSION enable_bitmapscan = off")'))
-      .length,
-    1,
-  );
+  assert.equal(session.length, 1);
+  assert.equal(session[0].messageId, 'connection');
+});
+
+test('DOL041 captures named DB-API placeholders completely', () => {
+  const rule = ruleByCode('DOL041');
+  const findings = rule.check(makeCtx('SET enable_seqscan = %(planner)s'));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].args.value, '%(planner)s');
 });
 
 test('DOL041 accepts the TO form and quoted values', () => {
@@ -109,6 +116,7 @@ test('DOL041 ignores non-planner session settings', () => {
 test('DOL041 ignores comment lines', () => {
   const rule = ruleByCode('DOL041');
   assert.equal(rule.check(makeCtx('# SET enable_seqscan = off  legacy')).length, 0);
+  assert.equal(rule.check(makeCtx('-- SET enable_seqscan = off')).length, 0);
 });
 
 test('DOL041 stays quiet on ordinary SQL and ORM code', () => {

@@ -10,16 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **New rule `DOL041` — planner settings overridden in raw SQL.** Application
-  code that toggles planner GUCs (`enable_*`, `plan_cache_mode`, `jit*`) at the
-  session level takes the plan choice away from the Postgres planner for the
-  whole connection, so a query that passes review and tests can collapse into
-  a forced nested-loop join as its row set grows. The line-oriented rule sees
-  the GUC name even when the value is a bind parameter
-  (`SET enable_seqscan = %s`), flags `SET` / `SET LOCAL` / `SET SESSION` alike,
-  and stays quiet on non-planner session settings (`search_path`,
-  `statement_timeout`, `work_mem`, …). Default severity `warning`,
-  applicability `unsafe` — the safe repair is a query or index change, so no
-  QuickFix. Refs #110.
+  code that toggles planner GUCs (`enable_*`, `plan_cache_mode`, `jit*`) takes
+  the plan choice away from the Postgres planner — connection-wide for `SET` /
+  `SET SESSION`, transaction-scoped for `SET LOCAL` — so a query that passes
+  review and tests can collapse into a forced nested-loop join as its row set
+  grows. The line-oriented rule sees the GUC name even when the value is a
+  bind parameter (`SET enable_seqscan = %s`), flags `SET` / `SET LOCAL` /
+  `SET SESSION` alike, and stays quiet on non-planner session settings
+  (`search_path`, `statement_timeout`, `work_mem`, …). Default severity
+  `warning`, applicability `unsafe` — the safe repair is a query or index
+  change, so no QuickFix. Refs #110.
 
 - **Simplified Chinese rule index.** The existing `DOL021` and `DOL022`
   translations now have a dedicated partial-locale index linked from the

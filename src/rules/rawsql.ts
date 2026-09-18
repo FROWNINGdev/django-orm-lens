@@ -26,10 +26,16 @@ const DOCS_BASE =
  * exactly the decision the planner exists to make.
  */
 const RE_PLANNER_OVERRIDE =
-  /\bSET\s+(?:(LOCAL|SESSION)\s+)?((?:enable_[a-z_]+)|plan_cache_mode|jit(?:_[a-z_]+)?)\s*(?:=|TO)\s*('[^']*'|[A-Za-z0-9_%.]+)/gi;
+  /\bSET\s+(?:(LOCAL|SESSION)\s+)?((?:enable_[a-z_]+)|plan_cache_mode|jit(?:_[a-z_]+)?)\s*(?:=|TO)\s*('[^']*'|%\([A-Za-z_][A-Za-z0-9_]*\)s|[A-Za-z0-9_%.]+)/gi;
 
+/**
+ * True for a line that is entirely a comment — Python `#` or a SQL `--`
+ * line inside a multiline query string. Both shapes put planner-looking SQL
+ * in front of the regex without meaning to execute it.
+ */
 function isCommentLine(text: string): boolean {
-  return text.trimStart().startsWith('#');
+  const trimmed = text.trimStart();
+  return trimmed.startsWith('#') || trimmed.startsWith('--');
 }
 
 /**
@@ -56,10 +62,13 @@ const DOL041: Rule = {
     docsUrl: `${DOCS_BASE}/DOL041.md`,
     since: '0.19.0',
     messages: {
-      default:
-        'Planner setting {guc} = {value} is overridden here — this forces the query planner for every query on the connection and can turn a fast plan into a nested-loop scan as data grows. Fix the query or index instead; scope with SET LOCAL only when intentional.',
+      connection:
+        'Planner setting {guc} = {value} is overridden here — this forces the query planner for every query on the connection and can turn a fast plan into a nested-loop scan as data grows. Fix the query or index instead.',
+      local:
+        'Planner setting {guc} = {value} is overridden here with SET LOCAL — it only affects the current transaction, but it still takes the plan choice away from the planner. Make sure it is intentional and auditable.',
     },
   },
+  /** Report every planner-GUC override on the line, connection- or transaction-scoped. */
   check(ctx: RuleContext): Finding[] {
     const out: Finding[] = [];
     for (let i = 0; i < ctx.lineCount; i++) {
@@ -70,7 +79,7 @@ const DOL041: Rule = {
       while ((m = RE_PLANNER_OVERRIDE.exec(text)) !== null) {
         out.push({
           code: 'DOL041',
-          messageId: 'default',
+          messageId: m[1]?.toUpperCase() === 'LOCAL' ? 'local' : 'connection',
           args: { guc: m[2], value: m[3] },
           range: { line: i, startCol: m.index, endCol: m.index + m[0].length },
           applicability: 'unsafe',
