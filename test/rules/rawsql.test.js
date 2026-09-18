@@ -119,6 +119,41 @@ test('DOL041 ignores comment lines', () => {
   assert.equal(rule.check(makeCtx('-- SET enable_seqscan = off')).length, 0);
 });
 
+test('DOL041 ignores trailing Python and inline SQL comments', () => {
+  const rule = ruleByCode('DOL041');
+  assert.equal(
+    rule.check(makeCtx('cursor.execute("SELECT 1")  # SET enable_seqscan = off'))
+      .length,
+    0,
+  );
+  assert.equal(
+    rule.check(makeCtx('cursor.execute("SELECT 1 -- SET enable_seqscan = off")'))
+      .length,
+    0,
+  );
+  assert.equal(
+    rule.check(makeCtx('cursor.execute("/* SET enable_seqscan = off */ SELECT 1")'))
+      .length,
+    0,
+  );
+});
+
+test('DOL041 tracks SQL block comments across lines', () => {
+  const rule = ruleByCode('DOL041');
+  const source =
+    'cursor.execute("""/* force index")\nSET enable_seqscan = off\n*/ SELECT 1""")';
+  assert.equal(rule.check(makeCtx(source)).length, 0);
+});
+
+test('DOL041 still flags SET text before a trailing SQL comment', () => {
+  const rule = ruleByCode('DOL041');
+  const findings = rule.check(
+    makeCtx('cursor.execute("SET enable_seqscan = off -- force index")'),
+  );
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].args.value, 'off');
+});
+
 test('DOL041 stays quiet on ordinary SQL and ORM code', () => {
   const rule = ruleByCode('DOL041');
   const findings = rule.check(

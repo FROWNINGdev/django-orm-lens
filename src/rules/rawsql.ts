@@ -29,13 +29,57 @@ const RE_PLANNER_OVERRIDE =
   /\bSET\s+(?:(LOCAL|SESSION)\s+)?((?:enable_[a-z_]+)|plan_cache_mode|jit(?:_[a-z_]+)?)\s*(?:=|TO)\s*('[^']*'|%\([A-Za-z_][A-Za-z0-9_]*\)s|[A-Za-z0-9_%.]+)/gi;
 
 /**
- * True for a line that is entirely a comment — Python `#` or a SQL `--`
- * line inside a multiline query string. Both shapes put planner-looking SQL
- * in front of the regex without meaning to execute it.
+ * Blank out comment text on a line, preserving length so finding ranges still
+ * point at the original columns. Handles Python `#` comments (outside string
+ * literals), SQL `--` comments, and SQL block comments, whose state carries
+ * across lines through `state.inBlockComment`.
  */
-function isCommentLine(text: string): boolean {
-  const trimmed = text.trimStart();
-  return trimmed.startsWith('#') || trimmed.startsWith('--');
+function maskComments(
+  text: string,
+  state: { inBlockComment: boolean },
+): string {
+  let out = '';
+  let quote: string | null = null;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (state.inBlockComment) {
+      if (ch === '*' && text[i + 1] === '/') {
+        state.inBlockComment = false;
+        out += '  ';
+        i++;
+      } else {
+        out += ' ';
+      }
+      continue;
+    }
+    if (ch === '#' && quote === null) {
+      return out + ' '.repeat(text.length - i);
+    }
+    if (ch === '-' && text[i + 1] === '-') {
+      return out + ' '.repeat(text.length - i);
+    }
+    if (ch === '/' && text[i + 1] === '*') {
+      state.inBlockComment = true;
+      out += '  ';
+      i++;
+      continue;
+    }
+    if (quote !== null) {
+      if (ch === '\\') {
+        out += ch + (text[i + 1] ?? '');
+        i++;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      out += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 /**
@@ -71,9 +115,9 @@ const DOL041: Rule = {
   /** Report every planner-GUC override on the line, connection- or transaction-scoped. */
   check(ctx: RuleContext): Finding[] {
     const out: Finding[] = [];
+    const blockState = { inBlockComment: false };
     for (let i = 0; i < ctx.lineCount; i++) {
-      const text = ctx.lineAt(i);
-      if (isCommentLine(text)) continue;
+      const text = maskComments(ctx.lineAt(i), blockState);
       RE_PLANNER_OVERRIDE.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = RE_PLANNER_OVERRIDE.exec(text)) !== null) {
