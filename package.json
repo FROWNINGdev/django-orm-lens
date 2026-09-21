@@ -329,7 +329,7 @@
   "devDependencies": {
     "@types/node": "^26.5.1",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
+    "@types/react-dom": "^19.3.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.2",
@@ -341,6 +341,6 @@
     "elkjs": "^0.12.0",
     "html-to-image": "^1.11.13",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.3.0"
   }
 }
