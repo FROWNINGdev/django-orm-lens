@@ -273,9 +273,9 @@ Django's own check needs a working settings module, an importable app registry a
 <tr>
 <td width="50%" valign="top">
 
-### 🎯 Inline QuickFixes (17 rules)
+### 🎯 Inline diagnostics & QuickFixes (18 rules)
 
-Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL032`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()` and a dozen more.
+Static analysis over `.py` files with Ruff-style codes (`DOL001`..`DOL041`), Clippy-style `Applicability`, and per-rule severity overrides. `.count() > 0` → `.exists()`, `null=True` on `CharField`, missing `on_delete`, `datetime.now()` → `timezone.now()`, planner-GUC overrides in raw SQL (`enable_*`, `plan_cache_mode`, `jit*`; diagnostic-only), and a dozen more.
 
 Suppress inline with `# django-orm-lens-disable-next-line DOL007`.
 
@@ -636,7 +636,7 @@ The defaults are opinionated and sensible. If you need to tweak:
 
 ## 🔬 Rule catalogue
 
-Sixteen editor-side checks (`DOL001`–`DOL032`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus fifteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
+Eighteen editor-side checks (`DOL001`–`DOL041`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus fifteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
 
 | Category | Rules | Examples |
 |---|---|---|
@@ -644,6 +644,7 @@ Sixteen editor-side checks (`DOL001`–`DOL032`) with Ruff-style codes, per-rule
 | [Model definition](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` without `on_delete`, `null=True` on string fields |
 | [Datetime](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
 | [Forms / views](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/README.md) | `DOL031`–`DOL032` | `locals()` in `render()`, `Meta.fields = '__all__'` |
+| [Raw SQL](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/DOL041.md) | `DOL041` | `SET enable_hashjoin = off`, `plan_cache_mode`, `jit` overrides in app code |
 | [Migration risks](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/migrations.md) | 16 rules | NOT NULL add without default, table-locking index builds, irreversible data migrations |
 | [Static N+1](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/nplusone.md) | 1 analyzer | FK/M2M access in loops without `select_related` / `prefetch_related` |
 

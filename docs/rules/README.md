@@ -5,7 +5,7 @@
 
 Django ORM Lens ships two rule surfaces:
 
-1. **Editor rules (`DOL###`)** — 16 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `Django ORM Lens`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
+1. **Editor rules (`DOL###`)** — 18 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `Django ORM Lens`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
 2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install django-orm-lens`) for terminals and pipelines: [`migration-risk`](migrations.md), [`nplusone`](nplusone.md), [`blast-radius`](blast-radius.md) — which joins migration risks with the code that still references what they change — and [`drift`](drift.md), a `makemigrations --check` that needs no Django boot.
 
 ## Severity and applicability
@@ -41,6 +41,7 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL022](DOL022.md) | `datetime.utcnow()` is deprecated | datetime | warning | suggestion |
 | [DOL031](DOL031.md) | `render()` with `locals()` as context | forms | warning | suggestion |
 | [DOL032](DOL032.md) | `fields = '__all__'` in Meta | forms | warning | unsafe |
+| [DOL041](DOL041.md) | Planner setting overridden in raw SQL | raw SQL | warning | unsafe |
 
 ### Suppressing findings inline
 

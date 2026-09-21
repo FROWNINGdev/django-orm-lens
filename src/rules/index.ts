@@ -3,6 +3,7 @@ import { querysetRules } from './queryset';
 import { modelRules } from './models';
 import { datetimeRules } from './datetime';
 import { formsRules } from './forms';
+import { rawSqlRules } from './rawsql';
 import { ALL_FIXERS, findFixersForCode } from './fixers';
 import { WorkspaceIndex } from '../types';
 import {
@@ -39,12 +40,13 @@ import {
  *   for the rest of the file.
  */
 
-/** Canonical rule catalogue in stable order (queryset, model, datetime, forms). */
+/** Canonical rule catalogue in stable order (queryset, model, datetime, forms, raw SQL). */
 export const ALL_RULES: Rule[] = [
   ...querysetRules,
   ...modelRules,
   ...datetimeRules,
   ...formsRules,
+  ...rawSqlRules,
 ];
 
 /** Re-exports so callers only need `from './rules'`. */
