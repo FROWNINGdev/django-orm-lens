@@ -636,7 +636,7 @@ The defaults are opinionated and sensible. If you need to tweak:
 
 ## 🔬 Rule catalogue
 
-Eighteen editor-side checks (`DOL001`–`DOL041`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus fifteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
+Eighteen editor-side checks (`DOL001`–`DOL041`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus sixteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
 
 | Category | Rules | Examples |
 |---|---|---|
@@ -772,7 +772,7 @@ Found by running the CLI over actual checkouts of django-oscar, django-guardian,
 
 **Next**
 
-- [ ] ORM query autocomplete inside `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
+- [x] **v0.13.0** — Field completion inside `.filter()` / `.exclude()` / `.get()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
 - [ ] App / model toggle checkboxes to declutter huge schemas
 - [ ] DOL rule engine ported into the Python CLI — one rule catalogue, three surfaces
 
