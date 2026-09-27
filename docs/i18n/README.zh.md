@@ -45,10 +45,12 @@
 ## ⚡ 10 秒获得第一份洞察
 
 ```bash
-uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
+uvx django-orm-lens scan -f table   # every app and model at a glance
+uvx django-orm-lens nplusone        # N+1 loops, with the select_related to add
+uvx django-orm-lens migration-risk  # migrations that lock tables or fail on existing rows
 ```
 
-冷克隆、坏掉的 venv、没有 settings 模块 —— 项目的每个 app、模型、字段和关系依然会出现在你的终端里。
+冷克隆、坏掉的 venv、没有 settings 模块 —— 你依然能在终端里看到项目的每个 app 和模型，以及其中的 N+1 循环和高风险迁移。（`uvx` 来自 [uv](https://docs.astral.sh/uv/)；`pipx run` 用法相同。）
 
 **接着选择你的使用面** —— 三种发行形式，同一个解析器内核：
 
