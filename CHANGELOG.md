@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-09-28
+
+### Changed
+
+- **Marketplace and Open VSX listing refreshed.** The listing shows the README
+  packaged with the extension, so it still carried the old hero. It now leads
+  with what the extension does (ER diagrams, N+1 detection, migration-risk
+  checks), and the quickstart runs commands with
+  readable output instead of the full JSON index. No code changes.
+
 ## [0.19.1] - 2026-09-28
 
 ### Fixed
