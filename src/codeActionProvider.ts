@@ -182,6 +182,11 @@ export function registerCodeFixes(
   // lens providers take it: the index is replaced wholesale on every scan, and
   // a captured value would go stale the first time a models.py is saved.
   getIndex?: () => WorkspaceIndex,
+  // Schema-aware rules (DOL007's gates, DOL008) are silent without an index,
+  // and documents open at startup are linted before the first scan finishes.
+  // Without a re-lint here they stay silent until the user types in them, and
+  // a models.py edit never reaches diagnostics in the views already open.
+  onIndexChanged?: vscode.Event<void>,
 ): vscode.Disposable[] {
   const collection = vscode.languages.createDiagnosticCollection('djangoOrmLens');
   const provider = new DjangoCodeFixesProvider(collection, getIndex);
@@ -217,9 +222,13 @@ export function registerCodeFixes(
     }),
   ];
 
-  for (const doc of vscode.workspace.textDocuments) {
-    refreshDiagnosticsForDoc(doc, collection, getIndex);
-  }
+  const refreshAll = (): void => {
+    for (const doc of vscode.workspace.textDocuments) {
+      refreshDiagnosticsForDoc(doc, collection, getIndex);
+    }
+  };
+  if (onIndexChanged) disposables.push(onIndexChanged(refreshAll));
+  refreshAll();
 
   return disposables;
 }

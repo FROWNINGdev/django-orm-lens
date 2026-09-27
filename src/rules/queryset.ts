@@ -33,8 +33,7 @@ const RE_FILTER_EXCLUDE_CHAIN =
   /(\b[A-Za-z_][\w.]*(?:\([^()]*\))*)\.filter\(([^()]*)\)\s*\.exclude\(([^()]*)\)/g;
 const RE_LIST_OF_QS_IN_FOR =
   /^\s*for\s+[A-Za-z_]\w*\s+in\s+list\(([A-Za-z_][\w.]*(?:\([^()]*\))*)\)\s*:/;
-const RE_FOR_LOOP_HEAD =
-  /^\s*for\s+([A-Za-z_]\w*)\s+in\s+([A-Za-z_][\w.]*(?:\([^()]*\))*(?:\.all\(\))?)\s*:/;
+const RE_FOR_LOOP_START = /^\s*for\s+([A-Za-z_]\w*)\s+in\s+/;
 const LOOP_VAR_ATTR_RE = /\b([A-Za-z_]\w*)\.([A-Za-z_]\w*)\b/g;
 const MAX_LOOP_LINES = 15;
 
@@ -90,6 +89,52 @@ function isCommentLine(text: string): boolean {
  * says nothing about what comes back and a line-oriented rule cannot
  * follow a callee's return.
  */
+/** Index of the `)` closing the `(` at `open`, skipping string literals; -1 if unclosed. */
+function closingParen(text: string, open: number): number {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (quote) {
+      if (c === '\\') i++;
+      else if (c === quote) quote = null;
+    } else if (c === '"' || c === "'") {
+      quote = c;
+    } else if (c === '(') {
+      depth++;
+    } else if (c === ')' && --depth === 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * `for <var> in <source>:` where `<source>` is a dotted chain whose calls may
+ * nest parentheses and follow one another:
+ * `Order.objects.filter(created__lte=now()).order_by("-id")`.
+ */
+function parseLoopHead(line: string): { loopVar: string; source: string } | null {
+  const head = RE_FOR_LOOP_START.exec(line);
+  if (!head) return null;
+  const start = head[0].length;
+  let i = start;
+  for (;;) {
+    const name = /^[A-Za-z_]\w*/.exec(line.slice(i));
+    if (!name) return null;
+    i += name[0].length;
+    while (line[i] === '(') {
+      const end = closingParen(line, i);
+      if (end < 0) return null;
+      i = end + 1;
+    }
+    if (line[i] !== '.') break;
+    i++;
+  }
+  if (!/^\s*:/.test(line.slice(i))) return null;
+  return { loopVar: head[1], source: line.slice(start, i) };
+}
+
 function mayIterateQuerySet(expr: string): boolean {
   const callAt = expr.indexOf('(');
   if (callAt === -1) return true;
@@ -360,10 +405,10 @@ const DOL007: Rule = {
   check(ctx: RuleContext): Finding[] {
     const out: Finding[] = [];
     for (let i = 0; i < ctx.lineCount; i++) {
-      const head = RE_FOR_LOOP_HEAD.exec(ctx.lineAt(i));
+      const head = parseLoopHead(ctx.lineAt(i));
       if (!head) continue;
-      const loopVar = head[1];
-      const qsExpr = head[2];
+      const loopVar = head.loopVar;
+      const qsExpr = head.source;
       if (!mayIterateQuerySet(qsExpr)) continue;
       // The chain that produced the loop's source is usually on an earlier
       // line (`codes = list(Model.objects.select_related("x"))`), so both the
