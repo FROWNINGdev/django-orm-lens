@@ -337,7 +337,7 @@ Stable `TreeItem.id` — refresh no longer collapses the tree. Rich `MarkdownStr
 ## 📸 What it looks like
 
 <div align="center" markdown="1">
-<img src="media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%" loading="lazy" decoding="async"/>
+<img src="media/screenshot-vscode.png" alt="VS Code with Django ORM Lens: the model tree, ORM diagnostics in views.py and the live ER diagram" width="100%" loading="lazy" decoding="async"/>
 </div>
 
 **Live sample** — real `django-orm-lens er` output, rendered by GitHub right here:
