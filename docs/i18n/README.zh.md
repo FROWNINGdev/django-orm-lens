@@ -9,7 +9,7 @@
 
 # Django ORM Lens
 
-### Django 的数据结构智能层。
+### Django 的 ER 图、N+1 检测与迁移风险检查 —— 无需启动项目。
 
 你的整张模型图 —— 实时呈现在编辑器侧边栏、为你的 CI 把关，并通过 MCP 回答你的 AI agent 的提问。全部来自静态解析：无需数据库、无需 `runserver`、无需可用的 venv。
 

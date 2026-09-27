@@ -9,7 +9,7 @@
 
 # Django ORM Lens
 
-### The schema intelligence layer for Django.
+### ER diagrams, N+1 detection and migration-risk checks for Django — without booting it.
 
 Your entire model graph — live in your editor sidebar, gating your CI, and answering your AI agent over MCP. All from static parsing: no database, no `runserver`, no working venv.
 

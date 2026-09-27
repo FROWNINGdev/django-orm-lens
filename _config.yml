@@ -14,6 +14,20 @@
 
 theme: jekyll-theme-primer
 
+# Search metadata for the GitHub Pages homepage, consumed by jekyll-seo-tag.
+# Without a `title`/`tagline`/`description` the homepage `<title>` and
+# `<meta name="description">` fell back to the bare repo name — so the page
+# ranked only for the brand name "django-orm-lens", never for the problems
+# people actually search ("django er diagram", "django n+1", "django migration
+# linter"). `tagline` puts those keywords into the homepage `<title>`
+# ("<title> | <tagline>"); `description` carries them into the meta description.
+title: Django ORM Lens
+tagline: Django ER diagram, N+1 and migration-risk linter — no database, no Django boot
+description: >-
+  Static analysis for Django models and migrations: ER diagrams, N+1 detection,
+  schema drift and migration-risk checks across a VS Code extension, a CLI, and
+  an MCP server. No database, no django.setup(). Free and MIT.
+
 # Social card, consumed by jekyll-seo-tag. Without it the homepage unfurled
 # as a bare `summary` card with no image anywhere it was shared.
 #
