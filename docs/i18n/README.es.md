@@ -9,7 +9,7 @@
 
 # Django ORM Lens
 
-### La capa de inteligencia de esquema para Django.
+### Diagramas ER, detección de N+1 y análisis de riesgo de migraciones para Django, sin arrancarlo.
 
 Todo tu grafo de modelos — en vivo en la barra lateral de tu editor, actuando de gate en tu CI y respondiendo a tu agente de IA vía MCP. Todo a partir de análisis estático: sin base de datos, sin `runserver`, sin venv funcional.
 
