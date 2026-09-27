@@ -189,6 +189,8 @@ def _has_django_marker(p: Path) -> bool:
             ):
                 return True
         except OSError:
+            # An unreadable pyproject.toml says nothing either way; the
+            # models.py walk below still decides.
             pass
     for root, dirs, files in os.walk(p):
         if "models.py" in files:
