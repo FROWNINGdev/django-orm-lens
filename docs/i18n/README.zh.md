@@ -304,7 +304,7 @@ FK 上的 `.filter(field=?)` 自动追加 `.select_related(...)`，`.annotate(po
 ## 📸 界面预览
 
 <div align="center" markdown="1">
-<img src="../../media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
+<img src="../../media/screenshot-vscode.png" alt="VS Code with Django ORM Lens: the model tree, ORM diagnostics in views.py and the live ER diagram" width="100%"/>
 </div>
 
 **实时示例** — `django-orm-lens er` 的真实输出，GitHub 会直接在此渲染：

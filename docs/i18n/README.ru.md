@@ -304,7 +304,7 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/django-orm-lens scan --
 ## 📸 Как это выглядит
 
 <div align="center" markdown="1">
-<img src="../../media/hero.png" alt="Django ORM Lens sidebar showing an app's models with fields, relations, and Meta options" width="90%"/>
+<img src="../../media/screenshot-vscode.png" alt="VS Code with Django ORM Lens: the model tree, ORM diagnostics in views.py and the live ER diagram" width="100%"/>
 </div>
 
 **Живой пример** — настоящий вывод `django-orm-lens er`, GitHub рендерит его прямо здесь:

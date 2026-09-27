@@ -304,7 +304,7 @@ Insignias de `FileDecorationProvider`: `!` roja en FK sin `on_delete`, `~` amari
 ## 📸 Cómo se ve
 
 <div align="center" markdown="1">
-<img src="../../media/hero.png" alt="Barra lateral de Django ORM Lens mostrando los modelos de una aplicación con campos, relaciones y opciones Meta" width="90%"/>
+<img src="../../media/screenshot-vscode.png" alt="VS Code con Django ORM Lens: árbol de modelos, diagnósticos del ORM en views.py y el diagrama ER en vivo" width="100%"/>
 </div>
 
 **Ejemplo en vivo** — salida real de `django-orm-lens er`, renderizada por GitHub aquí mismo:
