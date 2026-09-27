@@ -661,7 +661,7 @@ Abre la paleta de comandos (`Ctrl+Shift+P` / `Cmd+Shift+P`) y escribe "Django OR
 **Siguiente**
 
 - [ ] Autocompletado de consultas ORM dentro de `.filter()` / `.exclude()` / `.annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
-- [ ] Casillas para activar/desactivar aplicaciones / modelos y despejar esquemas enormes
+- [x] **v0.10.0** — Casillas para activar/desactivar aplicaciones / modelos: al desmarcarlas en la barra lateral desaparecen del diagrama ER
 - [ ] Motor de reglas DOL portado a la CLI de Python — un catálogo de reglas, tres superficies
 
 **Más adelante**

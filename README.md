@@ -773,7 +773,7 @@ Found by running the CLI over actual checkouts of django-oscar, django-guardian,
 **Next**
 
 - [x] **v0.13.0** — Field completion inside `.filter()` / `.exclude()` / `.get()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
-- [ ] App / model toggle checkboxes to declutter huge schemas
+- [x] **v0.10.0** — App / model toggle checkboxes: untick an app or model in the sidebar to drop it from the ER diagram
 - [ ] DOL rule engine ported into the Python CLI — one rule catalogue, three surfaces
 
 **Later**
