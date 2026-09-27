@@ -27,6 +27,7 @@ import { completionsAt, lookupPathLength } from './ormCompletions';
 const LOOKBACK_LINES = 200;
 
 let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
+const indexChanged = new vscode.EventEmitter<void>();
 let treeProvider: DjangoTreeProvider;
 let codeLensProvider: DjangoCodeLensProvider;
 let statusItem: vscode.StatusBarItem;
@@ -58,6 +59,7 @@ async function doScan(): Promise<void> {
     currentIndex = next;
     treeProvider.setIndex(currentIndex);
     codeLensProvider?.refresh();
+    indexChanged.fire();
     const total = currentIndex.apps.reduce((n, a) => n + a.models.length, 0);
     const took = Date.now() - before;
     statusItem.text = `$(database) ${total} model${total === 1 ? '' : 's'}`;
@@ -323,7 +325,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // `.count() > 0` -> `.exists()`, `.first() is None` -> `not .exists()`,
   // and N+1 attribute-access-in-loop diagnostics. Feature-flagged via
   // djangoOrmLens.codeFixes.enabled (default true).
-  for (const d of registerCodeFixes(context, () => currentIndex)) {
+  context.subscriptions.push(indexChanged);
+  for (const d of registerCodeFixes(context, () => currentIndex, indexChanged.event)) {
     context.subscriptions.push(d);
   }
 

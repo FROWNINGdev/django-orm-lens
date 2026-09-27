@@ -243,3 +243,40 @@ test('DOL007 does not follow a binding across a scope boundary', () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0].fixHint, 'user');
 });
+
+test('DOL007 reads a loop head whose filter nests a call', () => {
+  // `created__lte=timezone.now()` put a paren pair inside the call, and the
+  // loop-head pattern only allowed flat argument lists, so the most common
+  // shape of a date-bounded report loop was never looked at.
+  const rule = ruleByCode('DOL007');
+  const src = [
+    'def report():',
+    '    for m in Membership.objects.filter(created__lte=timezone.now()):',
+    '        print(m.roles, m.user.email)',
+  ].join('\n');
+  const findings = rule.check(makeCtx(src, REPORTER_INDEX));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'user');
+});
+
+test('DOL007 reads a loop head that chains calls after the first one', () => {
+  const rule = ruleByCode('DOL007');
+  const src = [
+    'def report():',
+    '    for m in Membership.objects.filter(roles="admin").order_by("-id"):',
+    '        print(m.user)',
+  ].join('\n');
+  const findings = rule.check(makeCtx(src, REPORTER_INDEX));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'user');
+});
+
+test('DOL007 honours select_related later in a chained loop head', () => {
+  const rule = ruleByCode('DOL007');
+  const src = [
+    'def report():',
+    '    for m in Membership.objects.filter(roles="a)b").select_related("user"):',
+    '        print(m.user)',
+  ].join('\n');
+  assert.equal(rule.check(makeCtx(src, REPORTER_INDEX)).length, 0);
+});

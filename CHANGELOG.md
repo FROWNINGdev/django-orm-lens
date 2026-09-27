@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Schema-aware diagnostics were missing in files open at startup.** Every
+  document open when VS Code starts is linted before the first workspace scan
+  finishes, and nothing re-linted it afterwards, so `DOL008` (misspelled
+  lookup) and the schema gates of `DOL007` stayed silent until the file was
+  edited. The same gap meant a `models.py` change never reached diagnostics in
+  views that were already open. Open documents are now re-linted whenever the
+  index is replaced.
+
+- **`DOL007` skipped loops over common querysets.** The loop-head pattern only
+  accepted flat argument lists and no call after the first, so
+  `for o in Order.objects.filter(created__lte=timezone.now()):` and
+  `for o in Order.objects.filter(...).order_by("-id"):` were never inspected.
+  The head is now read with balanced parentheses (string literals skipped)
+  across the whole call chain, and a `select_related(...)` anywhere in that
+  chain still silences the finding.
+
 ## [0.19.0] - 2026-09-21
 
 ### Added
