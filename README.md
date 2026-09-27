@@ -45,10 +45,12 @@ Your entire model graph — live in your editor sidebar, gating your CI, and ans
 ## ⚡ 10 seconds to first insight
 
 ```bash
-uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
+uvx django-orm-lens scan -f table   # every app and model at a glance
+uvx django-orm-lens nplusone        # N+1 loops, with the select_related to add
+uvx django-orm-lens migration-risk  # migrations that lock tables or fail on existing rows
 ```
 
-Cold clone, broken venv, no settings module — you still get every app, model, field, and relation of the project in your terminal.
+Cold clone, broken venv, no settings module — you still see every app and model of the project, then the N+1 loops and risky migrations in it, right in your terminal. (`uvx` is from [uv](https://docs.astral.sh/uv/); `pipx run` works the same way.)
 
 **Then pick your surface** — three distributions, one parser core:
 

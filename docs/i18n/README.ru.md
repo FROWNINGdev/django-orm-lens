@@ -45,10 +45,12 @@
 ## ⚡ 10 секунд до первого инсайта
 
 ```bash
-uvx django-orm-lens scan      # or: pipx run django-orm-lens scan
+uvx django-orm-lens scan -f table   # every app and model at a glance
+uvx django-orm-lens nplusone        # N+1 loops, with the select_related to add
+uvx django-orm-lens migration-risk  # migrations that lock tables or fail on existing rows
 ```
 
-Холодный клон, сломанный venv, нет settings-модуля — вы всё равно получаете каждое приложение, модель, поле и связь проекта прямо у себя в терминале.
+Холодный клон, сломанный venv, нет settings-модуля — вы всё равно видите все приложения и модели проекта, а затем N+1 в циклах и опасные миграции, прямо в терминале. (`uvx` — из [uv](https://docs.astral.sh/uv/); `pipx run` работает так же.)
 
 **Затем выберите свою поверхность** — три дистрибутива, одно ядро парсера:
 
