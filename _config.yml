@@ -44,6 +44,13 @@ defaults:
     values:
       image: https://frowningdev.github.io/django-orm-lens/media/hero.png
 
+# jekyll-sitemap publishes /sitemap.xml, the file search consoles take to
+# discover and recrawl the site. jekyll-seo-tag is named explicitly rather than
+# left to arrive as a dependency of the theme.
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
 markdown: kramdown
 kramdown:
   input: GFM
