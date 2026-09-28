@@ -43,6 +43,13 @@ defaults:
       path: ""
     values:
       image: https://frowningdev.github.io/django-orm-lens/media/hero.png
+  # README.md is served twice: as the homepage and again as /README.html. Both
+  # point their canonical at the homepage so search engines treat them as one
+  # page instead of two competing duplicates.
+  - scope:
+      path: "README.md"
+    values:
+      canonical_url: https://frowningdev.github.io/django-orm-lens/
 
 # jekyll-sitemap publishes /sitemap.xml, the file search consoles take to
 # discover and recrawl the site. jekyll-seo-tag is named explicitly rather than
