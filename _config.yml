@@ -76,7 +76,13 @@ exclude:
   - test
   - scripts
   - cli
-  - docs
+  # docs/rules is published: each page answers a query people search for, and
+  # the README links into it. Two pages stay out because they quote `{{ ... }}`
+  # (a Django template, a GitHub Actions expression) that Liquid would silently
+  # blank out; links to them point at GitHub instead.
+  - docs/i18n
+  - docs/rules/DOL012.md
+  - docs/rules/blast-radius.md
   - Dockerfile
   - package.json
   - package-lock.json

@@ -72,12 +72,12 @@ All of it is here, MIT-licensed, with no tier gate, no seat count, no account, a
 
 | Capability usually sold as a paid tier | Here |
 |---|---|
-| PR review bot for schema changes — posts once, then updates in place | [`blast-radius`](docs/rules/blast-radius.md) + the [Action](#️-gate-your-ci) |
+| PR review bot for schema changes — posts once, then updates in place | [`blast-radius`](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/blast-radius.md) + the [Action](#️-gate-your-ci) |
 | Analysis that follows a queryset across functions | [`nplusone`](docs/rules/nplusone.md) |
 | Schema drift detection | [`drift`](docs/rules/drift.md) |
 | Index proposals from observed QuerySet usage | `suggest-indexes` |
 | Migration risk weighed against real table sizes | `blast-radius --stats` |
-| Blast radius of a destructive migration | [`blast-radius`](docs/rules/blast-radius.md) |
+| Blast radius of a destructive migration | [`blast-radius`](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/blast-radius.md) |
 | Cross-layer impact of removing a field | `impact` |
 
 **There is no Pro tier, and none is planned.** If the tool saves you an afternoon, a star is the entire ask.
