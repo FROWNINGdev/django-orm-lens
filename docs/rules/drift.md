@@ -82,4 +82,4 @@ No database, no settings module, no installed dependencies — the same reason t
 ## Related
 
 - [`migration-risk`](migrations.md) — is an individual migration dangerous to run?
-- [`blast-radius`](blast-radius.md) — what does a schema change hit?
+- [`blast-radius`](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/blast-radius.md) — what does a schema change hit?
