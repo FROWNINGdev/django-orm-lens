@@ -47,6 +47,11 @@ defaults:
 # jekyll-sitemap publishes /sitemap.xml, the file search consoles take to
 # discover and recrawl the site. jekyll-seo-tag is named explicitly rather than
 # left to arrive as a dependency of the theme.
+# Ownership proof for Google Search Console; jekyll-seo-tag renders it as the
+# google-site-verification meta tag. Removing it unverifies the property.
+webmaster_verifications:
+  google: oIa9kh4gq9UEbkoSisvXaKhvzQsEkjzPncVDwkFtdD8
+
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
