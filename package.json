@@ -333,7 +333,7 @@
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "typescript": "^5.4.0"
   },
   "dependencies": {
