@@ -1123,8 +1123,10 @@ class NPlusOneScanner(ast.NodeVisitor):
             kind = self._classify(model_root, attr, kind_hint)
             if kind == "scalar":
                 continue
-            if kind in ("fk", "o2o"):
-                if "*" in select_set or attr in select_set:
+            if kind in ("fk", "o2o", "reverse_o2o"):
+                # A single-valued relation is loaded by either clause:
+                # select_related joins it, prefetch_related batches it.
+                if "*" in select_set or attr in select_set or attr in prefetch_set:
                     continue
                 uncovered_fk.append(attr)
                 if model_root is not None:
@@ -1186,7 +1188,7 @@ class NPlusOneScanner(ast.NodeVisitor):
         attr: str,
         kind_hint: str | None,
     ) -> str | None:
-        """Return ``"fk" | "o2o" | "m2m" | "reverse" | "scalar" | None``.
+        """Return ``"fk" | "o2o" | "reverse_o2o" | "m2m" | "reverse" | "scalar" | None``.
 
         Uses the parsed schema when the source model is known; falls back
         to ``kind_hint`` (from the access pattern) otherwise.
@@ -1301,7 +1303,7 @@ def _walk_for_accesses(
 def _build_schema_from_index(index: WorkspaceIndex) -> dict[str, dict[str, str]]:
     """Flatten a ``WorkspaceIndex`` into ``{ModelName: {attr: kind}}``.
 
-    ``kind`` in ``{"fk", "o2o", "m2m", "reverse", "scalar"}``. Reverse
+    ``kind`` in ``{"fk", "o2o", "reverse_o2o", "m2m", "reverse", "scalar"}``. Reverse
     relations (``<related_name>`` or default ``<model_lower>_set``) are
     computed by walking every FK/O2O/M2M in the workspace.
     """
@@ -1334,8 +1336,8 @@ def _build_schema_from_index(index: WorkspaceIndex) -> dict[str, dict[str, str]]
                     target = model.name
                 if target not in schema:
                     continue
-                reverse_name = f.related_name or f"{model.name.lower()}_set"
-                schema[target].setdefault(reverse_name, "reverse")
+                rev_kind, default_name = _reverse_kind(f.relation_kind, model.name)
+                schema[target].setdefault(f.related_name or default_name, rev_kind)
     return schema
 
 
@@ -1445,6 +1447,18 @@ def _build_schema_from_index_dict(payload: dict[str, Any]) -> dict[str, dict[str
                 target = model_name
             if target not in schema:
                 continue
-            reverse_name = f.get("relatedName") or f"{model_name.lower()}_set"
-            schema[target].setdefault(reverse_name, "reverse")
+            rev_kind, default_name = _reverse_kind(f.get("relationKind"), model_name)
+            schema[target].setdefault(f.get("relatedName") or default_name, rev_kind)
     return schema
+
+
+def _reverse_kind(relation_kind: str | None, model_name: str) -> tuple[str, str]:
+    """Kind and default accessor name of the reverse side of a relation.
+
+    The reverse of a OneToOneField is a single object (``user.profile``,
+    default name ``<model_lower>``) that ``select_related`` can join — not a
+    ``<model_lower>_set`` manager that only ``prefetch_related`` covers.
+    """
+    if relation_kind == "OneToOneField":
+        return "reverse_o2o", model_name.lower()
+    return "reverse", f"{model_name.lower()}_set"

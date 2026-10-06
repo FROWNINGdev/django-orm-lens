@@ -30,7 +30,7 @@
 import { ParsedField, ParsedModel, WorkspaceIndex } from './types';
 
 /** What an attribute access on a model instance costs. */
-export type AccessKind = 'fk' | 'o2o' | 'm2m' | 'reverse' | 'scalar';
+export type AccessKind = 'fk' | 'o2o' | 'reverse_o2o' | 'm2m' | 'reverse' | 'scalar';
 
 /** How far above the loop head to look for the binding that produced it. */
 export const MAX_ASSIGN_LOOKBACK = 40;
@@ -278,22 +278,30 @@ function kindOfField(field: ParsedField): AccessKind {
 
 /**
  * Names by which *other* models reach back into `model` — an explicit
- * `related_name`, or Django's default `<lowercase-model>_set`.
+ * `related_name`, or Django's default: `<lowercase-model>_set` for a manager,
+ * plain `<lowercase-model>` for the reverse side of a OneToOneField.
  *
- * Needed because a reverse manager is not a field on `model` and would
+ * Needed because a reverse accessor is not a field on `model` and would
  * otherwise fall into the "not declared here, so scalar" branch, silencing a
- * genuine N+1 that `.prefetch_related()` is exactly the fix for.
+ * genuine N+1. The kind matters too: a reverse OneToOne is a single object
+ * that `.select_related()` joins, not a manager only `.prefetch_related()`
+ * covers.
  */
-function reverseNamesFor(index: WorkspaceIndex, model: ParsedModel): Set<string> {
-  const out = new Set<string>();
+function reverseNamesFor(
+  index: WorkspaceIndex,
+  model: ParsedModel,
+): Map<string, AccessKind> {
+  const out = new Map<string, AccessKind>();
   for (const app of index.apps) {
     for (const other of app.models) {
       for (const f of [...other.fields, ...other.inheritedFields]) {
         if (!f.isRelation) continue;
         const target = (f.relatedModel ?? '').split('.').pop();
         if (target !== model.name) continue;
-        if (f.relatedName && f.relatedName !== '+') out.add(f.relatedName);
-        else out.add(`${other.name.toLowerCase()}_set`);
+        if (f.relatedName === '+') continue;
+        const o2o = f.relationKind === 'OneToOneField';
+        const name = f.relatedName || other.name.toLowerCase() + (o2o ? '' : '_set');
+        if (!out.has(name)) out.set(name, o2o ? 'reverse_o2o' : 'reverse');
       }
     }
   }
@@ -321,7 +329,8 @@ export function classifyAttr(
   for (const f of [...model.fields, ...model.inheritedFields]) {
     if (f.name === attr) return kindOfField(f);
   }
-  if (reverseNamesFor(index, model).has(attr)) return 'reverse';
+  const reverse = reverseNamesFor(index, model).get(attr);
+  if (reverse) return reverse;
   if (RE_REVERSE_SUFFIX.test(attr)) return 'reverse';
   return 'scalar';
 }
@@ -340,7 +349,8 @@ export function isCovered(
 ): boolean {
   const inSelect = source.selectRelated.has('*') || source.selectRelated.has(attr);
   const inPrefetch = source.prefetchRelated.has('*') || source.prefetchRelated.has(attr);
-  if (kind === 'fk' || kind === 'o2o') return inSelect;
+  // A single-valued relation is loaded by either clause.
+  if (kind === 'fk' || kind === 'o2o' || kind === 'reverse_o2o') return inSelect || inPrefetch;
   if (kind === 'm2m' || kind === 'reverse') return inPrefetch;
   return inSelect || inPrefetch;
 }
