@@ -1336,8 +1336,8 @@ def _build_schema_from_index(index: WorkspaceIndex) -> dict[str, dict[str, str]]
                     target = model.name
                 if target not in schema:
                     continue
-                kind, default_name = _reverse_kind(f.relation_kind, model.name)
-                schema[target].setdefault(f.related_name or default_name, kind)
+                rev_kind, default_name = _reverse_kind(f.relation_kind, model.name)
+                schema[target].setdefault(f.related_name or default_name, rev_kind)
     return schema
 
 
@@ -1447,8 +1447,8 @@ def _build_schema_from_index_dict(payload: dict[str, Any]) -> dict[str, dict[str
                 target = model_name
             if target not in schema:
                 continue
-            kind, default_name = _reverse_kind(f.get("relationKind"), model_name)
-            schema[target].setdefault(f.get("relatedName") or default_name, kind)
+            rev_kind, default_name = _reverse_kind(f.get("relationKind"), model_name)
+            schema[target].setdefault(f.get("relatedName") or default_name, rev_kind)
     return schema
 
 
