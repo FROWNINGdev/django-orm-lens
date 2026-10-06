@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.3] - 2026-10-06
+
+### Fixed
+
+- **`DOL007` flagged loops that already had `select_related` on a reverse
+  OneToOne.** `user.profile`, where `Profile.user` is a `OneToOneField`, was
+  treated like a `profile_set` manager that only `prefetch_related` covers, so
+  `User.objects.select_related("profile")` was still reported. The reverse
+  side of a OneToOne is a single object and either clause now covers it, as
+  does `prefetch_related` on a forward FK. Without an explicit `related_name`
+  the reverse accessor is now looked up as `<model>` instead of `<model>_set`,
+  so a genuine N+1 through it is no longer missed. Same fix as py-1.13.1.
+
+## [py-1.13.1] - 2026-10-06
+
+### Fixed
+
+- **`n-plus-one` false positive on a reverse OneToOne with `select_related`.**
+  The schema typed the reverse side of a `OneToOneField` as a reverse manager,
+  so `select_related("profile")` did not count and the suggested fix was
+  `.prefetch_related("profile")`. It now has its own `reverse_o2o` kind:
+  covered by either clause, fixed with `.select_related(...)`, and named
+  `<model>` rather than `<model>_set` when no `related_name` is set, which
+  also surfaces N+1s that were silently skipped. A forward FK loaded through
+  `prefetch_related` is no longer reported either.
+
 ## [0.19.2] - 2026-09-28
 
 ### Changed

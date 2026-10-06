@@ -389,5 +389,71 @@ class ScanForNPlusOneTest(unittest.TestCase):
             self.assertIsInstance(scanner.findings[0], NPlusOneFinding)
 
 
+class ReverseOneToOneTest(unittest.TestCase):
+    """The reverse side of a OneToOneField is a single object, so
+    ``select_related`` covers it — it must not be treated like a
+    ``_set`` manager that only ``prefetch_related`` satisfies.
+    """
+
+    MODELS = (
+        "from django.db import models\n"
+        "\n"
+        "class User(models.Model):\n"
+        "    name = models.CharField(max_length=10)\n"
+        "\n"
+        "class Profile(models.Model):\n"
+        "    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')\n"
+        "    bio = models.TextField()\n"
+        "\n"
+        "class Account(models.Model):\n"
+        "    user = models.OneToOneField(User, on_delete=models.CASCADE)\n"
+        "    plan = models.TextField()\n"
+    )
+
+    def _scan(self, views: str) -> list[NPlusOneFinding]:
+        from django_orm_lens.parser import scan_workspace
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(root / "app" / "models.py", self.MODELS)
+            _write(root / "app" / "views.py", views)
+            return scan_for_nplusone(str(root), scan_workspace(str(root)))
+
+    def test_select_related_covers_reverse_o2o(self) -> None:
+        findings = self._scan(
+            "def f():\n"
+            "    for u in User.objects.select_related('profile'):\n"
+            "        print(u.profile.bio)\n"
+        )
+        self.assertEqual(findings, [])
+
+    def test_prefetch_related_still_covers_reverse_o2o(self) -> None:
+        findings = self._scan(
+            "def f():\n"
+            "    for u in User.objects.prefetch_related('profile'):\n"
+            "        print(u.profile.bio)\n"
+        )
+        self.assertEqual(findings, [])
+
+    def test_missing_reverse_o2o_suggests_select_related(self) -> None:
+        findings = self._scan(
+            "def f():\n"
+            "    for u in User.objects.all():\n"
+            "        print(u.profile.bio)\n"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].suggested_fix, '.select_related("profile")')
+
+    def test_default_reverse_o2o_name_is_model_lower_not_set(self) -> None:
+        findings = self._scan(
+            "def f():\n"
+            "    for u in User.objects.all():\n"
+            "        print(u.account.plan)\n"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].accessed, ["account"])
+        self.assertEqual(findings[0].confidence, "high")
+
+
 if __name__ == "__main__":
     unittest.main()

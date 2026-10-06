@@ -304,3 +304,52 @@ test('DOL007 stops scanning at outdent', () => {
   const findings = rule.check(makeCtx(src));
   assert.equal(findings.length, 0);
 });
+
+/** A workspace where Profile / Account point back at User via OneToOneField. */
+function reverseO2oIndex() {
+  const field = (name, relatedName) => ({
+    name, type: 'OneToOneField', args: '', isRelation: true,
+    relatedModel: 'User', relationKind: 'OneToOneField', relatedName, lineNumber: 1,
+  });
+  const scalar = (name) => ({ name, type: 'TextField', args: '', isRelation: false, lineNumber: 1 });
+  const model = (name, fields) => ({
+    name, appName: 'app', filePath: 'app/models.py', lineNumber: 1, fields, inheritedFields: [],
+  });
+  return {
+    scannedAt: 0,
+    apps: [{ name: 'app', path: 'app', models: [
+      model('User', [scalar('name')]),
+      model('Profile', [field('user', 'profile'), scalar('bio')]),
+      model('Account', [field('user', undefined), scalar('plan')]),
+    ] }],
+  };
+}
+
+function checkWithIndex(src) {
+  return ruleByCode('DOL007').check({ ...makeCtx(src), index: reverseO2oIndex() });
+}
+
+test('DOL007 accepts select_related for a reverse OneToOne', () => {
+  const findings = checkWithIndex([
+    'for u in User.objects.select_related("profile"):',
+    '    print(u.profile.bio)',
+  ].join('\n'));
+  assert.equal(findings.length, 0);
+});
+
+test('DOL007 still flags an uncovered reverse OneToOne', () => {
+  const findings = checkWithIndex([
+    'for u in User.objects.all():',
+    '    print(u.profile.bio)',
+  ].join('\n'));
+  assert.equal(findings.length, 1);
+});
+
+test('DOL007 knows the default reverse OneToOne name is <model>, not <model>_set', () => {
+  const findings = checkWithIndex([
+    'for u in User.objects.all():',
+    '    print(u.account.plan)',
+  ].join('\n'));
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].fixHint, 'account');
+});
