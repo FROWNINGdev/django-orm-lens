@@ -713,7 +713,7 @@ export function pullImportedBases(
     if (rel.startsWith('..') || isExcluded(rel)) return null;
     let content: string;
     try {
-      if (!fs.statSync(file).isFile()) return null;
+      // A directory or a missing file throws here (EISDIR / ENOENT).
       content = fs.readFileSync(file, 'utf-8');
     } catch {
       return null;
