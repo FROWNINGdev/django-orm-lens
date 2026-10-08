@@ -534,7 +534,7 @@ function appDirFor(fsPath: string): { dir: string; name: string } {
 // We only need enough coverage for the default exclude patterns
 // (**/migrations/**, **/venv/**, **/node_modules/**, etc.) — anything more
 // exotic falls back to matching the raw pattern as a substring.
-function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
+export function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
   const segments = patterns
     .map((p) => {
       const m = p.match(/^\*\*\/([^/*]+)\/\*\*$/);
@@ -542,12 +542,40 @@ function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
     })
     .filter((s): s is string => !!s);
   const raw = patterns.filter((p) => !/^\*\*\/([^/*]+)\/\*\*$/.test(p));
+  // Wildcard patterns match like Python's fnmatch, which the CLI applies to
+  // the same setting, so `**/*_test.py` excludes the same files on both sides.
+  const globs = raw.filter((p) => /[*?[]/.test(p)).map(fnmatchRegex);
+  const plain = raw.filter((p) => !/[*?[]/.test(p));
   return (rel: string) => {
     const parts = rel.split('/');
     for (const seg of segments) if (parts.includes(seg)) return true;
-    for (const r of raw) if (rel.includes(r)) return true;
+    for (const g of globs) if (g.test(rel)) return true;
+    for (const r of plain) if (rel.includes(r)) return true;
     return false;
   };
+}
+
+/** Python `fnmatch.translate`: `*` spans `/`, `[!x]` negates a class. */
+function fnmatchRegex(pattern: string): RegExp {
+  let out = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === '*') out += '.*';
+    else if (c === '?') out += '.';
+    else if (c === '[') {
+      const end = pattern.indexOf(']', i + 2);
+      if (end === -1) {
+        out += '\\[';
+        continue;
+      }
+      let body = pattern.slice(i + 1, end).replace(/\\/g, '\\\\');
+      if (body.startsWith('!')) body = '^' + body.slice(1);
+      else if (body.startsWith('^')) body = '\\' + body;
+      out += `[${body}]`;
+      i = end;
+    } else out += c.replace(/[.+^${}()|\\\]]/g, '\\$&');
+  }
+  return new RegExp(`^${out}$`, 's');
 }
 
 /**
@@ -600,6 +628,182 @@ function walkForModels(root: string, isExcluded: (rel: string) => boolean): stri
     }
   }
   return results;
+}
+
+const FROM_IMPORT_RE =
+  /^[ \t]*from[ \t]+(\.+[\w.]*|[\w.]+)[ \t]+import[ \t]+(?:\(([^)]*)\)|([^\n]*))/gm;
+const IMPORT_RE = /^[ \t]*import[ \t]+([^\n]+)/gm;
+
+// How many re-exports a base may sit behind (`core/db/__init__.py` doing
+// `from .bases import SoftDeletable` is one). Bounds a malformed import cycle
+// rather than any real project.
+const MAX_IMPORT_HOPS = 5;
+
+type ImportTarget = { module: string; name: string | null };
+
+/**
+ * Map each name a module binds by import to the module (and name) it came
+ * from. Mirrors `_parse_imports` in cli/django_orm_lens/parser.py.
+ */
+export function parseImports(content: string): Map<string, ImportTarget> {
+  const out = new Map<string, ImportTarget>();
+  const put = (alias: string, t: ImportTarget) => {
+    if (!out.has(alias)) out.set(alias, t);
+  };
+  for (const m of content.matchAll(FROM_IMPORT_RE)) {
+    const names = m[2] ?? m[3] ?? '';
+    for (const raw of names.split(',')) {
+      const item = raw.split('#')[0].trim().replace(/\\$/, '').trim();
+      const parts = item.split(/\s+/).filter(Boolean);
+      if (!parts.length || parts[0] === '*') continue;
+      const alias = parts.length === 3 && parts[1] === 'as' ? parts[2] : parts[0];
+      put(alias, { module: m[1], name: parts[0] });
+    }
+  }
+  for (const m of content.matchAll(IMPORT_RE)) {
+    for (const raw of m[1].split('#')[0].split(',')) {
+      const parts = raw.trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) continue;
+      if (parts.length === 3 && parts[1] === 'as') {
+        put(parts[2], { module: parts[0], name: null });
+      } else {
+        const head = parts[0].split('.')[0];
+        put(head, { module: head, name: null });
+      }
+    }
+  }
+  return out;
+}
+
+function joinModule(module: string, name: string): string {
+  return module.endsWith('.') ? module + name : `${module}.${name}`;
+}
+
+function isInside(dir: string, root: string): boolean {
+  const rel = path.relative(root, dir);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/** Candidate files for `module` imported from `fromFile`. Mirrors `_module_files`. */
+function moduleFiles(module: string, fromFile: string, root: string): string[] {
+  const dots = module.length - module.replace(/^\.+/, '').length;
+  const parts = module.slice(dots).split('.').filter(Boolean);
+  const here = path.dirname(path.resolve(fromFile));
+  const bases: string[] = [];
+  if (dots) {
+    let b = here;
+    for (let k = 1; k < dots; k++) b = path.dirname(b);
+    bases.push(b);
+  } else {
+    for (let b = here; ; b = path.dirname(b)) {
+      bases.push(b);
+      if (path.dirname(b) === b) break;
+    }
+  }
+  const out: string[] = [];
+  for (const b of bases) {
+    if (!isInside(b, root)) break;
+    const target = path.join(b, ...parts);
+    if (parts.length) out.push(target + '.py');
+    out.push(path.join(target, '__init__.py'));
+  }
+  return out;
+}
+
+/**
+ * Definitions of base classes that live outside the scanned model files.
+ *
+ * The scan reads `models.py`-style files only, so `class Person(MyBase)` with
+ * `MyBase` in `core/base.py` had nothing to resolve against and `Person`
+ * vanished (issue #135). This follows the subclass's own imports to the file
+ * defining each unknown base — through re-exports and relative imports — and
+ * returns those classes so `resolveAndFilter` sees the whole chain. Only
+ * classes something inherits from are pulled. Mirrors `_pull_imported_bases`
+ * in cli/django_orm_lens/parser.py.
+ */
+export function pullImportedBases(
+  allDefs: ParsedModel[],
+  roots: string[],
+  isExcluded: (relPosix: string) => boolean = () => false
+): ParsedModel[] {
+  const resolvedRoots = roots.map((r) => path.resolve(r));
+  const rootOf = (file: string) =>
+    resolvedRoots
+      .filter((r) => isInside(path.dirname(file), r))
+      .sort((a, b) => b.length - a.length)[0];
+  type Entry = { defs: Map<string, ParsedModel>; imports: Map<string, ImportTarget> };
+  const loaded = new Map<string, Entry | null>();
+
+  const load = (file: string, root: string): Entry | null => {
+    if (loaded.has(file)) return loaded.get(file)!;
+    loaded.set(file, null);
+    const rel = path.relative(root, file).split(path.sep).join('/');
+    if (rel.startsWith('..') || isExcluded(rel)) return null;
+    let content: string;
+    try {
+      // A directory or a missing file throws here (EISDIR / ENOENT).
+      content = fs.readFileSync(file, 'utf-8');
+    } catch {
+      return null;
+    }
+    const defs = new Map<string, ParsedModel>();
+    try {
+      for (const d of collectDefs(file, content)) if (!defs.has(d.name)) defs.set(d.name, d);
+    } catch {
+      return null;
+    }
+    const entry = { defs, imports: parseImports(content) };
+    loaded.set(file, entry);
+    return entry;
+  };
+
+  const find = (file: string, base: string, root: string, hops: number): ParsedModel | null => {
+    const entry = load(file, root);
+    if (!entry || hops > MAX_IMPORT_HOPS) return null;
+    const qual = base.split('.');
+    let name = qual.pop()!;
+    let module: string;
+    if (!qual.length) {
+      const own = entry.defs.get(name);
+      if (own) return own;
+      const target = entry.imports.get(name);
+      if (!target || target.name === null) return null;
+      module = target.module;
+      name = target.name;
+    } else {
+      const head = entry.imports.get(qual[0]);
+      if (!head) module = qual[0];
+      else if (head.name === null) module = head.module;
+      else module = joinModule(head.module, head.name);
+      for (const part of qual.slice(1)) module = joinModule(module, part);
+    }
+    for (const candidate of moduleFiles(module, file, root)) {
+      const found = find(candidate, name, root, hops + 1);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  const known = new Set(allDefs.map((m) => m.name));
+  const queue: Array<[string, string]> = [];
+  for (const m of allDefs) for (const b of m.baseClasses) queue.push([m.filePath, b]);
+  const asked = new Set<string>();
+  const pulled: ParsedModel[] = [];
+  while (queue.length) {
+    const [filePath, base] = queue.pop()!;
+    const key = `${filePath}\0${base}`;
+    if (known.has(base.split('.').pop() ?? '') || asked.has(key)) continue;
+    asked.add(key);
+    const file = path.resolve(filePath);
+    const root = rootOf(file);
+    if (!root) continue;
+    const found = find(file, base, root, 0);
+    if (!found || known.has(found.name)) continue;
+    known.add(found.name);
+    pulled.push(found);
+    for (const b of found.baseClasses) queue.push([found.filePath, b]);
+  }
+  return pulled;
 }
 
 export async function scanWorkspace(
@@ -676,6 +880,13 @@ export async function scanWorkspace(
       console.error(`django-orm-lens: parser error in ${uri.fsPath}`, err);
     }
   }
+  allDefs.push(
+    ...pullImportedBases(
+      allDefs,
+      folders.filter((f) => f.uri.scheme === 'file').map((f) => f.uri.fsPath),
+      excludeMatcher(excludeGlobs)
+    )
+  );
 
   for (const model of resolveAndFilter(allDefs)) {
     const { dir: appDir, name: appName } = appDirFor(model.filePath);
