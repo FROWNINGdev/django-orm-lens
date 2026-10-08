@@ -7,22 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.4] - 2026-10-08
+
 ### Fixed
 
 - **Models whose base class lives outside `models.py` disappeared (#135).**
   `class Person(MyCustomModel)` with `MyCustomModel` in `core/base.py` was
-  missing from the sidebar, the ER diagram and every `scan`: only
+  missing from the sidebar, the ER diagram and every rule: only
   `models.py`, `abstract_models.py` and `models/*.py` are read, so the base had
   no definition and nothing below it was recognized as a model. The scan now
   follows the subclass's imports to the file that defines the base — plain and
   relative imports, `from core import base` aliases, and re-exports through a
   package `__init__.py` — and inherited fields come along. Only classes that a
   model actually inherits from are read from those files, and nothing outside
-  the workspace root is opened. Same fix in the CLI and the extension.
+  the workspace root is opened. Same fix as py-1.13.2.
 - **`djangoOrmLens.excludeGlobs` wildcard patterns other than `**/dir/**`
-  were matched as plain substrings in the extension**, so `**/*_test.py`
-  excluded nothing there while the CLI's `fnmatch` excluded it. They now
-  match the way the CLI matches them.
+  were matched as plain substrings**, so `**/*_test.py` excluded nothing in
+  the extension while the CLI's `fnmatch` excluded it. They now match the way
+  the CLI matches them.
+
+## [py-1.13.2] - 2026-10-08
+
+### Fixed
+
+- **Models whose base class lives outside `models.py` were dropped from
+  `scan` and every command built on it (#135).** A base in `core/base.py` or
+  any other non-model module had no definition to resolve against, so
+  `class Person(MyCustomModel)` vanished along with its fields. `scan_workspace`
+  now follows the subclass's imports — plain, relative, module aliases and
+  package re-exports — to the base's file, so the model, its inherited fields
+  and the MCP tools that read them are back. Only inherited-from classes are
+  read, and nothing outside the scan root is opened.
 
 ## [0.19.3] - 2026-10-06
 
