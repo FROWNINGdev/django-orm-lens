@@ -734,6 +734,160 @@ def _resolve_and_filter(all_defs: list[ParsedModel]) -> list[ParsedModel]:
     return result
 
 
+_FROM_IMPORT_RE = re.compile(
+    r"^[ \t]*from[ \t]+(\.+[\w.]*|[\w.]+)[ \t]+import[ \t]+(?:\(([^)]*)\)|([^\n]*))",
+    re.M,
+)
+_IMPORT_RE = re.compile(r"^[ \t]*import[ \t]+([^\n]+)", re.M)
+
+#: How many re-exports a base may sit behind (``core/db/__init__.py`` doing
+#: ``from .bases import SoftDeletable`` is one). Bounds a malformed import
+#: cycle rather than any real project.
+_MAX_IMPORT_HOPS = 5
+
+
+def _parse_imports(content: str) -> dict[str, tuple[str, str | None]]:
+    """Map each name a module binds by import to ``(module, imported_name)``.
+
+    ``from core.base import MyModel as M`` gives ``M -> ("core.base", "MyModel")``;
+    ``import core.base as cb`` gives ``cb -> ("core.base", None)``, and a bare
+    ``import core.base`` binds its head, ``core -> ("core", None)``. Regex
+    rather than ``ast`` so ``src/parser.ts`` can read imports the same way.
+    """
+    out: dict[str, tuple[str, str | None]] = {}
+    for m in _FROM_IMPORT_RE.finditer(content):
+        names = m.group(2) if m.group(2) is not None else m.group(3)
+        for raw in names.split(","):
+            item = raw.split("#")[0].strip().rstrip("\\").strip()
+            parts = item.split()
+            if not parts or parts[0] == "*":
+                continue
+            alias = parts[2] if len(parts) == 3 and parts[1] == "as" else parts[0]
+            out.setdefault(alias, (m.group(1), parts[0]))
+    for m in _IMPORT_RE.finditer(content):
+        for raw in m.group(1).split("#")[0].split(","):
+            parts = raw.strip().split()
+            if not parts:
+                continue
+            if len(parts) == 3 and parts[1] == "as":
+                out.setdefault(parts[2], (parts[0], None))
+            else:
+                head = parts[0].split(".")[0]
+                out.setdefault(head, (head, None))
+    return out
+
+
+def _join_module(module: str, name: str) -> str:
+    return module + name if module.endswith(".") else f"{module}.{name}"
+
+
+def _module_files(module: str, from_file: str, root: Path) -> list[Path]:
+    """Candidate files for ``module`` as imported from ``from_file``.
+
+    A relative module resolves against the importing file. An absolute one is
+    tried from every directory between the importing file and ``root``, since
+    the scan root is not necessarily the import root (``src/`` layouts, a repo
+    holding several projects). Files outside ``root`` are never returned.
+    """
+    dots = len(module) - len(module.lstrip("."))
+    parts = [p for p in module[dots:].split(".") if p]
+    here = Path(from_file).resolve().parent
+    # ``from .x`` is this package, each extra dot one directory up.
+    lineage = [here, *here.parents]
+    bases = lineage[dots - 1 : dots] if dots else lineage
+    out: list[Path] = []
+    for base in bases:
+        if base != root and root not in base.parents:
+            break
+        target = base.joinpath(*parts)
+        if parts:
+            out.append(target.with_name(target.name + ".py"))
+        out.append(target / "__init__.py")
+    return out
+
+
+def _pull_imported_bases(
+    all_defs: list[ParsedModel], root: Path, excludes: Sequence[str]
+) -> list[ParsedModel]:
+    """Definitions of base classes that live outside the scanned model files.
+
+    The scan reads ``models.py``-style files only, so ``class Person(MyBase)``
+    with ``MyBase`` in ``core/base.py`` had nothing to resolve against and
+    ``Person`` vanished (issue #135). This follows the subclass's own imports
+    to the file that defines each unknown base — through re-exports and
+    relative imports — and returns those classes so ``_resolve_and_filter``
+    sees the whole chain. Only classes something actually inherits from are
+    pulled, so helpers sharing that file never show up as models.
+    """
+    loaded: dict[Path, tuple[dict[str, ParsedModel], dict] | None] = {}
+
+    def load(path: Path) -> tuple[dict[str, ParsedModel], dict] | None:
+        if path in loaded:
+            return loaded[path]
+        loaded[path] = None
+        try:
+            rel = path.relative_to(root).as_posix()
+        except ValueError:
+            return None
+        if any(fnmatch(rel, pat) for pat in excludes) or not path.is_file():
+            return None
+        try:
+            content = path.read_text(encoding="utf-8", errors="replace")
+            defs: dict[str, ParsedModel] = {}
+            for d in _collect_defs(str(path), content):
+                defs.setdefault(d.name, d)
+        except Exception:
+            return None
+        loaded[path] = (defs, _parse_imports(content))
+        return loaded[path]
+
+    def find(path: Path, base: str, hops: int) -> ParsedModel | None:
+        entry = load(path)
+        if entry is None or hops > _MAX_IMPORT_HOPS:
+            return None
+        defs, imports = entry
+        *qual, name = base.split(".")
+        if not qual:
+            if name in defs:
+                return defs[name]
+            target = imports.get(name)
+            if target is None or target[1] is None:
+                return None
+            module, name = target[0], target[1]
+        else:
+            head = imports.get(qual[0])
+            if head is None:
+                module = qual[0]
+            elif head[1] is None:
+                module = head[0]
+            else:
+                module = _join_module(head[0], head[1])
+            for part in qual[1:]:
+                module = _join_module(module, part)
+        for candidate in _module_files(module, str(path), root):
+            found = find(candidate, name, hops + 1)
+            if found is not None:
+                return found
+        return None
+
+    known = {m.name for m in all_defs}
+    queue = [(m.file_path, b) for m in all_defs for b in m.base_classes]
+    asked: set[tuple[str, str]] = set()
+    pulled: list[ParsedModel] = []
+    while queue:
+        file_path, base = queue.pop()
+        if base.split(".")[-1] in known or (file_path, base) in asked:
+            continue
+        asked.add((file_path, base))
+        found = find(Path(file_path).resolve(), base, 0)
+        if found is None or found.name in known:
+            continue
+        known.add(found.name)
+        pulled.append(found)
+        queue.extend((found.file_path, b) for b in found.base_classes)
+    return pulled
+
+
 #: Files that declare models but are not named ``models.py``. Pluggable
 #: Django frameworks keep their abstract bases here and leave ``models.py``
 #: holding only the concrete subclasses — django-oscar does this in all 14 of
@@ -833,6 +987,7 @@ def scan_workspace(
                 file=sys.stderr,
             )
             continue
+    all_defs.extend(_pull_imported_bases(all_defs, root_path, exclude_globs))
 
     apps: dict = {}
     for model in _resolve_and_filter(all_defs):

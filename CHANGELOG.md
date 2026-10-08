@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Models whose base class lives outside `models.py` disappeared (#135).**
+  `class Person(MyCustomModel)` with `MyCustomModel` in `core/base.py` was
+  missing from the sidebar, the ER diagram and every `scan`: only
+  `models.py`, `abstract_models.py` and `models/*.py` are read, so the base had
+  no definition and nothing below it was recognized as a model. The scan now
+  follows the subclass's imports to the file that defines the base — plain and
+  relative imports, `from core import base` aliases, and re-exports through a
+  package `__init__.py` — and inherited fields come along. Only classes that a
+  model actually inherits from are read from those files, and nothing outside
+  the workspace root is opened. Same fix in the CLI and the extension.
+
 ## [0.19.3] - 2026-10-06
 
 ### Fixed
