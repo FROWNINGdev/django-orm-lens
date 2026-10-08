@@ -534,7 +534,7 @@ function appDirFor(fsPath: string): { dir: string; name: string } {
 // We only need enough coverage for the default exclude patterns
 // (**/migrations/**, **/venv/**, **/node_modules/**, etc.) — anything more
 // exotic falls back to matching the raw pattern as a substring.
-function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
+export function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
   const segments = patterns
     .map((p) => {
       const m = p.match(/^\*\*\/([^/*]+)\/\*\*$/);
@@ -542,12 +542,40 @@ function excludeMatcher(patterns: string[]): (relPosix: string) => boolean {
     })
     .filter((s): s is string => !!s);
   const raw = patterns.filter((p) => !/^\*\*\/([^/*]+)\/\*\*$/.test(p));
+  // Wildcard patterns match like Python's fnmatch, which the CLI applies to
+  // the same setting, so `**/*_test.py` excludes the same files on both sides.
+  const globs = raw.filter((p) => /[*?[]/.test(p)).map(fnmatchRegex);
+  const plain = raw.filter((p) => !/[*?[]/.test(p));
   return (rel: string) => {
     const parts = rel.split('/');
     for (const seg of segments) if (parts.includes(seg)) return true;
-    for (const r of raw) if (rel.includes(r)) return true;
+    for (const g of globs) if (g.test(rel)) return true;
+    for (const r of plain) if (rel.includes(r)) return true;
     return false;
   };
+}
+
+/** Python `fnmatch.translate`: `*` spans `/`, `[!x]` negates a class. */
+function fnmatchRegex(pattern: string): RegExp {
+  let out = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === '*') out += '.*';
+    else if (c === '?') out += '.';
+    else if (c === '[') {
+      const end = pattern.indexOf(']', i + 2);
+      if (end === -1) {
+        out += '\\[';
+        continue;
+      }
+      let body = pattern.slice(i + 1, end).replace(/\\/g, '\\\\');
+      if (body.startsWith('!')) body = '^' + body.slice(1);
+      else if (body.startsWith('^')) body = '\\' + body;
+      out += `[${body}]`;
+      i = end;
+    } else out += c.replace(/[.+^${}()|\\\]]/g, '\\$&');
+  }
+  return new RegExp(`^${out}$`, 's');
 }
 
 /**

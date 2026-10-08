@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package `__init__.py` — and inherited fields come along. Only classes that a
   model actually inherits from are read from those files, and nothing outside
   the workspace root is opened. Same fix in the CLI and the extension.
+- **`djangoOrmLens.excludeGlobs` wildcard patterns other than `**/dir/**`
+  were matched as plain substrings in the extension**, so `**/*_test.py`
+  excluded nothing there while the CLI's `fnmatch` excluded it. They now
+  match the way the CLI matches them.
 
 ## [0.19.3] - 2026-10-06
 

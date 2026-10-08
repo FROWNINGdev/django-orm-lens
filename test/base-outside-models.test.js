@@ -72,3 +72,21 @@ test('files outside the root are never read', () => {
   const defs = modelFiles.flatMap((f) => collectDefs(f, fs.readFileSync(f, 'utf-8')));
   assert.deepEqual(pullImportedBases(defs, [path.join(root, 'places')]).map((m) => m.name), ['Located']);
 });
+
+test('exclude globs match like fnmatch in the CLI', () => {
+  const { excludeMatcher } = require('../out/parser');
+  const ex = excludeMatcher(['**/migrations/**', '**/*_test.py', 'core/db/*', 'legacy']);
+  assert.ok(ex('migrations/0001.py'), 'segment form still matches at the top level');
+  assert.ok(ex('core/base_test.py'));
+  assert.ok(ex('core/db/bases.py'));
+  assert.ok(ex('old/legacy/models.py'), 'a pattern without wildcards keeps substring matching');
+  assert.ok(!ex('core/base.py'));
+});
+
+test('an excluded base file is not read', () => {
+  const { excludeMatcher } = require('../out/parser');
+  const defs = modelFiles.flatMap((f) => collectDefs(f, fs.readFileSync(f, 'utf-8')));
+  const pulled = pullImportedBases(defs, [root], excludeMatcher(['core/db/*'])).map((m) => m.name);
+  assert.ok(!pulled.includes('SoftDeletable'));
+  assert.ok(pulled.includes('MyCustomModel'));
+});
