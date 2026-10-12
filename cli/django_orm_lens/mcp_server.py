@@ -712,8 +712,13 @@ def main() -> int:
                 return handler({"workspace_root": workspace_root})
         elif name == "impact":
             @server.tool(name=name, description=description)
-            def impact(name_: str = "", workspace_root: str = "") -> str:
-                return handler({"name": name_, "workspace_root": workspace_root})
+            # ``name`` is what the tool description tells agents to pass.
+            # ``name_`` was the advertised parameter before, so it keeps
+            # working for clients that learned it from the old schema.
+            # ``name`` shadows ``_register``'s own only inside this body,
+            # after the decorator above has already read it.
+            def impact(name: str = "", workspace_root: str = "", name_: str = "") -> str:
+                return handler({"name": name or name_, "workspace_root": workspace_root})
 
     for name, spec in TOOLS.items():
         _register(name, spec["description"], spec["handler"])

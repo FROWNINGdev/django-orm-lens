@@ -333,6 +333,89 @@ class HappyPathTest(unittest.TestCase):
         self.assertIn("select_related", f["suggested_fix"])
 
 
+def _registered_server():
+    """Run :func:`main` far enough to register every tool, then return the
+    server instead of serving stdio, so tests read the schema FastMCP builds
+    from the real signatures."""
+    import contextlib
+    import io
+    from unittest import mock
+
+    from django_orm_lens import mcp_server
+
+    loaded = _load_server_class()
+    if loaded is None:
+        return None
+    server_class, takes_version = loaded
+    captured = []
+
+    class _NoRun(server_class):  # type: ignore[misc, valid-type]
+        def run(self, *args, **kwargs):
+            captured.append(self)
+
+    with mock.patch.object(
+        mcp_server, "_load_server_class", return_value=(_NoRun, takes_version)
+    ), contextlib.redirect_stderr(io.StringIO()):
+        mcp_server.main()
+    return captured[0]
+
+
+def _result_text(result) -> str:
+    """Join the text blocks of a ``call_tool`` result on either mcp major."""
+    if isinstance(result, tuple):  # 1.x may return (content, structured)
+        result = result[0]
+    content = getattr(result, "content", result)
+    return "".join(getattr(block, "text", "") for block in content)
+
+
+class ImpactToolSchemaTest(unittest.TestCase):
+    """``impact`` must accept the ``name`` argument its description asks for.
+
+    The registered signature used to be ``name_``, so ``tools/list`` advertised
+    ``name_`` while the description said "Required 'name' argument", and an
+    agent passing ``name`` got ``MISSING_NAME: pass 'name'``.
+    """
+
+    def setUp(self) -> None:
+        self.server = _registered_server()
+        if self.server is None:
+            self.skipTest("mcp extra not installed")
+        self.tmp = Path(tempfile.mkdtemp(prefix="djol-impact-"))
+        _write_django_project(self.tmp)
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        clear_cache()
+        self.addCleanup(clear_cache)
+
+    def _call(self, arguments: dict) -> dict:
+        import asyncio
+
+        result = asyncio.run(self.server.call_tool("impact", arguments))
+        return json.loads(_result_text(result))
+
+    def test_schema_advertises_name(self) -> None:
+        import asyncio
+
+        tools = {t.name: t for t in asyncio.run(self.server.list_tools())}
+        tool = tools["impact"]
+        # ``input_schema`` on mcp 2.x, ``inputSchema`` on 1.x.
+        schema = getattr(tool, "input_schema", None) or tool.inputSchema
+        self.assertIn("name", schema["properties"])
+
+    def test_call_with_name_reaches_the_handler(self) -> None:
+        payload = self._call({"name": "title", "workspace_root": str(self.tmp)})
+        self.assertNotIn("error", payload)
+        self.assertEqual(payload["needle"], "title")
+
+    def test_legacy_name_underscore_still_works(self) -> None:
+        payload = self._call({"name_": "title", "workspace_root": str(self.tmp)})
+        self.assertNotIn("error", payload)
+        self.assertEqual(payload["needle"], "title")
+
+    def test_missing_name_keeps_the_envelope(self) -> None:
+        payload = self._call({"workspace_root": str(self.tmp)})
+        self.assertEqual(payload["error"], "MISSING_NAME")
+
+
 class SentinelDataclassTest(unittest.TestCase):
     """The WorkspaceError sentinel is what powers the envelope. Keep the
     dict shape stable so agents can pattern-match on ``error`` field."""
