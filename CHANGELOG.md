@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The `impact` MCP tool rejected the `name` argument its description asks
+  for.** The tool was registered with a `name_` parameter, so `tools/list`
+  advertised `name_` while the description said "Required 'name' argument",
+  and an agent passing `name` got `MISSING_NAME: pass 'name'`. The tool now
+  accepts `name`; `name_` keeps working for clients that learned it from the
+  old schema.
+
 ## [0.19.4] - 2026-10-08
 
 ### Fixed
