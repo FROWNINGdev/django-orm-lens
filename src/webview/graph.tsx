@@ -175,6 +175,7 @@ function buildGraph(index: WireIndex): BuiltGraph {
           target: targetId,
           animated: false,
           data: { caption: `${f.name}${style.label ? ` · ${style.label}` : ''}` },
+          interactionWidth: 16,
           labelStyle: { fill: 'var(--dol-node-text)', fontSize: 10 },
           labelBgPadding: [4, 3],
           labelBgBorderRadius: 3,
@@ -204,14 +205,15 @@ interface GraphAppProps {
 interface PersistedGraphState {
   apps?: string[] | null;
   models?: string[] | null;
-  showLabels?: boolean;
 }
 
-/** Field name and on_delete stay on the edge, and are drawn only when asked. */
-function presentEdge(edge: Edge, selectedId: string | null, showLabels: boolean): Edge {
+/** Field name and on_delete appear on hover, or on every line touching the selected model. */
+function presentEdge(edge: Edge, selectedId: string | null, hoveredEdgeId: string | null): Edge {
   const caption = (edge.data as { caption?: string } | undefined)?.caption;
-  const active = selectedId === null || edge.source === selectedId || edge.target === selectedId;
-  const show = Boolean(caption) && (showLabels || (selectedId !== null && active));
+  const connected = selectedId !== null && (edge.source === selectedId || edge.target === selectedId);
+  const hovered = edge.id === hoveredEdgeId;
+  const active = selectedId === null || connected || hovered;
+  const show = Boolean(caption) && (connected || hovered);
   return {
     ...edge,
     label: show ? caption : undefined,
@@ -407,11 +409,11 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showLabels, setShowLabels] = useState(persisted.showLabels ?? false);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const selectedIdRef = useRef(selectedId);
-  const showLabelsRef = useRef(showLabels);
+  const hoveredEdgeRef = useRef(hoveredEdgeId);
   selectedIdRef.current = selectedId;
-  showLabelsRef.current = showLabels;
+  hoveredEdgeRef.current = hoveredEdgeId;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const expandedRef = useRef(expandedIds);
   expandedRef.current = expandedIds;
@@ -473,9 +475,8 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     vscode.setState<PersistedGraphState>({
       apps: selectedApps,
       models: selectedModels,
-      showLabels,
     });
-  }, [selectedApps, selectedModels, showLabels, vscode]);
+  }, [selectedApps, selectedModels, vscode]);
 
   useEffect(() => {
     setSelectedId(null);
@@ -519,7 +520,7 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
       .then((laid) => {
         if (cancelled) return;
         setNodes(stampExpanded(laid.nodes, expandedRef.current));
-        setEdges(laid.edges.map((edge) => presentEdge(edge, selectedIdRef.current, showLabelsRef.current)));
+        setEdges(laid.edges.map((edge) => presentEdge(edge, selectedIdRef.current, hoveredEdgeRef.current)));
       })
       .catch(() => {
         if (cancelled) return;
@@ -534,7 +535,7 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
             expandedRef.current
           )
         );
-        setEdges(builtEdges.map((edge) => presentEdge(edge, selectedIdRef.current, showLabelsRef.current)));
+        setEdges(builtEdges.map((edge) => presentEdge(edge, selectedIdRef.current, hoveredEdgeRef.current)));
       });
     return () => {
       cancelled = true;
@@ -567,9 +568,9 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
         };
       })
     );
-    setEdges((curr) => curr.map((edge) => presentEdge(edge, selectedId, showLabels)));
+    setEdges((curr) => curr.map((edge) => presentEdge(edge, selectedId, hoveredEdgeId)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, expandedIds, showLabels]);
+  }, [selectedId, expandedIds, hoveredEdgeId]);
 
   const onNodeClick = useCallback<NodeMouseHandler>((_, node) => {
     setSelectedId((prev) => (prev === node.id ? null : node.id));
@@ -676,15 +677,6 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
           )}
         </div>
         <div className="dol-header-actions">
-          <button
-            className={showLabels ? 'dol-btn dol-btn-on' : 'dol-btn'}
-            type="button"
-            aria-pressed={showLabels}
-            title="Print the field name and on_delete on every relation"
-            onClick={() => setShowLabels((current) => !current)}
-          >
-            Labels
-          </button>
           <span className="dol-badge">
             {narrowed
               ? `${visibleStats.apps}/${totalStats.apps} apps · ${visibleStats.models}/${totalStats.models} models`
@@ -731,6 +723,8 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
             onNodeClick={onNodeClick}
             onNodeDoubleClick={onNodeDoubleClick}
             onPaneClick={onPaneClick}
+            onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
             nodeTypes={NODE_TYPES}
             fitView
             fitViewOptions={{ padding: 0.2 }}

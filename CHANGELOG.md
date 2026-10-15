@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Denormalization review (`DOL018`, `DOL019`, `DOL020`).** A text or JSON column ending in `_ids`, a repeated group such as `phone_1`/`phone_2`/`phone_3`, and a column like `company_name` beside a `company` foreign key are warnings. A scalar `company_id` without a foreign key is left alone. The GitHub Action annotates only a table or a column the pull request adds, in yellow, and does not fail the build. `orm-synapse denormalize` exits 0 unless `--strict` is set.
 - **ER diagram entities show primary keys and relation fields first.** Other fields stay hidden until the entity is clicked, and a second click folds them away. The expanded list shows every remaining field. Each card is a compact schema row: key, name, and a short type.
 - **The class lens counts child relations.** Only relation fields on other models that point straight at this one are counted, plus self-relations. Fields this model holds toward its own parents are not.
 - **Open ER diagram on a model shows that model, every descendant, and the parents of those descendants.**
@@ -35,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Relation labels stay off until they are useful.** Edges no longer print the field name on every line. Selecting an entity labels only the lines that touch it and dims the rest. A Labels button prints every line, and the legend matches the stroke: CASCADE, dashed SET_NULL, PROTECT, 1:1, M2M, and unmanaged.
+- **Relation labels stay off until they are useful.** A line shows its field name and `on_delete` when the pointer is on it, or when one of its models is selected. The legend matches the stroke: CASCADE, dashed SET_NULL, PROTECT, 1:1, M2M, and unmanaged.
 - **Project-local field classes are parsed.** A field imported by name, such as `TinyIntegerField(...)` or `BaseForeignKey(...)`, was dropped unless its name was on Django's built-in list, so a model built from them showed 0 fields. Any class name ending in `Field` or `ForeignKey` is now read. A subclass ending in `ForeignKey`, `OneToOneField`, or `ManyToManyField` keeps that relation kind, so its edges and child counts appear. `GenericForeignKey` is still skipped because it is not a column.
 - **Proxy models are left off the ER diagram.** A proxy has no table. Opening one diagrams the concrete model that owns the table, and a relation aimed at the proxy is drawn to that model. A model with `managed = False` stays, with a dashed border and an unmanaged label.
 - **A concrete model now shows the columns it inherits from an abstract base.** `Lead` declares no fields of its own; they live on abstract `LeadBase`. The parser already copied them, but the sidebar, class lens, hover, and ER diagram only read fields written on the class, so `Lead` looked empty. Those surfaces now list the inherited columns. The diagram still starts collapsed to primary keys and relations.

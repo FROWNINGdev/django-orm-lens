@@ -13,7 +13,7 @@ inputs:
     description: >-
       Subcommand to run: nplusone | migration-risk | blast-radius | impact |
       scan | list | er | diff | suggest-indexes | signals | migration-deps |
-      cascade | drift | stats-sql
+      cascade | drift | denormalize | stats-sql
     required: false
     default: "nplusone"
   path:
@@ -113,7 +113,7 @@ runs:
       run: |
         FORMAT_ARGS=""
         case "$DOL_COMMAND" in
-          nplusone|n-plus-one|migration-risk|blast-radius|blast)
+          nplusone|n-plus-one|migration-risk|blast-radius|blast|denormalize)
             FORMAT_ARGS="--format $DOL_FORMAT"
             ;;
         esac
@@ -181,6 +181,77 @@ runs:
             fi
           fi
           exit $RC
+        fi
+
+        # denormalize reviews a new table or a new column in this pull
+        # request. An existing column is not annotated. The patch comes from
+        # the API because checkout is shallow and has no base commit.
+        if [ "$DOL_COMMAND" = "denormalize" ]; then
+          if [ -z "${DOL_PR:-}" ]; then
+            echo "::notice::denormalize reviews new tables and new columns on pull requests"
+            exit 0
+          fi
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::denormalize needs github-token to read the pull request diff"
+            exit 1
+          fi
+          DIFF="$RUNNER_TEMP/orm-synapse-added.diff"
+          gh api "repos/$DOL_REPO/pulls/$DOL_PR/files" --paginate \
+            > "$RUNNER_TEMP/orm-synapse-pr-files.json"
+          python3 - "$RUNNER_TEMP/orm-synapse-pr-files.json" "$DIFF" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+def load_pages(text):
+    text = text.strip()
+    if not text:
+        return []
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        items = []
+        index = 0
+        while index < len(text):
+            while index < len(text) and text[index].isspace():
+                index += 1
+            if index >= len(text):
+                break
+            value, index = decoder.raw_decode(text, index)
+            items.extend(value if isinstance(value, list) else [value])
+        return items
+    return data if isinstance(data, list) else [data]
+
+files = load_pages(Path(sys.argv[1]).read_text(encoding="utf-8"))
+chunks = []
+skipped = []
+for item in files:
+    name = item.get("filename") or ""
+    if item.get("status") == "removed":
+        continue
+    patch = item.get("patch")
+    if not patch:
+        if name.endswith(".py"):
+            skipped.append(name)
+        continue
+    chunks.append(
+        f"diff --git a/{name} b/{name}\n--- a/{name}\n+++ b/{name}\n{patch}\n"
+    )
+Path(sys.argv[2]).write_text("".join(chunks), encoding="utf-8")
+if skipped:
+    print("::notice::no patch for " + ", ".join(skipped))
+PY
+          if [ ! -s "$DIFF" ]; then
+            echo "::notice::no added tables or columns in this pull request"
+            {
+              echo "## Denormalization review"
+              echo
+              echo "No new tables or columns to review."
+            } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+            exit 0
+          fi
+          ONLY_ARGS="$ONLY_ARGS --only-added $DIFF"
         fi
 
         orm-synapse "$DOL_COMMAND" --path "$DOL_PATH" $FORMAT_ARGS $ONLY_ARGS $DOL_ARGS

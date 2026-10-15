@@ -5,7 +5,7 @@
 
 ORM Synapse ships two rule surfaces:
 
-1. **Editor rules (`DOL###`)** — 19 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `ORM Synapse`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
+1. **Editor rules (`DOL###`)** — line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `ORM Synapse`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
 2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install orm-synapse`) for terminals and pipelines: [`migration-risk`](migrations.md), [`nplusone`](nplusone.md), [`blast-radius`](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/blast-radius.md) — which joins migration risks with the code that still references what they change — and [`drift`](drift.md), a `makemigrations --check` that needs no Django boot.
 
 ## Severity and applicability
@@ -39,6 +39,9 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL015](DOL015.md) | TextField with `max_length` has no DB effect | model | hint | suggestion |
 | [DOL016](DOL016.md) | Meta index or constraint without a name | model | warning | unsafe |
 | [DOL017](DOL017.md) | Meta index or unique name breaks the MySQL naming convention | model | warning | suggestion |
+| [DOL018](DOL018.md) | Several ids stored in one column | model | warning | unsafe |
+| [DOL019](DOL019.md) | Repeated column group (`phone_1`, `phone_2`, `phone_3`) | model | warning | unsafe |
+| [DOL020](DOL020.md) | Column copies an attribute of a related row | model | warning | unsafe |
 | [DOL021](DOL021.md) | `datetime.now()` should be `timezone.now()` | datetime | warning | suggestion |
 | [DOL022](DOL022.md) | `datetime.utcnow()` is deprecated | datetime | warning | suggestion |
 | [DOL031](DOL031.md) | `render()` with `locals()` as context | forms | warning | suggestion |
@@ -61,3 +64,4 @@ These run from the Python CLI, not the editor. Both exit non-zero on findings (s
 
 - **[Migration risk rules](migrations.md)** — 16 rules over `<app>/migrations/*.py` flagging operations that are dangerous on production databases. Run with `orm-synapse migration-risk`.
 - **[Static N+1 detector](nplusone.md)** — flags FK / O2O / M2M / reverse-manager access inside for-loops when the source queryset has no matching `select_related` / `prefetch_related`. Run with `orm-synapse nplusone`.
+- **[Denormalization review](denormalize.md)** — id lists, repeated columns, and attributes copied next to a foreign key. Warnings only. Run with `orm-synapse denormalize`. The default exit code is 0.

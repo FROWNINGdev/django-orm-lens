@@ -334,10 +334,6 @@ html, body, #dol-root {
 .dol-btn:hover {
   background: var(--vscode-button-hoverBackground, #475569);
 }
-.dol-btn-on {
-  color: var(--vscode-textLink-foreground, var(--dol-accent));
-  border-color: var(--dol-accent);
-}
 .dol-btn:focus-visible {
   outline: 2px solid var(--dol-accent);
   outline-offset: 2px;
@@ -602,10 +598,12 @@ html, body, #dol-root {
   font-family: var(--vscode-font-family, inherit);
   font-size: 10px;
   fill: var(--dol-node-text);
+  pointer-events: none;
 }
 .react-flow__edge-textbg {
   fill: var(--dol-node-bg);
   fill-opacity: 0.85;
+  pointer-events: none;
 }
 
 .dol-legend {

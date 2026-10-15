@@ -14,6 +14,7 @@ Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
   orm-synapse signals    — sender→signal→handler graph from @receiver
   orm-synapse migration-deps  — per-app migration dependency DAG
   orm-synapse cascade    — what delete() cascades to, by on_delete
+  orm-synapse denormalize — denormalization smells (review only, exit 0)
   orm-synapse mcp        — start the MCP stdio server (extras required)
 """
 
@@ -438,6 +439,48 @@ def _migration_deps_mermaid(result: dict) -> str:
     if externals:
         lines.append("  classDef external stroke-dasharray: 5 5;")
     return "\n".join(lines)
+
+
+def _cmd_denormalize(args: argparse.Namespace) -> int:
+    """Report denormalization smells. Exit 0 unless ``--strict`` is set."""
+    from .denormalize import (
+        analyze_models,
+        format_github,
+        format_text,
+        limit_to_changes,
+        parse_unified_diff,
+        write_step_summary,
+    )
+
+    index = _load_index(args)
+    models = [model for app in index.apps for model in app.models]
+    findings = analyze_models(models)
+    root = str(Path(args.path).resolve())
+    limited = args.only_added is not None
+    if limited:
+        diff = Path(args.only_added).read_text(encoding="utf-8")
+        findings = limit_to_changes(findings, models, parse_unified_diff(diff), root)
+    if args.format == "json":
+        print(json.dumps(
+            {"findings": [item.to_dict() for item in findings], "blocking": False},
+            indent=2,
+            ensure_ascii=False,
+        ))
+    elif args.format == "github":
+        text = format_github(findings, root)
+        if text:
+            print(text)
+        elif limited:
+            print("No new tables or columns to review.")
+    else:
+        if limited and not findings:
+            print("No new tables or columns to review.")
+        else:
+            print(format_text(findings), end="")
+    write_step_summary(findings, limited=limited)
+    if args.strict and findings:
+        return 1
+    return 0
 
 
 def _cmd_drift(args: argparse.Namespace) -> int:
@@ -923,6 +966,40 @@ def build_parser() -> argparse.ArgumentParser:
     )
     drift.set_defaults(func=_cmd_drift)
 
+    denorm = sub.add_parser(
+        "denormalize",
+        help=(
+            "Report denormalization smells (id lists, repeated columns, "
+            "copied attributes). Does not fail the build unless --strict"
+        ),
+    )
+    _add_scan_flags(denorm)
+    denorm.add_argument(
+        "--format", "-f",
+        choices=("text", "json", "github"),
+        default="text",
+        help=(
+            "Output format. 'github' emits ::warning annotations for a "
+            "pull request. This command never emits ::error"
+        ),
+    )
+    denorm.add_argument(
+        "--only-added",
+        default=None,
+        metavar="DIFF",
+        help=(
+            "Unified diff of the pull request. Report only a new table "
+            "(its class line is added) or a newly added column. "
+            "Existing columns are ignored"
+        ),
+    )
+    denorm.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 1 when a smell is found. The default exit is 0",
+    )
+    denorm.set_defaults(func=_cmd_denormalize)
+
     ssql = sub.add_parser(
         "stats-sql",
         help="Print the read-only SQL that produces a --stats file",
@@ -956,6 +1033,7 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  cascade <model>    What delete() cascades to, grouped by on_delete")
     print("  impact <name>      What still references a model or field, by layer")
     print("  blast-radius       Migration risks joined with what still reads them")
+    print("  denormalize        Denormalization smells for review (does not fail the build)")
     print("  drift              Do the migrations still describe the models?")
     print("  stats-sql          Read-only SQL that produces a --stats file")
     print("  mcp                Run the MCP stdio server for AI coding agents")

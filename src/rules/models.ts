@@ -1,3 +1,4 @@
+import { denormalizeRules } from './denormalize';
 import { recommendedMetaName } from './indexNaming';
 import { Finding, Rule, RuleContext } from './types';
 
@@ -643,4 +644,13 @@ function tableFromIndex(ctx: RuleContext, modelName: string): string | undefined
   return undefined;
 }
 
-export const modelRules: Rule[] = [DOL011, DOL012, DOL013, DOL014, DOL015, DOL016, DOL017];
+export const modelRules: Rule[] = [
+  DOL011,
+  DOL012,
+  DOL013,
+  DOL014,
+  DOL015,
+  DOL016,
+  DOL017,
+  ...denormalizeRules,
+];
