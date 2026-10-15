@@ -10,6 +10,7 @@ import {
   DIAGNOSTIC_SOURCE,
   Finding,
   Rule,
+  DbEngine,
   RuleContext,
   Severity,
   makeRuleContext,
@@ -81,6 +82,11 @@ function readConfig(): RulesConfig {
   const select = cfg.get<string[]>('rulesSelect', []) ?? [];
   const ignore = cfg.get<string[]>('rulesIgnore', []) ?? [];
   return { perCode, select, ignore };
+}
+
+function readDbEngine(): DbEngine {
+  const raw = vscode.workspace.getConfiguration('ormSynapse').get<string>('dbEngine', 'auto');
+  return raw === 'postgres' || raw === 'mysql' || raw === 'sqlite' ? raw : 'auto';
 }
 
 /**
@@ -210,7 +216,7 @@ export function scanDocument(
 ): ResolvedFinding[] {
   if (document.languageId !== 'python') return [];
   const cfg = readConfig();
-  const ctx = makeRuleContext(document, index);
+  const ctx = makeRuleContext(document, index, readDbEngine());
   const suppr = buildSuppressions(ctx);
 
   const out: ResolvedFinding[] = [];

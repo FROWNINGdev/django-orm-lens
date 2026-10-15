@@ -562,6 +562,8 @@ const DOL017: Rule = {
     },
   },
   check(ctx: RuleContext): Finding[] {
+    // The convention is MySQL's; it means nothing on another engine.
+    if (ctx.dbEngine === 'postgres' || ctx.dbEngine === 'sqlite') return [];
     const out: Finding[] = [];
     let modelName: string | undefined;
     let modelIndent = -1;

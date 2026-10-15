@@ -140,8 +140,33 @@ function buildBodyRegexes(indent: number) {
   };
 }
 
+/** Drop `# ...` line comments from an argument block, leaving string literals alone. */
+function stripLineComments(block: string): string {
+  let out = '';
+  let quote: string | null = null;
+  for (let i = 0; i < block.length; i++) {
+    const ch = block[i];
+    if (quote) {
+      out += ch;
+      if (ch === '\\') out += block[++i] ?? '';
+      else if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+    } else if (ch === '#') {
+      while (i < block.length && block[i] !== '\n') i++;
+      out += '\n';
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 function extractRelated(argsBlock: string): string | undefined {
-  const stripped = argsBlock.trim();
+  // A trailing `# type: ignore` right after the opening paren would otherwise
+  // hide the first positional argument (the saleor `variants` M2M).
+  const stripped = stripLineComments(argsBlock).trim();
   // (1) Look for an explicit `to=<value>` anywhere in the arg list so that
   // reordered kwargs like `ForeignKey(on_delete=CASCADE, to='User')` still
   // resolve. The legacy positional-first regex read `on_delete` as the target.

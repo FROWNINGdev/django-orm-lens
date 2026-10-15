@@ -118,8 +118,16 @@ export interface Finding {
  * no AST — with helpers for bounded windows so N+1 style detectors do not
  * scan the whole document per node.
  */
+/**
+ * Database engine the project targets (`ormSynapse.dbEngine`). `auto` means
+ * "unknown": engine-specific rules still run, as they did before the setting
+ * existed. A concrete engine switches off rules written for another one.
+ */
+export type DbEngine = 'auto' | 'postgres' | 'mysql' | 'sqlite';
+
 export interface RuleContext {
   document: vscode.TextDocument;
+  dbEngine: DbEngine;
   lineCount: number;
   lineAt(index: number): string;
   /** Return up to `n` lines ending at `lineIndex - 1`. */
@@ -210,11 +218,13 @@ export function renderMessage(
  */
 export function makeRuleContext(
   document: vscode.TextDocument,
-  index?: WorkspaceIndex
+  index?: WorkspaceIndex,
+  dbEngine: DbEngine = 'auto'
 ): RuleContext {
   const lineCount = document.lineCount;
   return {
     document,
+    dbEngine,
     lineCount,
     index,
     lineAt(index: number): string {

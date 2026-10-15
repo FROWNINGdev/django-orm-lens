@@ -279,6 +279,23 @@
           "default": true,
           "description": "Complete model field names and lookups inside Post.objects.filter(...) and its siblings, traversing ForeignKey edges for author__name paths. Disable if another extension already owns Python completion here."
         },
+        "ormSynapse.dbEngine": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "postgres",
+            "mysql",
+            "sqlite"
+          ],
+          "enumDescriptions": [
+            "Engine unknown: engine-specific rules keep running.",
+            "PostgreSQL: skips rules written for another engine.",
+            "MySQL: enables the MySQL naming convention rule (DOL017).",
+            "SQLite: skips rules written for another engine."
+          ],
+          "description": "Database engine the project targets. Rules that only make sense on one engine (DOL017, the MySQL index naming convention) are skipped when this names another."
+        },
         "ormSynapse.rules": {
           "type": "object",
           "default": {},

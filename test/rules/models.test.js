@@ -14,10 +14,11 @@ test.after(() => {
   Module._load = originalLoad;
 });
 
-function makeCtx(source) {
+function makeCtx(source, dbEngine) {
   const lines = source.split(/\r?\n/);
   return {
     document: null,
+    dbEngine,
     lineCount: lines.length,
     lineAt(i) {
       return lines[i] ?? '';
@@ -244,6 +245,24 @@ test('DOL017 renames an index and a unique constraint to the MySQL convention', 
   );
   assert.equal(findings[0].applicability, 'suggestion');
   assert.equal(rule.meta.defaultSeverity, 'warning');
+});
+
+test('DOL017 only runs for MySQL or an unknown engine', () => {
+  const rule = ruleByCode('DOL017');
+  const src = [
+    'class Event(models.Model):',
+    '    class Meta:',
+    '        db_table = "ai_events"',
+    '        indexes = [',
+    '            models.Index(fields=["company_id", "status"], name="idx_event_status"),',
+    '        ]',
+  ].join('\n');
+  for (const engine of [undefined, 'auto', 'mysql']) {
+    assert.equal(rule.check(makeCtx(src, engine)).length, 1, `engine ${engine}`);
+  }
+  for (const engine of ['postgres', 'sqlite']) {
+    assert.deepEqual(rule.check(makeCtx(src, engine)), [], `engine ${engine}`);
+  }
 });
 
 test('DOL017 accepts the conventional name and a uuid unique constraint', () => {
