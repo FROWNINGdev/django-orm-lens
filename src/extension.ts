@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { findUserModel, modelNeighborhoodIds, resolveRelatedTail, scanWorkspace } from './parser';
+import { findUserModel, modelNeighborhoodIds, resolveRelatedTail } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
 import { isGraphOpen, showGraph } from './graphWebview';
 import { maybeAskForStar } from './starPrompt';
@@ -15,6 +15,7 @@ import { DIAGNOSTIC_SOURCE } from './rules';
 import { diffSchemas, diffToMarkdown } from './schemaDiff';
 import { TreeNode, WorkspaceIndex } from './types';
 import { parseModelsFile } from './parser';
+import { IndexScanner } from './indexScanner';
 import { completionsAt, lookupPathLength } from './ormCompletions';
 
 /**
@@ -26,120 +27,11 @@ import { completionsAt, lookupPathLength } from './ormCompletions';
  */
 const LOOKBACK_LINES = 200;
 
-let currentIndex: WorkspaceIndex = { apps: [], scannedAt: 0 };
-const indexChanged = new vscode.EventEmitter<void>();
 let treeProvider: DjangoTreeProvider;
-let codeLensProvider: DjangoCodeLensProvider;
+let codeLensProvider: DjangoCodeLensProvider | undefined;
 let statusItem: vscode.StatusBarItem;
-let watcher: vscode.FileSystemWatcher | undefined;
-let modelWatchers: vscode.FileSystemWatcher[] = [];
 let outputChannel: vscode.OutputChannel;
-
-let scanGeneration = 0;
-let scanInFlight: Promise<void> | null = null;
-let scanQueued = false;
-
-function getExcludeGlobs(): string[] {
-  const cfg = vscode.workspace.getConfiguration('ormSynapse');
-  return cfg.get<string[]>('excludeGlobs', [
-    '**/migrations/**',
-    '**/node_modules/**',
-    '**/venv/**',
-    '**/.venv/**',
-    '**/env/**',
-  ]);
-}
-
-async function doScan(): Promise<void> {
-  const myGen = ++scanGeneration;
-  const globs = getExcludeGlobs();
-  const before = Date.now();
-  try {
-    const next = await scanWorkspace(globs);
-    if (myGen !== scanGeneration) return;
-    currentIndex = next;
-    treeProvider.setIndex(currentIndex);
-    codeLensProvider?.refresh();
-    indexChanged.fire();
-    const total = currentIndex.apps.reduce((n, a) => n + a.models.length, 0);
-    const took = Date.now() - before;
-    statusItem.text = `$(database) ${total} model${total === 1 ? '' : 's'}`;
-    statusItem.tooltip = `ORM Synapse — scanned in ${took}ms`;
-    statusItem.show();
-    // Signal viewsWelcome: the initial scan has completed. From now on the
-    // "empty state" reads "no Django models found" instead of "scanning…".
-    vscode.commands.executeCommand(
-      'setContext',
-      'ormSynapse.scanCompleted',
-      true,
-    );
-  } catch (err) {
-    outputChannel.appendLine(
-      `[scan #${myGen}] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
-    );
-    statusItem.text = '$(warning) ORM Synapse';
-    statusItem.tooltip = 'Scan failed — see the ORM Synapse output channel';
-    statusItem.show();
-  }
-}
-
-async function refresh(): Promise<void> {
-  if (scanInFlight) {
-    scanQueued = true;
-    return scanInFlight;
-  }
-  scanInFlight = (async () => {
-    try {
-      await doScan();
-      while (scanQueued) {
-        scanQueued = false;
-        await doScan();
-      }
-    } finally {
-      scanInFlight = null;
-    }
-  })();
-  return scanInFlight;
-}
-
-let watcherDisposables: vscode.Disposable[] = [];
-
-function disposeModelWatchers(): void {
-  for (const w of modelWatchers) w.dispose();
-  modelWatchers = [];
-  watcher = undefined;
-}
-
-function setupWatcher(context: vscode.ExtensionContext) {
-  const cfg = vscode.workspace.getConfiguration('ormSynapse');
-  const autoRefresh = cfg.get<boolean>('autoRefresh', true);
-  watcherDisposables.forEach((d) => d.dispose());
-  watcherDisposables = [];
-  disposeModelWatchers();
-  if (!autoRefresh) return;
-  // `**/models/*.py` is one level deep. `**/models/**/*.py` covers nested
-  // packages such as `models/builders/flow.py`.
-  const patterns = ['**/models.py', '**/models/*.py', '**/models/**/*.py'];
-  modelWatchers = patterns.map((pattern) =>
-    vscode.workspace.createFileSystemWatcher(pattern)
-  );
-  watcher = modelWatchers[0];
-  const trigger = () => {
-    refresh().catch((err) =>
-      outputChannel.appendLine(
-        `[watcher-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
-      )
-    );
-  };
-  for (const w of modelWatchers) {
-    watcherDisposables.push(
-      w.onDidChange(trigger),
-      w.onDidCreate(trigger),
-      w.onDidDelete(trigger),
-    );
-    context.subscriptions.push(w);
-  }
-}
+let scanner: IndexScanner;
 
 export async function activate(context: vscode.ExtensionContext) {
   treeProvider = new DjangoTreeProvider(context.workspaceState);
@@ -148,6 +40,12 @@ export async function activate(context: vscode.ExtensionContext) {
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusItem.command = 'ormSynapse.showGraph';
   context.subscriptions.push(statusItem);
+  scanner = new IndexScanner({
+    setIndex: (index) => treeProvider.setIndex(index),
+    refreshCodeLens: () => codeLensProvider?.refresh(),
+    statusItem,
+    outputChannel,
+  });
 
   const treeView = vscode.window.createTreeView('ormSynapse.models', {
     treeDataProvider: treeProvider,
@@ -174,7 +72,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // `window.parent`, so the webview's origin check dropped it. Until
         // that is understood, correctness beats smoothness: reassigning the
         // HTML always delivers the new state.
-        showGraph(context, treeProvider.applyVisibility(currentIndex));
+        showGraph(context, treeProvider.applyVisibility(scanner.index));
       }
     })
   );
@@ -193,8 +91,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // open later when the user clicks the icon.
   context.subscriptions.push(
     treeView.onDidChangeVisibility((e) => {
-      if (e.visible && currentIndex.apps.length === 0) {
-        refresh().catch((err) =>
+      if (e.visible && scanner.index.apps.length === 0) {
+        scanner.refresh().catch((err) =>
           outputChannel.appendLine(
             `[visibility-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
           )
@@ -246,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Re-scan when workspace folders change (folder add/remove/open).
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      refresh().catch((err) =>
+      scanner.refresh().catch((err) =>
         outputChannel.appendLine(
           `[workspace-folders-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
         )
@@ -257,11 +155,11 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(
       { language: 'python' },
-      new DjangoHoverProvider(() => currentIndex)
+      new DjangoHoverProvider(() => scanner.index)
     )
   );
 
-  codeLensProvider = new DjangoCodeLensProvider(() => currentIndex);
+  codeLensProvider = new DjangoCodeLensProvider(() => scanner.index);
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider({ language: 'python' }, codeLensProvider)
   );
@@ -302,7 +200,7 @@ export async function activate(context: vscode.ExtensionContext) {
             precedingLines.push(document.lineAt(i).text);
           }
           const pathLength = lookupPathLength(linePrefix);
-          return completionsAt(linePrefix, currentIndex, precedingLines).map((s) => {
+          return completionsAt(linePrefix, scanner.index, precedingLines).map((s) => {
             const item = new vscode.CompletionItem(
               s.label,
               s.kind === 'relation'
@@ -335,14 +233,14 @@ export async function activate(context: vscode.ExtensionContext) {
   // `.count() > 0` -> `.exists()`, `.first() is None` -> `not .exists()`,
   // and N+1 attribute-access-in-loop diagnostics. Feature-flagged via
   // ormSynapse.codeFixes.enabled (default true).
-  context.subscriptions.push(indexChanged);
-  for (const d of registerCodeFixes(context, () => currentIndex, indexChanged.event)) {
+  context.subscriptions.push(scanner.emitter);
+  for (const d of registerCodeFixes(context, () => scanner.index, scanner.onDidChange)) {
     context.subscriptions.push(d);
   }
 
   context.subscriptions.push(
     vscode.commands.registerCommand('ormSynapse.refresh', async () => {
-      await refresh();
+      await scanner.refresh();
       vscode.window.setStatusBarMessage('$(check) ORM Synapse refreshed', 2000);
     })
   );
@@ -368,16 +266,16 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'ormSynapse.showGraph',
       async (filePath?: unknown, lineNumber?: unknown) => {
-      if (currentIndex.apps.length === 0) await refresh();
+      if (scanner.index.apps.length === 0) await scanner.refresh();
       const fromModel = typeof filePath === 'string' && typeof lineNumber === 'number';
       const focus = fromModel
-        ? modelNeighborhoodIds(currentIndex, filePath, lineNumber)
+        ? modelNeighborhoodIds(scanner.index, filePath, lineNumber)
         : undefined;
       // A class lens asks for that model and the models its relations point
       // at. The sidebar and command palette still open whatever is checked.
       showGraph(
         context,
-        fromModel ? currentIndex : treeProvider.applyVisibility(currentIndex),
+        fromModel ? scanner.index : treeProvider.applyVisibility(scanner.index),
         focus
       );
       // Counted here rather than inside showGraph: this is the user asking
@@ -397,7 +295,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'ormSynapse.buildQuery',
       async (arg?: TreeNode) => {
-        if (currentIndex.apps.length === 0) await refresh();
+        if (scanner.index.apps.length === 0) await scanner.refresh();
         let target: Parameters<typeof generateQueryTemplates>[0] | undefined;
         if (arg && typeof arg === 'object' && 'kind' in arg) {
           if (arg.kind === 'model') {
@@ -411,7 +309,7 @@ export async function activate(context: vscode.ExtensionContext) {
           }
         }
         if (!target) {
-          const picks = currentIndex.apps.flatMap((app) =>
+          const picks = scanner.index.apps.flatMap((app) =>
             app.models.flatMap((m) => [
               {
                 label: `$(symbol-class) ${app.name}.${m.name}`,
@@ -438,7 +336,7 @@ export async function activate(context: vscode.ExtensionContext) {
           target = chosen.target;
         }
 
-        const templates = generateQueryTemplates(target, currentIndex);
+        const templates = generateQueryTemplates(target, scanner.index);
         if (templates.length === 0) {
           vscode.window.showInformationMessage(
             'ORM Synapse: no templates apply to this target.',
@@ -472,7 +370,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const boiler = [
           `# ORM Synapse — Query Builder scratch`,
           `# from ${
-            currentIndex.apps.find((a) =>
+            scanner.index.apps.find((a) =>
               a.models.some((m) => m.name === modelName),
             )?.name ?? 'app'
           }.models import ${modelName}`,
@@ -500,7 +398,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'ormSynapse.findImpact',
       async (arg?: TreeNode | string) => {
-        if (currentIndex.apps.length === 0) await refresh();
+        if (scanner.index.apps.length === 0) await scanner.refresh();
         let needle: string | undefined;
         let skipFiles: string[] = [];
         if (typeof arg === 'string') {
@@ -512,7 +410,7 @@ export async function activate(context: vscode.ExtensionContext) {
           }
         }
         if (!needle) {
-          const picks = currentIndex.apps.flatMap((app) =>
+          const picks = scanner.index.apps.flatMap((app) =>
             app.models.flatMap((m) => [
               {
                 label: `$(symbol-class) ${app.name}.${m.name}`,
@@ -596,10 +494,10 @@ export async function activate(context: vscode.ExtensionContext) {
   >(50);
   context.subscriptions.push(
     vscode.commands.registerCommand('ormSynapse.showDiff', async () => {
-      if (currentIndex.apps.length === 0) await refresh();
+      if (scanner.index.apps.length === 0) await scanner.refresh();
       const modelsFiles = [
         ...new Set(
-          currentIndex.apps.flatMap((a) => a.models.map((m) => m.filePath)),
+          scanner.index.apps.flatMap((a) => a.models.map((m) => m.filePath)),
         ),
       ];
       if (modelsFiles.length === 0) {
@@ -719,14 +617,14 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'ormSynapse.generateFactory',
       async (arg1?: string | TreeNode, arg2?: number) => {
-        if (currentIndex.apps.length === 0) await refresh();
+        if (scanner.index.apps.length === 0) await scanner.refresh();
         let target: { filePath: string; lineNumber?: number; name?: string } | undefined;
         if (typeof arg1 === 'string' && typeof arg2 === 'number') {
           target = { filePath: arg1, lineNumber: arg2 };
         } else if (arg1 && typeof arg1 === 'object' && 'kind' in arg1 && arg1.kind === 'model') {
           target = { filePath: arg1.filePath ?? '', lineNumber: arg1.lineNumber, name: arg1.label };
         } else {
-          const picks = currentIndex.apps.flatMap((app) =>
+          const picks = scanner.index.apps.flatMap((app) =>
             app.models.map((m) => ({
               label: `$(symbol-class) ${app.name}.${m.name}`,
               description: `${m.fields.length} fields`,
@@ -745,7 +643,7 @@ export async function activate(context: vscode.ExtensionContext) {
           };
         }
 
-        let model = currentIndex.apps
+        let model = scanner.index.apps
           .flatMap((a) => a.models)
           .find(
             (m) =>
@@ -753,7 +651,7 @@ export async function activate(context: vscode.ExtensionContext) {
               (target!.name ? m.name === target!.name : m.lineNumber === target!.lineNumber)
           );
         if (!model) {
-          model = currentIndex.apps
+          model = scanner.index.apps
             .flatMap((a) => a.models)
             .find((m) => m.filePath === target!.filePath);
         }
@@ -763,7 +661,7 @@ export async function activate(context: vscode.ExtensionContext) {
           );
           return;
         }
-        const source = generateFactoryCode(model, currentIndex);
+        const source = generateFactoryCode(model, scanner.index);
         const doc = await vscode.workspace.openTextDocument({
           content: source,
           language: 'python',
@@ -798,7 +696,7 @@ export async function activate(context: vscode.ExtensionContext) {
           vscode.window.showWarningMessage(
             `ORM Synapse: could not open ${filePath}. It may have been moved, deleted, or is outside the workspace. (${msg})`
           );
-          refresh().catch((refreshErr) =>
+          scanner.refresh().catch((refreshErr) =>
             outputChannel.appendLine(
               `[jump-refresh] ${refreshErr instanceof Error ? refreshErr.stack ?? refreshErr.message : String(refreshErr)}`
             )
@@ -825,7 +723,7 @@ export async function activate(context: vscode.ExtensionContext) {
           kind: string;
           onDelete: string;
         }[] = [];
-        for (const app of currentIndex.apps) {
+        for (const app of scanner.index.apps) {
           for (const other of app.models) {
             if (
               other.name === modelName &&
@@ -833,7 +731,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ) {
               continue;
             }
-            const userModelName = findUserModel(currentIndex)?.name;
+            const userModelName = findUserModel(scanner.index)?.name;
             for (const f of other.fields) {
               if (!f.isRelation || !f.relatedModel) continue;
               // Resolve settings.AUTH_USER_MODEL so inbound edges to the
@@ -870,9 +768,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('ormSynapse.autoRefresh')) setupWatcher(context);
+      if (e.affectsConfiguration('ormSynapse.autoRefresh')) scanner.setupWatcher(context);
       if (e.affectsConfiguration('ormSynapse.excludeGlobs')) {
-        refresh().catch((err) =>
+        scanner.refresh().catch((err) =>
           outputChannel.appendLine(
             `[config-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
           )
@@ -884,17 +782,17 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  setupWatcher(context);
-  await refresh();
+  scanner.setupWatcher(context);
+  await scanner.refresh();
 
   // Backstop: if the first scan happened before the workspace file index
   // was warm (common with `onStartupFinished` activation), try again once
   // after a short delay. Cheap — early-exits on the second scan if the
   // first one already populated results.
-  if (currentIndex.apps.length === 0 && (vscode.workspace.workspaceFolders?.length ?? 0) > 0) {
+  if (scanner.index.apps.length === 0 && (vscode.workspace.workspaceFolders?.length ?? 0) > 0) {
     setTimeout(() => {
-      if (currentIndex.apps.length === 0) {
-        refresh().catch((err) =>
+      if (scanner.index.apps.length === 0) {
+        scanner.refresh().catch((err) =>
           outputChannel.appendLine(
             `[startup-retry] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
           )
@@ -905,8 +803,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  disposeModelWatchers();
-  watcherDisposables.forEach((d) => d.dispose());
-  watcherDisposables = [];
+  scanner?.dispose();
   statusItem?.dispose();
 }
