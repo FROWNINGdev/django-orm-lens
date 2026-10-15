@@ -91,6 +91,62 @@ html, body, #dol-root {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.dol-filter {
+  position: relative;
+  width: clamp(180px, 24vw, 320px);
+}
+
+.dol-filter input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 5px 30px 5px 10px;
+  color: var(--vscode-input-foreground, var(--dol-fg));
+  background: var(--vscode-input-background, var(--dol-node-bg));
+  border: 1px solid var(--vscode-input-border, var(--dol-border));
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.dol-filter input:focus {
+  border-color: var(--dol-accent);
+  box-shadow: 0 0 0 1px var(--dol-accent);
+}
+
+.dol-filter input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--dol-node-muted));
+}
+
+.dol-filter input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.dol-filter button {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  transform: translateY(-50%);
+  color: var(--dol-node-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 17px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.dol-filter button:hover {
+  color: var(--dol-fg);
+  background: rgba(148, 163, 184, 0.15);
 }
 
 .dol-badge {
@@ -121,6 +177,43 @@ html, body, #dol-root {
 .dol-btn:focus-visible {
   outline: 2px solid var(--dol-accent);
   outline-offset: 2px;
+}
+
+.dol-link-btn {
+  padding: 0;
+  color: var(--vscode-textLink-foreground, #3b82f6);
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dol-link-btn:hover {
+  color: var(--vscode-textLink-activeForeground, #60a5fa);
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .dol-header {
+    height: auto;
+    min-height: 48px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .dol-header-title,
+  .dol-badge {
+    display: none;
+  }
+
+  .dol-filter {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .dol-header-actions {
+    width: 100%;
+  }
 }
 
 .dol-export {

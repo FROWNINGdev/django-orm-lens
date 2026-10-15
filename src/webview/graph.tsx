@@ -175,13 +175,57 @@ interface GraphAppProps {
   initialIndex: WireIndex | null;
 }
 
+interface PersistedGraphState {
+  filter?: string;
+}
+
+/** Filter models without mutating the payload received from the extension. */
+export function filterIndex(index: WireIndex, query: string): WireIndex {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return index;
+  return {
+    ...index,
+    apps: index.apps
+      .map((app) => {
+        const appMatches = app.name.toLocaleLowerCase().includes(needle);
+        return {
+          ...app,
+          models: appMatches
+            ? app.models
+            : app.models.filter(
+                (model) =>
+                  model.name.toLocaleLowerCase().includes(needle) ||
+                  model.fields.some(
+                    (field) =>
+                      field.name.toLocaleLowerCase().includes(needle) ||
+                      field.type.toLocaleLowerCase().includes(needle)
+                  )
+              ),
+        };
+      })
+      .filter((app) => app.models.length > 0),
+  };
+}
+
 function GraphApp({ vscode, initialIndex }: GraphAppProps) {
   const [index, setIndex] = useState<WireIndex | null>(initialIndex);
+  const [filter, setFilter] = useState(
+    () => vscode.getState<PersistedGraphState>()?.filter ?? ''
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  const filteredIndex = useMemo(
+    () => (index ? filterIndex(index, filter) : null),
+    [index, filter]
+  );
+
+  useEffect(() => {
+    vscode.setState<PersistedGraphState>({ filter });
+    setSelectedId(null);
+  }, [filter, vscode]);
 
   useEffect(() => {
     const onMsg = (event: MessageEvent<ExtensionMessage>) => {
@@ -203,9 +247,9 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
   }, [vscode]);
 
   useEffect(() => {
-    if (!index) return;
-    document.body.classList.toggle('dol-light', index.theme === 'light');
-    const { nodes: builtNodes, edges: builtEdges } = buildGraph(index);
+    if (!filteredIndex) return;
+    document.body.classList.toggle('dol-light', filteredIndex.theme === 'light');
+    const { nodes: builtNodes, edges: builtEdges } = buildGraph(filteredIndex);
     if (builtNodes.length === 0) {
       setNodes([]);
       setEdges([]);
@@ -233,7 +277,7 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     return () => {
       cancelled = true;
     };
-  }, [index, setNodes, setEdges]);
+  }, [filteredIndex, setNodes, setEdges]);
 
   // Apply highlight state to node/edge data whenever selection changes.
   useEffect(() => {
@@ -318,15 +362,21 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     [vscode]
   );
 
-  const stats = useMemo(() => {
-    if (!index) return { apps: 0, models: 0 };
+  const countIndex = useCallback((value: WireIndex | null) => {
+    if (!value) return { apps: 0, models: 0 };
     let models = 0;
-    for (const a of index.apps) models += a.models.length;
-    return { apps: index.apps.length, models };
-  }, [index]);
+    for (const a of value.apps) models += a.models.length;
+    return { apps: value.apps.length, models };
+  }, []);
+  const totalStats = useMemo(() => countIndex(index), [countIndex, index]);
+  const visibleStats = useMemo(
+    () => countIndex(filteredIndex),
+    [countIndex, filteredIndex]
+  );
 
   const workspaceName = index?.workspaceName ?? 'workspace';
   const hasModels = nodes.length > 0;
+  const hasAnyModels = totalStats.models > 0;
 
   return (
     <div className="dol-app">
@@ -336,9 +386,33 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
           {workspaceName}
         </div>
         <div className="dol-header-actions">
+          <div className="dol-filter">
+            <input
+              type="search"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setFilter('');
+              }}
+              placeholder="Filter apps, models, fields…"
+              aria-label="Filter apps, models, and fields"
+              spellCheck={false}
+            />
+            {filter && (
+              <button
+                type="button"
+                onClick={() => setFilter('')}
+                title="Clear filter"
+                aria-label="Clear filter"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <span className="dol-badge">
-            {stats.apps} app{stats.apps === 1 ? '' : 's'} · {stats.models} model
-            {stats.models === 1 ? '' : 's'}
+            {filter
+              ? `${visibleStats.apps}/${totalStats.apps} apps · ${visibleStats.models}/${totalStats.models} models`
+              : `${totalStats.apps} app${totalStats.apps === 1 ? '' : 's'} · ${totalStats.models} model${totalStats.models === 1 ? '' : 's'}`}
           </span>
           <button
             className="dol-btn"
@@ -442,8 +516,19 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
           </ReactFlow>
         ) : (
           <div className="dol-empty-state">
-            No models to diagram yet — open a Django project with a{' '}
-            <code>models.py</code> file.
+            {hasAnyModels && filter ? (
+              <>
+                No app, model, or field matches <strong>{filter}</strong>.{' '}
+                <button type="button" className="dol-link-btn" onClick={() => setFilter('')}>
+                  Clear filter
+                </button>
+              </>
+            ) : (
+              <>
+                No models to diagram yet — open a Django project with a{' '}
+                <code>models.py</code> file.
+              </>
+            )}
           </div>
         )}
       </div>
