@@ -11,7 +11,7 @@ Thumbs.db
 tmp_tests/
 .outreach/
 
-# Local maintainer scratch (never committed — see django-orm-lens-MAINTAINER/)
+# Local maintainer scratch (never committed — see orm-synapse-MAINTAINER/)
 .marketplace-*.md
 CURATOR.md
 OWNER-QUEUE.md
@@ -29,3 +29,4 @@ cli/*.egg-info/
 **/.pytest_cache/
 **/.mypy_cache/
 **/.ruff_cache/
+.idea/

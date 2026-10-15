@@ -19,7 +19,7 @@ import {
  */
 
 const DOCS_BASE =
-  'https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules';
+  'https://github.com/nam-tong/orm-synapse/blob/main/docs/rules';
 
 const RE_COUNT_GT_ZERO =
   /(\b[A-Za-z_][\w.]*(?:\([^()]*\))*)\.count\(\)\s*(?:>\s*0|>=\s*1)\b/g;

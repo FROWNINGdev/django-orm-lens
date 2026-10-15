@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 /**
- * Django ORM Lens — file decorations for the sidebar tree.
+ * ORM Synapse — file decorations for the sidebar tree.
  *
  * VS Code's `FileDecorationProvider` lets a tree item show a single-letter
  * badge plus a semantic colour on the right side of its row, without
@@ -17,15 +17,15 @@ import * as vscode from 'vscode';
  *                    Mirrors DOL011.
  *
  * The decoration is opt-in per node: `treeProvider` sets `resourceUri` on
- * only those nodes we want decorated, using a synthetic `djangoOrmLens:`
+ * only those nodes we want decorated, using a synthetic `ormSynapse:`
  * URI whose query string encodes the state. That means the provider is
  * pure — it never reaches back into the tree state.
  *
- * URI shape: `djangoOrmLens:/<id-path>?flag=<state>`
+ * URI shape: `ormSynapse:/<id-path>?flag=<state>`
  * where `<state>` is one of the constants below.
  */
 
-export const DECORATION_SCHEME = 'djangoOrmLens';
+export const DECORATION_SCHEME = 'ormSynapse';
 
 export const FLAG_MISSING_ON_DELETE = 'missing-on-delete';
 export const FLAG_MISSING_MAX_LENGTH = 'missing-max-length';

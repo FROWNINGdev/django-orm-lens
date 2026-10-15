@@ -13,12 +13,11 @@ const DEFAULT_OPTIONS: Record<string, string> = {
   'elk.edgeRouting': 'ORTHOGONAL',
 };
 
-// Rough per-node size so ELK knows how much room to reserve.
-// Header ~44px, each field row ~24px, footer padding ~20px.
+// Header is 40px. Each field row, including the "N fields" footer, is 20px.
 export function measureNode(fieldCount: number): { width: number; height: number } {
-  const width = 260;
-  const height = 44 + 20 + Math.max(1, fieldCount) * 24;
-  return { width, height: Math.min(height, 520) };
+  const width = 240;
+  const height = 40 + Math.max(1, fieldCount) * 20;
+  return { width, height };
 }
 
 export async function autoLayout(

@@ -1,4 +1,4 @@
-import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ReactFlow,
@@ -18,7 +18,7 @@ import {
 import reactFlowStyles from '@xyflow/react/dist/style.css';
 import styles from './styles.css';
 import { toPng, toSvg } from 'html-to-image';
-import { ModelNode, type ModelNodeData } from './ModelNode';
+import { ModelNode, collapsedFieldCount, type ModelNodeData } from './ModelNode';
 import { autoLayout } from './layout';
 import type { WireField, WireIndex, WireModel, ExtensionMessage, VsCodeApi } from './types';
 import { acceptsMessage } from '../webviewMessages';
@@ -87,14 +87,39 @@ interface BuiltGraph {
   edges: Edge[];
 }
 
+function stampExpanded(nodes: Node[], expanded: Set<string>): Node[] {
+  return nodes.map((node) => {
+    const open = expanded.has(node.id);
+    const data = node.data as ModelNodeData;
+    return {
+      ...node,
+      zIndex: open ? 10 : 0,
+      data: { ...data, expanded: open } as unknown as Record<string, unknown>,
+    };
+  });
+}
+
 function buildGraph(index: WireIndex): BuiltGraph {
   const nodeIdFor = (app: string, model: string) => `${app}::${model}`;
-  const modelByName = new Map<string, { app: string; model: WireModel }>();
+  const modelsByName = new Map<string, { app: string; model: WireModel }[]>();
   for (const app of index.apps) {
     for (const m of app.models) {
-      modelByName.set(m.name, { app: app.name, model: m });
+      const list = modelsByName.get(m.name) ?? [];
+      list.push({ app: app.name, model: m });
+      modelsByName.set(m.name, list);
     }
   }
+  const targetFor = (related: string, short: string, fromApp: string) => {
+    const candidates = modelsByName.get(short) ?? [];
+    if (candidates.length < 2) return candidates[0];
+    const parts = related.split('.');
+    const label = parts.length >= 2 ? parts[parts.length - 2] : fromApp;
+    return (
+      candidates.find((c) => c.app === label || c.model.appName === label) ??
+      candidates.find((c) => c.app === fromApp) ??
+      candidates[0]
+    );
+  };
 
   const nodes: Node[] = [];
   for (const app of index.apps) {
@@ -105,9 +130,10 @@ function buildGraph(index: WireIndex): BuiltGraph {
         fields: model.fields,
         filePath: model.filePath,
         lineNumber: model.lineNumber,
-        fieldCount: model.fields.length,
+        fieldCount: collapsedFieldCount(model.fields),
         highlighted: false,
         dimmed: false,
+        unmanaged: model.unmanaged,
       };
       nodes.push({
         id: nodeIdFor(app.name, model.name),
@@ -134,7 +160,7 @@ function buildGraph(index: WireIndex): BuiltGraph {
             : rawTail === 'AUTH_USER_MODEL' && index.userModelName
               ? index.userModelName
               : rawTail;
-        const targetInfo = modelByName.get(targetShort);
+        const targetInfo = targetFor(f.relatedModel, targetShort, app.name);
         if (!targetInfo) continue;
         const targetId = nodeIdFor(targetInfo.app, targetInfo.model.name);
         const style = edgeStyle(f);
@@ -148,7 +174,8 @@ function buildGraph(index: WireIndex): BuiltGraph {
           source: sourceId,
           target: targetId,
           animated: false,
-          label: `${f.name}${style.label ? ` · ${style.label}` : ''}`,
+          data: { caption: `${f.name}${style.label ? ` · ${style.label}` : ''}` },
+          interactionWidth: 16,
           labelStyle: { fill: 'var(--dol-node-text)', fontSize: 10 },
           labelBgPadding: [4, 3],
           labelBgBorderRadius: 3,
@@ -175,13 +202,285 @@ interface GraphAppProps {
   initialIndex: WireIndex | null;
 }
 
+interface PersistedGraphState {
+  apps?: string[] | null;
+  models?: string[] | null;
+}
+
+/** Field name and on_delete appear on hover, or on every line touching the selected model. */
+function presentEdge(edge: Edge, selectedId: string | null, hoveredEdgeId: string | null): Edge {
+  const caption = (edge.data as { caption?: string } | undefined)?.caption;
+  const connected = selectedId !== null && (edge.source === selectedId || edge.target === selectedId);
+  const hovered = edge.id === hoveredEdgeId;
+  const active = selectedId === null || connected || hovered;
+  const show = Boolean(caption) && (connected || hovered);
+  return {
+    ...edge,
+    label: show ? caption : undefined,
+    animated: active && selectedId !== null,
+    labelStyle: {
+      fill: 'var(--dol-node-text)',
+      fontSize: 10,
+      opacity: active ? 1 : 0.35,
+    },
+    labelBgStyle: { fill: 'var(--dol-node-bg)', fillOpacity: active ? 0.92 : 0.35 },
+    style: {
+      ...(edge.style ?? {}),
+      opacity: active ? 1 : 0.15,
+    },
+  };
+}
+
+interface PickOption {
+  id: string;
+  label: string;
+  detail?: string;
+  group?: string;
+}
+
+/** `null` means every id. An array is an explicit subset, including none. */
+export function filterIndex(
+  index: WireIndex,
+  apps: string[] | null,
+  models: string[] | null
+): WireIndex {
+  const appSet = apps === null ? null : new Set(apps);
+  const modelSet = models === null ? null : new Set(models);
+  return {
+    ...index,
+    apps: index.apps
+      .filter((app) => appSet === null || appSet.has(app.name))
+      .map((app) => ({
+        ...app,
+        models:
+          modelSet === null
+            ? app.models
+            : app.models.filter((model) => modelSet.has(`${app.name}/${model.name}`)),
+      }))
+      .filter((app) => app.models.length > 0),
+  };
+}
+
+function selectionForFocus(ids: string[]): { apps: string[]; models: string[] } {
+  return {
+    apps: [...new Set(ids.map((id) => id.slice(0, id.indexOf('/'))).filter(Boolean))],
+    models: ids,
+  };
+}
+
+function toggleSelection(current: string[] | null, id: string, allIds: string[]): string[] | null {
+  const selected = new Set(current ?? allIds);
+  if (selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  if (selected.size === 0 || selected.size === allIds.length) {
+    return selected.size === 0 ? [] : null;
+  }
+  return allIds.filter((item) => selected.has(item));
+}
+
+function MultiSelect({
+  label,
+  allLabel,
+  noun,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  allLabel: string;
+  noun: string;
+  options: PickOption[];
+  value: string[] | null;
+  onChange: (next: string[] | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const allIds = options.map((option) => option.id);
+  const selected = new Set(value ?? allIds);
+  const allChecked = allIds.length > 0 && (value === null || selected.size === allIds.length);
+  const summary =
+    options.length === 0 || selected.size === 0
+      ? `No ${noun}`
+      : allChecked
+        ? label
+        : selected.size === 1
+          ? (options.find((option) => selected.has(option.id))?.label ?? label)
+          : `${selected.size} ${noun}`;
+  const needle = query.trim().toLocaleLowerCase();
+  const visible = needle
+    ? options.filter(
+        (option) =>
+          option.label.toLocaleLowerCase().includes(needle) ||
+          (option.group ?? '').toLocaleLowerCase().includes(needle)
+      )
+    : options;
+  const showGroups = new Set(visible.map((option) => option.group).filter(Boolean)).size > 1;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as globalThis.Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="dol-picker" ref={rootRef}>
+      <button
+        type="button"
+        className={allChecked ? 'dol-picker-btn' : 'dol-picker-btn dol-picker-on'}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`${label}: ${summary}`}
+        title={summary}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="dol-picker-v">{summary}</span>
+        <span className="dol-picker-caret" aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="dol-picker-menu" role="listbox" aria-multiselectable="true">
+          {options.length > 8 && (
+            <input
+              type="search"
+              value={query}
+              placeholder="Filter…"
+              aria-label={`Filter ${noun}`}
+              onChange={(event) => setQuery(event.target.value)}
+              autoFocus
+            />
+          )}
+          <label className="dol-picker-row dol-picker-all">
+            <input
+              type="checkbox"
+              checked={allChecked}
+              ref={(element) => {
+                if (element) element.indeterminate = !allChecked && selected.size > 0;
+              }}
+              onChange={() => onChange(allChecked ? [] : null)}
+            />
+            <span>{allLabel}</span>
+            <em>{options.length}</em>
+          </label>
+          <div className="dol-picker-list">
+            {visible.map((option, i) => (
+              <Fragment key={option.id}>
+                {showGroups && option.group && option.group !== visible[i - 1]?.group && (
+                  <div className="dol-picker-group">{option.group}</div>
+                )}
+                <label className="dol-picker-row">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(option.id)}
+                    onChange={() => onChange(toggleSelection(value, option.id, allIds))}
+                  />
+                  <span>{option.label}</span>
+                  {option.detail && <em>{option.detail}</em>}
+                </label>
+              </Fragment>
+            ))}
+            {visible.length === 0 && <div className="dol-picker-empty">No matches</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GraphApp({ vscode, initialIndex }: GraphAppProps) {
+  const persisted = vscode.getState<PersistedGraphState>() ?? {};
+  const openedOn = initialIndex?.focusModels ? selectionForFocus(initialIndex.focusModels) : undefined;
   const [index, setIndex] = useState<WireIndex | null>(initialIndex);
+  const [selectedApps, setSelectedApps] = useState<string[] | null>(
+    openedOn ? openedOn.apps : (persisted.apps ?? null)
+  );
+  const [selectedModels, setSelectedModels] = useState<string[] | null>(
+    openedOn ? openedOn.models : (persisted.models ?? null)
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const selectedIdRef = useRef(selectedId);
+  const hoveredEdgeRef = useRef(hoveredEdgeId);
+  selectedIdRef.current = selectedId;
+  hoveredEdgeRef.current = hoveredEdgeId;
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
+  const expandedRef = useRef(expandedIds);
+  expandedRef.current = expandedIds;
   const [exportOpen, setExportOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  const appOptions = useMemo<PickOption[]>(
+    () =>
+      (index?.apps ?? []).map((app) => ({
+        id: app.name,
+        label: app.name,
+        detail: String(app.models.length),
+      })),
+    [index]
+  );
+  const modelOptions = useMemo<PickOption[]>(() => {
+    if (!index) return [];
+    const apps =
+      selectedApps === null
+        ? index.apps
+        : index.apps.filter((app) => selectedApps.includes(app.name));
+    return apps.flatMap((app) =>
+      app.models.map((model) => ({
+        id: `${app.name}/${model.name}`,
+        label: model.name,
+        detail: String(model.fields.length),
+        group: app.name,
+      }))
+    );
+  }, [index, selectedApps]);
+  const filteredIndex = useMemo(
+    () => (index ? filterIndex(index, selectedApps, selectedModels) : null),
+    [index, selectedApps, selectedModels]
+  );
+  const narrowed = selectedApps !== null || selectedModels !== null;
+
+  useEffect(() => {
+    if (!index) return;
+    const names = new Set(index.apps.map((app) => app.name));
+    setSelectedApps((prev) => {
+      if (prev === null) return null;
+      const kept = prev.filter((name) => names.has(name));
+      if (kept.length === prev.length) return prev;
+      return kept.length === index.apps.length ? null : kept;
+    });
+  }, [index]);
+
+  useEffect(() => {
+    if (!index) return;
+    const ids = new Set(modelOptions.map((option) => option.id));
+    setSelectedModels((prev) => {
+      if (prev === null) return null;
+      const kept = prev.filter((id) => ids.has(id));
+      if (kept.length === prev.length) return prev;
+      return kept.length === modelOptions.length ? null : kept;
+    });
+  }, [index, modelOptions]);
+
+  useEffect(() => {
+    vscode.setState<PersistedGraphState>({
+      apps: selectedApps,
+      models: selectedModels,
+    });
+  }, [selectedApps, selectedModels, vscode]);
+
+  useEffect(() => {
+    setSelectedId(null);
+  }, [selectedApps, selectedModels]);
 
   useEffect(() => {
     const onMsg = (event: MessageEvent<ExtensionMessage>) => {
@@ -193,6 +492,11 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
       const data = event.data;
       if (data.type === 'index') {
         setIndex(data.payload);
+        if (data.payload.focusModels) {
+          const focus = selectionForFocus(data.payload.focusModels);
+          setSelectedApps(focus.apps);
+          setSelectedModels(focus.models);
+        }
       } else if (data.type === 'theme') {
         document.body.classList.toggle('dol-light', data.payload === 'light');
       }
@@ -203,9 +507,9 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
   }, [vscode]);
 
   useEffect(() => {
-    if (!index) return;
-    document.body.classList.toggle('dol-light', index.theme === 'light');
-    const { nodes: builtNodes, edges: builtEdges } = buildGraph(index);
+    if (!filteredIndex) return;
+    document.body.classList.toggle('dol-light', filteredIndex.theme === 'light');
+    const { nodes: builtNodes, edges: builtEdges } = buildGraph(filteredIndex);
     if (builtNodes.length === 0) {
       setNodes([]);
       setEdges([]);
@@ -215,25 +519,28 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     autoLayout(builtNodes, builtEdges)
       .then((laid) => {
         if (cancelled) return;
-        setNodes(laid.nodes);
-        setEdges(laid.edges);
+        setNodes(stampExpanded(laid.nodes, expandedRef.current));
+        setEdges(laid.edges.map((edge) => presentEdge(edge, selectedIdRef.current, hoveredEdgeRef.current)));
       })
       .catch(() => {
         if (cancelled) return;
         // Fallback: grid layout if elk fails.
         const cols = Math.max(1, Math.ceil(Math.sqrt(builtNodes.length)));
         setNodes(
-          builtNodes.map((n, i) => ({
-            ...n,
-            position: { x: (i % cols) * 320, y: Math.floor(i / cols) * 280 },
-          }))
+          stampExpanded(
+            builtNodes.map((n, i) => ({
+              ...n,
+              position: { x: (i % cols) * 320, y: Math.floor(i / cols) * 280 },
+            })),
+            expandedRef.current
+          )
         );
-        setEdges(builtEdges);
+        setEdges(builtEdges.map((edge) => presentEdge(edge, selectedIdRef.current, hoveredEdgeRef.current)));
       });
     return () => {
       cancelled = true;
     };
-  }, [index, setNodes, setEdges]);
+  }, [filteredIndex, setNodes, setEdges]);
 
   // Apply highlight state to node/edge data whenever selection changes.
   useEffect(() => {
@@ -248,35 +555,31 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
               (e.target === selectedId && e.source === n.id)
           );
         const nd = n.data as ModelNodeData;
+        const expanded = expandedIds.has(n.id);
         return {
           ...n,
+          zIndex: expanded ? 10 : 0,
           data: {
             ...nd,
+            expanded,
             highlighted: n.id === selectedId,
             dimmed: selectedId !== null && !connected,
           } as unknown as Record<string, unknown>,
         };
       })
     );
-    setEdges((curr) =>
-      curr.map((e) => {
-        const active =
-          selectedId === null || e.source === selectedId || e.target === selectedId;
-        return {
-          ...e,
-          animated: active && selectedId !== null,
-          style: {
-            ...(e.style ?? {}),
-            opacity: active ? 1 : 0.15,
-          },
-        };
-      })
-    );
+    setEdges((curr) => curr.map((edge) => presentEdge(edge, selectedId, hoveredEdgeId)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
+  }, [selectedId, expandedIds, hoveredEdgeId]);
 
   const onNodeClick = useCallback<NodeMouseHandler>((_, node) => {
     setSelectedId((prev) => (prev === node.id ? null : node.id));
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(node.id)) next.delete(node.id);
+      else next.add(node.id);
+      return next;
+    });
   }, []);
 
   const onNodeDoubleClick = useCallback<NodeMouseHandler>(
@@ -318,27 +621,66 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     [vscode]
   );
 
-  const stats = useMemo(() => {
-    if (!index) return { apps: 0, models: 0 };
+  const countIndex = useCallback((value: WireIndex | null) => {
+    if (!value) return { apps: 0, models: 0 };
     let models = 0;
-    for (const a of index.apps) models += a.models.length;
-    return { apps: index.apps.length, models };
-  }, [index]);
+    for (const a of value.apps) models += a.models.length;
+    return { apps: value.apps.length, models };
+  }, []);
+  const totalStats = useMemo(() => countIndex(index), [countIndex, index]);
+  const visibleStats = useMemo(
+    () => countIndex(filteredIndex),
+    [countIndex, filteredIndex]
+  );
 
   const workspaceName = index?.workspaceName ?? 'workspace';
   const hasModels = nodes.length > 0;
+  const hasAnyModels = totalStats.models > 0;
 
   return (
     <div className="dol-app">
       <header className="dol-header">
         <div className="dol-header-title">
-          Django ORM Lens<span className="dol-title-sep">·</span>
+          ORM Synapse<span className="dol-title-sep">·</span>
           {workspaceName}
+        </div>
+        <div className="dol-filter-bar">
+          <MultiSelect
+            label="Apps"
+            allLabel="All apps"
+            noun="apps"
+            options={appOptions}
+            value={selectedApps}
+            onChange={setSelectedApps}
+          />
+          <MultiSelect
+            label="Models"
+            allLabel="All models"
+            noun="models"
+            options={modelOptions}
+            value={selectedModels}
+            onChange={setSelectedModels}
+          />
+          {narrowed && (
+            <button
+              type="button"
+              className="dol-picker-clear"
+              title="Show every app and model"
+              aria-label="Reset filter"
+              onClick={() => {
+                setSelectedApps(null);
+                setSelectedModels(null);
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
         <div className="dol-header-actions">
           <span className="dol-badge">
-            {stats.apps} app{stats.apps === 1 ? '' : 's'} · {stats.models} model
-            {stats.models === 1 ? '' : 's'}
+            {narrowed
+              ? `${visibleStats.apps}/${totalStats.apps} apps · ${visibleStats.models}/${totalStats.models} models`
+              : `${totalStats.apps} app${totalStats.apps === 1 ? '' : 's'} · ${totalStats.models} model${totalStats.models === 1 ? '' : 's'}`}
           </span>
           <button
             className="dol-btn"
@@ -381,6 +723,8 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
             onNodeClick={onNodeClick}
             onNodeDoubleClick={onNodeDoubleClick}
             onPaneClick={onPaneClick}
+            onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
             nodeTypes={NODE_TYPES}
             fitView
             fitViewOptions={{ padding: 0.2 }}
@@ -413,37 +757,56 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
             />
             <div className="dol-legend">
               <span className="dol-legend-item">
-                <span className="dol-legend-swatch" style={{ background: 'var(--dol-color-fk)' }} />
-                FK / CASCADE
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-fk-cascade)' }} />
+                CASCADE
               </span>
               <span className="dol-legend-item">
                 <span
-                  className="dol-legend-swatch"
-                  style={{ background: 'var(--dol-color-fk-setnull)' }}
+                  className="dol-legend-swatch dol-legend-dashed"
+                  style={{ borderTopColor: 'var(--dol-color-fk-setnull)' }}
                 />
                 SET_NULL
               </span>
               <span className="dol-legend-item">
-                <span
-                  className="dol-legend-swatch"
-                  style={{ background: 'var(--dol-color-fk-protect)' }}
-                />
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-fk-protect)' }} />
                 PROTECT
               </span>
               <span className="dol-legend-item">
-                <span className="dol-legend-swatch" style={{ background: 'var(--dol-color-o2o)' }} />
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-o2o)' }} />
                 1:1
               </span>
               <span className="dol-legend-item">
-                <span className="dol-legend-swatch" style={{ background: 'var(--dol-color-m2m)' }} />
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-m2m)' }} />
                 M2M
+              </span>
+              <span className="dol-legend-item">
+                <span className="dol-legend-card" />
+                unmanaged
               </span>
             </div>
           </ReactFlow>
         ) : (
           <div className="dol-empty-state">
-            No models to diagram yet — open a Django project with a{' '}
-            <code>models.py</code> file.
+            {hasAnyModels && narrowed ? (
+              <>
+                No models in this selection.{' '}
+                <button
+                  type="button"
+                  className="dol-link-btn"
+                  onClick={() => {
+                    setSelectedApps(null);
+                    setSelectedModels(null);
+                  }}
+                >
+                  Reset filter
+                </button>
+              </>
+            ) : (
+              <>
+                No models to diagram yet — open a Django project with a{' '}
+                <code>models.py</code> file.
+              </>
+            )}
           </div>
         )}
       </div>

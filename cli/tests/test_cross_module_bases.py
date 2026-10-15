@@ -20,7 +20,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from django_orm_lens.parser import scan_workspace
+from orm_synapse.parser import scan_workspace
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cross_module"
 

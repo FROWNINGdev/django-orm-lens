@@ -83,8 +83,30 @@ BARE_FIELD_TYPES = "|".join(
         "ForeignKey", "OneToOneField", "ManyToManyField",
         "TaggableManager",
         "TreeForeignKey", "TreeOneToOneField", "TreeManyToManyField",
+        # Project-local subclasses: ``TinyIntegerField``, ``BaseForeignKey``, ...
+        r"[A-Z][A-Za-z0-9_]*Field", r"[A-Z][A-Za-z0-9_]*ForeignKey",
     ]
 )
+# GenericForeignKey is a descriptor over two columns, not a column itself.
+BARE_FIELD_PATTERN = rf"(?!GenericForeignKey\b)(?:{BARE_FIELD_TYPES})"
+
+
+def _relation_kind(ftype: str) -> str | None:
+    """Relation kind for a field class name, decided by Django's suffix.
+
+    Subclasses such as ``BaseForeignKey`` keep the suffix. Mirrors
+    ``relationKindOf`` in src/parser.ts.
+    """
+    if ftype == "TaggableManager":
+        return "ManyToManyField"
+    if ftype in TREE_FIELD_ALIASES:
+        return TREE_FIELD_ALIASES[ftype]
+    if ftype == "GenericForeignKey":
+        return None
+    for kind in ("ManyToManyField", "OneToOneField", "ForeignKey"):
+        if ftype.endswith(kind):
+            return kind
+    return None
 
 
 def _read_multiline_class(lines: Sequence[str], start: int):
@@ -162,7 +184,7 @@ def _build_body_regexes(indent: int):
             rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\("
         ),
         "BARE_FIELD_RE": re.compile(
-            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*{prefix_opt}({BARE_FIELD_TYPES})\s*\("
+            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*{prefix_opt}({BARE_FIELD_PATTERN})\s*\("
         ),
         "META_START_RE": re.compile(rf"^{w}class\s+Meta\s*(?:\([^)]*\))?\s*:"),
         "META_ITEM_RE": re.compile(
@@ -555,12 +577,7 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
             if fm:
                 fname, ftype = fm.group(1), fm.group(2)
                 args_block, end_idx = _read_balanced_args(lines, j)
-                relation_kind = (
-                    "ManyToManyField"
-                    if ftype == "TaggableManager"
-                    else TREE_FIELD_ALIASES.get(ftype)
-                    or (ftype if ftype in RELATION_TYPES else None)
-                )
+                relation_kind = _relation_kind(ftype)
                 is_rel = relation_kind is not None
                 field = ParsedField(
                     name=fname,
@@ -897,29 +914,64 @@ def _pull_imported_bases(
 MODEL_SOURCE_FILES = frozenset({"models.py", "abstract_models.py"})
 
 
+def _is_model_source(rel_posix: str) -> bool:
+    """True for Django model modules, including nested ``models`` packages.
+
+    ``app/models.py`` and ``app/abstract_models.py`` match by filename.
+    ``app/models/order.py`` and ``app/models/builders/flow.py`` match because
+    a directory on the path is named ``models``. A package ``__init__.py``
+    under ``models`` counts too: ``models/lead/__init__.py`` can define the
+    model itself rather than re-export it.
+    """
+    name = rel_posix.rsplit("/", 1)[-1]
+    if not name.endswith(".py"):
+        return False
+    if name in MODEL_SOURCE_FILES:
+        return True
+    return "models" in rel_posix.split("/")[:-1]
+
+
 def _iter_python_files(root: Path, excludes: Sequence[str]) -> Iterable[Path]:
+    root = root.resolve()
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for name in filenames:
-            if name in MODEL_SOURCE_FILES or (
-                os.path.basename(dirpath) == "models"
-                and name.endswith(".py")
-                and name != "__init__.py"
-            ):
-                full = Path(dirpath) / name
-                rel_posix = full.relative_to(root).as_posix()
-                if any(fnmatch(rel_posix, pat) for pat in excludes):
-                    continue
-                yield full
+            full = Path(dirpath) / name
+            rel_posix = full.relative_to(root).as_posix()
+            if not _is_model_source(rel_posix):
+                continue
+            if any(fnmatch(rel_posix, pat) for pat in excludes):
+                continue
+            yield full
 
 
-def _app_dir_for(fs_path: str) -> tuple[str, str]:
-    parent = os.path.dirname(fs_path)
-    parent_name = os.path.basename(parent)
-    if parent_name == "models":
-        grand = os.path.dirname(parent)
+def _app_dir_for(fs_path: str, root: str) -> tuple[str, str]:
+    """App directory and name for a model file.
+
+    ``models.py`` belongs to the directory that contains it
+    (``shop/models.py`` → ``shop``). Any other module under a ``models``
+    package belongs to that package's parent, so
+    ``shop/models/builders/flow.py`` is still the ``shop`` app.
+    ``root`` keeps a directory named ``models`` *above* the workspace from
+    being treated as a Django models package.
+    """
+    directory = os.path.dirname(os.path.abspath(fs_path))
+    if os.path.basename(fs_path) == "models.py":
+        return directory, os.path.basename(directory)
+
+    root_abs = os.path.abspath(root)
+    rel = os.path.relpath(directory, root_abs)
+    outside = rel.startswith("..") or os.path.isabs(rel)
+    if not outside:
+        parts = [] if rel in (".", "") else rel.split(os.sep)
+        if "models" in parts:
+            idx = len(parts) - 1 - parts[::-1].index("models")
+            app_dir = root_abs if idx == 0 else os.path.join(root_abs, *parts[:idx])
+            return app_dir, os.path.basename(app_dir)
+    if os.path.basename(directory) == "models":
+        grand = os.path.dirname(directory)
         return grand, os.path.basename(grand)
-    return parent, parent_name
+    return directory, os.path.basename(directory)
 
 
 DEFAULT_EXCLUDES = (
@@ -962,7 +1014,11 @@ def iter_workspace_py_files(
 def scan_workspace(
     root: str, exclude_globs: Sequence[str] = DEFAULT_EXCLUDES
 ) -> WorkspaceIndex:
-    """Walk ``root``, parse every ``models.py`` (or ``models/*.py``), return an index.
+    """Walk ``root``, parse every model module, return an index.
+
+    Model modules are ``models.py``, ``abstract_models.py``, and any
+    ``*.py`` under a ``models/`` package — including nested ones such as
+    ``models/builders/flow.py`` and package ``__init__.py`` files.
 
     Collects class definitions from every file first, then resolves
     transitive model inheritance once over that union — so a model whose
@@ -991,7 +1047,7 @@ def scan_workspace(
 
     apps: dict = {}
     for model in _resolve_and_filter(all_defs):
-        app_dir, app_name = _app_dir_for(model.file_path)
+        app_dir, app_name = _app_dir_for(model.file_path, str(root_path))
         app = apps.get(app_dir)
         if app is None:
             app = ParsedApp(name=app_name, path=app_dir)

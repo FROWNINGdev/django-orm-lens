@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.query_analyzer import (
+from orm_synapse.query_analyzer import (
     NPlusOneFinding,
     NPlusOneScanner,
     scan_for_nplusone,
@@ -411,7 +411,7 @@ class ReverseOneToOneTest(unittest.TestCase):
     )
 
     def _scan(self, views: str) -> list[NPlusOneFinding]:
-        from django_orm_lens.parser import scan_workspace
+        from orm_synapse.parser import scan_workspace
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

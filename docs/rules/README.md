@@ -3,14 +3,14 @@
 🌐 [Italiano](../i18n/rules/it/README.md) — queryset and model rules (`DOL001`–`DOL008`, `DOL011`–`DOL015`)
 🌐 [Tiếng Việt](../i18n/rules/vi/README.md) — queryset rules (`DOL001`–`DOL007`)
 
-Django ORM Lens ships two rule surfaces:
+ORM Synapse ships two rule surfaces:
 
-1. **Editor rules (`DOL###`)** — 18 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `Django ORM Lens`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
-2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install django-orm-lens`) for terminals and pipelines: [`migration-risk`](migrations.md), [`nplusone`](nplusone.md), [`blast-radius`](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/blast-radius.md) — which joins migration risks with the code that still references what they change — and [`drift`](drift.md), a `makemigrations --check` that needs no Django boot.
+1. **Editor rules (`DOL###`)** — line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `ORM Synapse`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
+2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install orm-synapse`) for terminals and pipelines: [`migration-risk`](migrations.md), [`nplusone`](nplusone.md), [`blast-radius`](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/blast-radius.md) — which joins migration risks with the code that still references what they change — and [`drift`](drift.md), a `makemigrations --check` that needs no Django boot.
 
 ## Severity and applicability
 
-Severity mirrors VS Code's four diagnostic levels: `error`, `warning`, `info`, `hint`. Every rule has a default (listed below); override per rule in `.vscode/settings.json` via `djangoOrmLens.rules` — e.g. `{"djangoOrmLens.rules": {"DOL013": "error", "DOL007": "off"}}`.
+Severity mirrors VS Code's four diagnostic levels: `error`, `warning`, `info`, `hint`. Every rule has a default (listed below); override per rule in `.vscode/settings.json` via `ormSynapse.rules` — e.g. `{"ormSynapse.rules": {"DOL013": "error", "DOL007": "off"}}`.
 
 Applicability follows Clippy's semantics. It is a property of each individual finding and gates whether an editor may apply the fix unattended:
 
@@ -33,10 +33,15 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL007](DOL007.md) | Possible N+1: attribute access inside for-loop | queryset | warning | unsafe |
 | [DOL008](DOL008.md) | Field name in a lookup looks misspelled | correctness | warning | suggestion |
 | [DOL011](DOL011.md) | `null=True` on CharField/TextField | model | warning | suggestion |
-| [DOL012](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/DOL012.md) | Model without `__str__` method | model | info | suggestion |
+| [DOL012](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/DOL012.md) | Model without `__str__` method | model | info | suggestion |
 | [DOL013](DOL013.md) | ForeignKey without `on_delete` | model | error | suggestion |
 | [DOL014](DOL014.md) | CharField without `max_length` | model | error | suggestion |
 | [DOL015](DOL015.md) | TextField with `max_length` has no DB effect | model | hint | suggestion |
+| [DOL016](DOL016.md) | Meta index or constraint without a name | model | warning | unsafe |
+| [DOL017](DOL017.md) | Meta index or unique name breaks the MySQL naming convention | model | warning | suggestion |
+| [DOL018](DOL018.md) | Several ids stored in one column | model | warning | unsafe |
+| [DOL019](DOL019.md) | Repeated column group (`phone_1`, `phone_2`, `phone_3`) | model | warning | unsafe |
+| [DOL020](DOL020.md) | Column copies an attribute of a related row | model | warning | unsafe |
 | [DOL021](DOL021.md) | `datetime.now()` should be `timezone.now()` | datetime | warning | suggestion |
 | [DOL022](DOL022.md) | `datetime.utcnow()` is deprecated | datetime | warning | suggestion |
 | [DOL031](DOL031.md) | `render()` with `locals()` as context | forms | warning | suggestion |
@@ -46,16 +51,17 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 ### Suppressing findings inline
 
 ```python
-# django-orm-lens-disable-next-line DOL007        (next line; comma-separate for several codes)
-qs.count() > 0  # django-orm-lens-disable-line DOL001
-# django-orm-lens-disable DOL011                  (own line — disables for the rest of the file)
+# orm-synapse-disable-next-line DOL007        (next line; comma-separate for several codes)
+qs.count() > 0  # orm-synapse-disable-line DOL001
+# orm-synapse-disable DOL011                  (own line — disables for the rest of the file)
 ```
 
-Ruff-style bulk selection is also available: `djangoOrmLens.rulesSelect` (e.g. `["DOL0"]`) and `djangoOrmLens.rulesIgnore` (e.g. `["DOL03"]`).
+Ruff-style bulk selection is also available: `ormSynapse.rulesSelect` (e.g. `["DOL0"]`) and `ormSynapse.rulesIgnore` (e.g. `["DOL03"]`).
 
 ## CLI / CI analyzers
 
 These run from the Python CLI, not the editor. Both exit non-zero on findings (see each page for exact semantics) and emit `--format sarif` (SARIF 2.1.0 for GitHub Code Scanning) or `--format github` (workflow commands for zero-setup PR annotations).
 
-- **[Migration risk rules](migrations.md)** — 16 rules over `<app>/migrations/*.py` flagging operations that are dangerous on production databases. Run with `django-orm-lens migration-risk`.
-- **[Static N+1 detector](nplusone.md)** — flags FK / O2O / M2M / reverse-manager access inside for-loops when the source queryset has no matching `select_related` / `prefetch_related`. Run with `django-orm-lens nplusone`.
+- **[Migration risk rules](migrations.md)** — 16 rules over `<app>/migrations/*.py` flagging operations that are dangerous on production databases. Run with `orm-synapse migration-risk`.
+- **[Static N+1 detector](nplusone.md)** — flags FK / O2O / M2M / reverse-manager access inside for-loops when the source queryset has no matching `select_related` / `prefetch_related`. Run with `orm-synapse nplusone`.
+- **[Denormalization review](denormalize.md)** — id lists, repeated columns, and attributes copied next to a foreign key. Warnings only. Run with `orm-synapse denormalize`. The default exit code is 0.

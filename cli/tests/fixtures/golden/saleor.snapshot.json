@@ -99,6 +99,13 @@
               "type": "DecimalField"
             },
             {
+              "args": "amount_field=\"discount_value\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 252,
+              "name": "discount",
+              "type": "MoneyField"
+            },
+            {
               "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH,",
               "isRelation": false,
               "lineNumber": 253,
@@ -111,6 +118,13 @@
               "lineNumber": 256,
               "name": "min_spent_amount",
               "type": "DecimalField"
+            },
+            {
+              "args": "amount_field=\"min_spent_amount\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 262,
+              "name": "min_spent",
+              "type": "MoneyField"
             }
           ],
           "filePath": "saleor/discount/models.py",
@@ -174,6 +188,13 @@
               "lineNumber": 382,
               "name": "name",
               "type": "CharField"
+            },
+            {
+              "args": "blank=True, null=True, sanitizer=clean_editorjs",
+              "isRelation": false,
+              "lineNumber": 383,
+              "name": "description",
+              "type": "SanitizedJSONField"
             },
             {
               "args": "Promotion, on_delete=models.CASCADE, related_name=\"rules\"",
@@ -700,6 +721,13 @@
               "type": "DecimalField"
             },
             {
+              "args": "amount_field=\"amount_value\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 924,
+              "name": "amount",
+              "type": "MoneyField"
+            },
+            {
               "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH,",
               "isRelation": false,
               "lineNumber": 925,
@@ -880,6 +908,13 @@
               "type": "SlugField"
             },
             {
+              "args": "blank=True, null=True, sanitizer=clean_editorjs",
+              "isRelation": false,
+              "lineNumber": 59,
+              "name": "description",
+              "type": "SanitizedJSONField"
+            },
+            {
               "args": "blank=True",
               "isRelation": false,
               "lineNumber": 60,
@@ -976,11 +1011,25 @@
               "type": "DecimalField"
             },
             {
+              "args": "amount_field=\"price_amount\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 503,
+              "name": "price",
+              "type": "MoneyField"
+            },
+            {
               "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
               "isRelation": false,
               "lineNumber": 505,
               "name": "cost_price_amount",
               "type": "DecimalField"
+            },
+            {
+              "args": "amount_field=\"cost_price_amount\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 511,
+              "name": "cost_price",
+              "type": "MoneyField"
             },
             {
               "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
@@ -990,11 +1039,25 @@
               "type": "DecimalField"
             },
             {
+              "args": "amount_field=\"prior_price_amount\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 519,
+              "name": "prior_price",
+              "type": "MoneyField"
+            },
+            {
               "args": "max_digits=settings.DEFAULT_MAX_DIGITS,\n        decimal_places=settings.DEFAULT_DECIMAL_PLACES,\n        blank=True,\n        null=True,",
               "isRelation": false,
               "lineNumber": 523,
               "name": "discounted_price_amount",
               "type": "DecimalField"
+            },
+            {
+              "args": "amount_field=\"discounted_price_amount\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 529,
+              "name": "discounted_price",
+              "type": "MoneyField"
             },
             {
               "args": "PromotionRule,\n        help_text=\"Promotion rules that were included in the discounted price.\",\n        through=\"product.VariantChannelListingPromotionRule\",\n        blank=True,",
@@ -1057,6 +1120,13 @@
               "lineNumber": 562,
               "name": "discount_amount",
               "type": "DecimalField"
+            },
+            {
+              "args": "amount_field=\"discount_amount\", currency_field=\"currency\"",
+              "isRelation": false,
+              "lineNumber": 567,
+              "name": "discount",
+              "type": "MoneyField"
             },
             {
               "args": "max_length=settings.DEFAULT_CURRENCY_CODE_LENGTH,",

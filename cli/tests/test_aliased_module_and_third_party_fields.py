@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import unittest
 
-from django_orm_lens.parser import parse_models_file
+from orm_synapse.parser import parse_models_file
 
 
 class AliasedModelsModuleTest(unittest.TestCase):
@@ -88,6 +88,25 @@ class ThirdPartyFieldPackageTest(unittest.TestCase):
         self.assertEqual(
             [f.name for f in models[0].fields], ["name", "count"]
         )
+
+
+class ProjectLocalFieldClassTest(unittest.TestCase):
+    def test_custom_fields_and_relation_subclasses(self) -> None:
+        src = (
+            "from django.db import models\n\n"
+            "class Card(models.Model):\n"
+            '    company = BaseForeignKey("ai_api.Company", on_delete=models.CASCADE)\n'
+            '    profile = BaseOneToOneField("Profile", on_delete=models.CASCADE)\n'
+            "    order_number = TinyIntegerField(default=0)\n"
+            '    target = GenericForeignKey("content_type", "object_id")\n'
+            "    helper = build_thing(1)\n"
+        )
+        fields = {f.name: f for f in parse_models_file("app/models.py", src)[0].fields}
+        self.assertEqual(list(fields), ["company", "profile", "order_number"])
+        self.assertEqual(fields["company"].relation_kind, "ForeignKey")
+        self.assertEqual(fields["company"].related_model, "ai_api.Company")
+        self.assertEqual(fields["profile"].relation_kind, "OneToOneField")
+        self.assertFalse(fields["order_number"].is_relation)
 
 
 class TaggableManagerTest(unittest.TestCase):

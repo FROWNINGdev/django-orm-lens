@@ -26,7 +26,7 @@ import * as vscode from 'vscode';
  * by layer, then confidence, then file path.
  *
  * Callers:
- *   - `src/extension.ts` — `djangoOrmLens.findImpact` command handler
+ *   - `src/extension.ts` — `ormSynapse.findImpact` command handler
  *   - `test/impact-analysis.test.js` — pure classifier tests
  */
 
@@ -83,7 +83,7 @@ export function detectLayer(filePath: string): Layer {
   if (/\/migrations\/[^/]+\.py$/.test(p)) return 'migrations';
   if (/\/tests?\.py$/.test(p) || /\/tests?\//.test(p) || /\/test_[^/]+\.py$/.test(p))
     return 'tests';
-  if (/\/models(\.py|\/[^/]+\.py)$/.test(p)) return 'models';
+  if (/\/models\.py$/.test(p) || /\/models\/.+\.py$/.test(p)) return 'models';
   if (/\/serializers?(\.py|\/[^/]+\.py)$/.test(p) || /\/api\/[^/]+\.py$/.test(p))
     return 'serializers';
   if (/\/forms?(\.py|\/[^/]+\.py)$/.test(p)) return 'forms';
@@ -104,7 +104,7 @@ export function detectLayer(filePath: string): Layer {
  * root is the developer's machine layout, not the project's, so callers pass
  * the workspace-relative path here instead.
  *
- * Mirrors `layer_of()` in cli/django_orm_lens/impact.py. Change both together.
+ * Mirrors `layer_of()` in cli/orm_synapse/impact.py. Change both together.
  */
 export function layerOf(relativePath: string): Layer {
   const rel = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
@@ -115,7 +115,7 @@ export function layerOf(relativePath: string): Layer {
 
 /** Glob patterns per layer — order matters (models first for early wins). */
 export const LAYER_GLOBS: Record<Exclude<Layer, 'other'>, string[]> = {
-  models: ['**/models.py', '**/models/*.py'],
+  models: ['**/models.py', '**/models/*.py', '**/models/**/*.py'],
   serializers: [
     '**/serializers.py',
     '**/serializers/*.py',
@@ -289,7 +289,7 @@ export async function scanImpact(
   needle: string,
   options: ScanOptions = {},
 ): Promise<Finding[]> {
-  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  const cfg = vscode.workspace.getConfiguration('ormSynapse');
   const baseExcludes = cfg.get<string[]>('excludeGlobs', [
     '**/migrations/**',
     '**/node_modules/**',

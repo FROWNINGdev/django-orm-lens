@@ -10,7 +10,7 @@ import { FixEdit, makeRuleContext } from './rules/types';
 import { WorkspaceIndex } from './types';
 
 /**
- * Django ORM Lens — code-action / diagnostics orchestrator.
+ * ORM Synapse — code-action / diagnostics orchestrator.
  *
  * Historically this file owned regex, findings, message templates, and
  * severity mapping all in one. v0.8 splits those concerns into
@@ -20,12 +20,12 @@ import { WorkspaceIndex } from './types';
  *   ResolvedFinding    → vscode.Diagnostic
  *   diag.code (DOL###) → findFixersForCode(...) → vscode.CodeAction[]
  *
- * The public wire format is: `Diagnostic.source = "Django ORM Lens"` and
+ * The public wire format is: `Diagnostic.source = "ORM Synapse"` and
  * `Diagnostic.code` is a `{ value, target }` pair with the Ruff-style
  * short code and a clickable link to the rule docs on hover.
  *
- * Feature flag: `djangoOrmLens.codeFixes.enabled` (default true).
- * Per-rule opt-out: `djangoOrmLens.rules.<CODE> = "off"` (see rules/index.ts).
+ * Feature flag: `ormSynapse.codeFixes.enabled` (default true).
+ * Per-rule opt-out: `ormSynapse.rules.<CODE> = "off"` (see rules/index.ts).
  */
 
 /** Materialise our line/col FixEdits into a vscode.WorkspaceEdit. */
@@ -133,7 +133,7 @@ export function refreshDiagnosticsForDoc(
     collection.delete(doc.uri);
     return;
   }
-  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  const cfg = vscode.workspace.getConfiguration('ormSynapse');
   if (!cfg.get<boolean>('codeFixes.enabled', true)) {
     collection.delete(doc.uri);
     return;
@@ -188,7 +188,7 @@ export function registerCodeFixes(
   // a models.py edit never reaches diagnostics in the views already open.
   onIndexChanged?: vscode.Event<void>,
 ): vscode.Disposable[] {
-  const collection = vscode.languages.createDiagnosticCollection('djangoOrmLens');
+  const collection = vscode.languages.createDiagnosticCollection('ormSynapse');
   const provider = new DjangoCodeFixesProvider(collection, getIndex);
 
   const disposables: vscode.Disposable[] = [
@@ -210,10 +210,10 @@ export function registerCodeFixes(
     vscode.workspace.onDidCloseTextDocument((d) => collection.delete(d.uri)),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
-        e.affectsConfiguration('djangoOrmLens.codeFixes.enabled') ||
-        e.affectsConfiguration('djangoOrmLens.rules') ||
-        e.affectsConfiguration('djangoOrmLens.rulesSelect') ||
-        e.affectsConfiguration('djangoOrmLens.rulesIgnore')
+        e.affectsConfiguration('ormSynapse.codeFixes.enabled') ||
+        e.affectsConfiguration('ormSynapse.rules') ||
+        e.affectsConfiguration('ormSynapse.rulesSelect') ||
+        e.affectsConfiguration('ormSynapse.rulesIgnore')
       ) {
         for (const doc of vscode.workspace.textDocuments) {
           refreshDiagnosticsForDoc(doc, collection, getIndex);

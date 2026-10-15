@@ -10,6 +10,7 @@ import {
   DIAGNOSTIC_SOURCE,
   Finding,
   Rule,
+  DbEngine,
   RuleContext,
   Severity,
   makeRuleContext,
@@ -29,14 +30,14 @@ import {
  *     severity (user setting > per-finding override > rule default).
  *
  * User configuration surface:
- *   djangoOrmLens.rules.<CODE> = "off" | "hint" | "info" | "warning" | "error"
- *   djangoOrmLens.rulesSelect  = string[]     (whitelist by code or prefix)
- *   djangoOrmLens.rulesIgnore  = string[]     (blacklist by code or prefix)
+ *   ormSynapse.rules.<CODE> = "off" | "hint" | "info" | "warning" | "error"
+ *   ormSynapse.rulesSelect  = string[]     (whitelist by code or prefix)
+ *   ormSynapse.rulesIgnore  = string[]     (blacklist by code or prefix)
  *
  * Inline suppression:
- *   `# django-orm-lens-disable-next-line DOL001[,DOL021]`
- *   `# django-orm-lens-disable-line DOL001`
- *   `# django-orm-lens-disable DOL001` on its own line disables the rule
+ *   `# orm-synapse-disable-next-line DOL001[,DOL021]`
+ *   `# orm-synapse-disable-line DOL001`
+ *   `# orm-synapse-disable DOL001` on its own line disables the rule
  *   for the rest of the file.
  */
 
@@ -76,16 +77,21 @@ interface RulesConfig {
 }
 
 function readConfig(): RulesConfig {
-  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  const cfg = vscode.workspace.getConfiguration('ormSynapse');
   const perCode = cfg.get<Record<string, SettingSeverity>>('rules', {}) ?? {};
   const select = cfg.get<string[]>('rulesSelect', []) ?? [];
   const ignore = cfg.get<string[]>('rulesIgnore', []) ?? [];
   return { perCode, select, ignore };
 }
 
+function readDbEngine(): DbEngine {
+  const raw = vscode.workspace.getConfiguration('ormSynapse').get<string>('dbEngine', 'auto');
+  return raw === 'postgres' || raw === 'mysql' || raw === 'sqlite' ? raw : 'auto';
+}
+
 /**
  * Ruff-style prefix match. `select`/`ignore` accept exact codes ("DOL001")
- * or any prefix ("DOL" disables all Django ORM Lens rules; "DOL0" only
+ * or any prefix ("DOL" disables all ORM Synapse rules; "DOL0" only
  * queryset+model rules).
  */
 function matchesAny(code: string, entries: string[]): boolean {
@@ -114,7 +120,7 @@ export function resolveRuleSeverity(
   return rule.meta.defaultSeverity;
 }
 
-/** Parse `# django-orm-lens-disable-...` comments to a per-line suppression map. */
+/** Parse `# orm-synapse-disable-...` comments to a per-line suppression map. */
 interface SuppressionMap {
   /** Codes disabled for the whole file (starting at their declaration line). */
   fileWide: Set<string>;
@@ -126,11 +132,11 @@ interface SuppressionMap {
 }
 
 const RE_DISABLE_NEXT_LINE =
-  /#\s*django-orm-lens-disable-next-line(?:\s+([A-Z0-9,\s]+))?/i;
+  /#\s*orm-synapse-disable-next-line(?:\s+([A-Z0-9,\s]+))?/i;
 const RE_DISABLE_LINE =
-  /#\s*django-orm-lens-disable-line(?:\s+([A-Z0-9,\s]+))?/i;
+  /#\s*orm-synapse-disable-line(?:\s+([A-Z0-9,\s]+))?/i;
 const RE_DISABLE_FILE =
-  /#\s*django-orm-lens-disable(?:\s+([A-Z0-9,\s]+))?/i;
+  /#\s*orm-synapse-disable(?:\s+([A-Z0-9,\s]+))?/i;
 
 function parseCodes(list: string | undefined): string[] {
   if (!list) return [];
@@ -210,7 +216,7 @@ export function scanDocument(
 ): ResolvedFinding[] {
   if (document.languageId !== 'python') return [];
   const cfg = readConfig();
-  const ctx = makeRuleContext(document, index);
+  const ctx = makeRuleContext(document, index, readDbEngine());
   const suppr = buildSuppressions(ctx);
 
   const out: ResolvedFinding[] = [];

@@ -11,7 +11,7 @@ import * as path from 'node:path';
  * captures that.
  *
  * Callers:
- *   - src/extension.ts (djangoOrmLens.showDiff command)
+ *   - src/extension.ts (ormSynapse.showDiff command)
  *   - src/diffWebview.ts (populates commit-picker dropdowns)
  *   - future CLI parity
  */

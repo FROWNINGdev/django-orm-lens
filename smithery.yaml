@@ -1,10 +1,10 @@
-# Smithery deployment manifest for django-orm-lens MCP server.
+# Smithery deployment manifest for orm-synapse MCP server.
 # Docs: https://smithery.ai/docs/build/project-config/smithery.yaml
 #
-# The server is a Python package published to PyPI as `django-orm-lens[mcp]`.
+# The server is a Python package published to PyPI as `orm-synapse[mcp]`.
 # Smithery runs it via `uvx` so no user-side install / venv is required.
 
-name: "@FROWNINGdev/django-orm-lens"
+name: "@nam-tong/orm-synapse"
 version: "1.13.3"
 description: >-
   Django ORM static-analysis MCP. 13 read-only tools that expose Django
@@ -15,7 +15,7 @@ author:
   name: "FROWNINGdev"
   url: "https://github.com/FROWNINGdev"
 license: "MIT"
-homepage: "https://github.com/FROWNINGdev/django-orm-lens"
+homepage: "https://github.com/nam-tong/orm-synapse"
 keywords:
   - django
   - orm
@@ -36,13 +36,13 @@ dependencies:
 
 startCommand:
   type: stdio
-  # A user of the MCP client can point Django ORM Lens at any directory.
+  # A user of the MCP client can point ORM Synapse at any directory.
   # If omitted, the server uses the client's CWD (typical for VS Code /
   # Cursor / Claude Desktop workspaces).
   configSchema:
     type: object
     properties:
-      djangoOrmLensRoot:
+      ormSynapseRoot:
         type: string
         description: >-
           Absolute path to the Django project root (the directory that
@@ -51,8 +51,8 @@ startCommand:
   commandFunction: |-
     (config) => ({
       command: 'uvx',
-      args: ['--from', 'django-orm-lens[mcp]', 'django-orm-lens-mcp'],
-      env: config.djangoOrmLensRoot
-        ? { DJANGO_ORM_LENS_ROOT: config.djangoOrmLensRoot }
+      args: ['--from', 'orm-synapse[mcp]', 'orm-synapse-mcp'],
+      env: config.ormSynapseRoot
+        ? { DJANGO_ORM_LENS_ROOT: config.ormSynapseRoot }
         : {}
     })

@@ -17,20 +17,20 @@ from __future__ import annotations
 
 import unittest
 
-from django_orm_lens.models import (
+from orm_synapse.models import (
     find_user_model,
     find_user_model_from_dict,
     resolve_related_tail,
 )
-from django_orm_lens.parser import (
+from orm_synapse.parser import (
     _extract_on_delete,
     _extract_related,
     _extract_related_name,
     _extract_through_model,
     parse_models_file,
 )
-from django_orm_lens.query_analyzer import _build_schema_from_index
-from django_orm_lens.signals_parser import _resolve_sender
+from orm_synapse.query_analyzer import _build_schema_from_index
+from orm_synapse.signals_parser import _resolve_sender
 
 # ---------------------------------------------------------------------------
 # Fix #1 — AST-based extractors are kwarg-order-independent

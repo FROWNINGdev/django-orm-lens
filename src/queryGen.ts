@@ -29,7 +29,7 @@ import { ParsedField, ParsedModel, WorkspaceIndex } from './types';
  * Each carries a pre-rendered snippet with VS Code tab-stop placeholders.
  *
  * Callers:
- *   - `src/extension.ts` — `djangoOrmLens.buildQuery` command handler
+ *   - `src/extension.ts` — `ormSynapse.buildQuery` command handler
  *   - `test/query-gen.test.js` — pure snapshot tests
  */
 

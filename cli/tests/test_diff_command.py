@@ -9,9 +9,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from django_orm_lens.cli import main
-from django_orm_lens.diff import diff_schemas, format_diff
-from django_orm_lens.parser import scan_workspace
+from orm_synapse.cli import main
+from orm_synapse.diff import diff_schemas, format_diff
+from orm_synapse.parser import scan_workspace
 
 # --- Hand-written fixture schemas ------------------------------------------
 

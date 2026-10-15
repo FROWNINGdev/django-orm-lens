@@ -1,6 +1,6 @@
 # Schema drift
 
-`django-orm-lens drift --path .` answers one question: **do the migrations still describe the models?**
+`orm-synapse drift --path .` answers one question: **do the migrations still describe the models?**
 
 Django already answers it with `makemigrations --check`. That needs a working settings module, an importable app registry, and every third-party dependency installed. On a cold clone, a broken venv, or a CI job that deliberately does not boot the project, the answer is unavailable exactly when acting on it would be cheapest.
 
@@ -24,9 +24,9 @@ The narrow blocking rule is deliberate. Static analysis cannot see fields Django
 ## Usage
 
 ```bash
-django-orm-lens drift --path .            # text, exit 1 on blocking drift
-django-orm-lens drift --format json       # machine-readable
-django-orm-lens drift --exit-zero         # report without failing the build
+orm-synapse drift --path .            # text, exit 1 on blocking drift
+orm-synapse drift --format json       # machine-readable
+orm-synapse drift --exit-zero         # report without failing the build
 ```
 
 ```
@@ -40,14 +40,14 @@ django-orm-lens drift --exit-zero         # report without failing the build
 summary: 1 model(s) drifted, 1 blocking, 2 migration(s) replayed
 ```
 
-Every entry carries a mark, and the legend above them says what it means — `django-orm-lens drift --help` prints the same two lines. The legend is omitted when there is no drift, since nothing is marked.
+Every entry carries a mark, and the legend above them says what it means — `orm-synapse drift --help` prints the same two lines. The legend is omitted when there is no drift, since nothing is marked.
 
 Blocking entries sort first, so the thing that breaks production is the first line of output. In JSON there is nothing to decode: each entry carries `"blocking": true | false` outright.
 
 ## In CI
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@action-v1
+- uses: nam-tong/orm-synapse@action-v1
   with:
     command: drift
 ```
@@ -82,4 +82,4 @@ No database, no settings module, no installed dependencies — the same reason t
 ## Related
 
 - [`migration-risk`](migrations.md) — is an individual migration dangerous to run?
-- [`blast-radius`](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/blast-radius.md) — what does a schema change hit?
+- [`blast-radius`](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/blast-radius.md) — what does a schema change hit?

@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "django-orm-lens"
+name = "orm-synapse"
 version = "1.13.3"
 description = "Static analysis + MCP server for Django models. Blast radius, schema drift, N+1 and migration risk for CI, ER diagrams for terminals and AI agents. No DB, no Django boot. Free and MIT."
 readme = "README.md"
@@ -60,22 +60,22 @@ full = ["mcp>=1.0,<2; python_version < '3.10'", "mcp>=2.0,<3; python_version >= 
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "build>=1.2", "twine>=5.1"]
 
 [project.scripts]
-django-orm-lens = "django_orm_lens.cli:main"
-django-orm-lens-mcp = "django_orm_lens.mcp_server:main"
+orm-synapse = "orm_synapse.cli:main"
+orm-synapse-mcp = "orm_synapse.mcp_server:main"
 
 [project.urls]
-Homepage = "https://github.com/FROWNINGdev/django-orm-lens"
-Repository = "https://github.com/FROWNINGdev/django-orm-lens"
-"Bug Tracker" = "https://github.com/FROWNINGdev/django-orm-lens/issues"
-Changelog = "https://github.com/FROWNINGdev/django-orm-lens/blob/main/CHANGELOG.md"
-"VS Code Marketplace" = "https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens"
+Homepage = "https://github.com/nam-tong/orm-synapse"
+Repository = "https://github.com/nam-tong/orm-synapse"
+"Bug Tracker" = "https://github.com/nam-tong/orm-synapse/issues"
+Changelog = "https://github.com/nam-tong/orm-synapse/blob/main/CHANGELOG.md"
+"VS Code Marketplace" = "https://marketplace.visualstudio.com/items?itemName=frowningdev.orm-synapse"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["django_orm_lens*"]
+include = ["orm_synapse*"]
 
 [tool.setuptools.package-data]
-django_orm_lens = ["py.typed"]
+orm_synapse = ["py.typed"]
 
 [tool.ruff]
 line-length = 100

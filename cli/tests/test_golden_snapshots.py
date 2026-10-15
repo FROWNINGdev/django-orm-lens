@@ -46,7 +46,7 @@ from pathlib import Path
 
 import pytest
 
-from django_orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
+from orm_synapse.parser import DEFAULT_EXCLUDES, scan_workspace
 
 GOLDEN = Path(__file__).parent / "fixtures" / "golden"
 

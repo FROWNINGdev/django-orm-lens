@@ -14,7 +14,7 @@ import { Finding, Rule, RuleContext } from './types';
  */
 
 const DOCS_BASE =
-  'https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules';
+  'https://github.com/nam-tong/orm-synapse/blob/main/docs/rules';
 
 /**
  * Planner-toggling GUCs only.

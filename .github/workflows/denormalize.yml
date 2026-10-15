@@ -1,0 +1,28 @@
+name: Denormalization review
+
+# Report-only, and only for a table or a column this pull request adds.
+# An existing column is not reviewed. DOL018–DOL020 are smells, not a
+# 2NF/3NF proof, and the command exits 0 unless --strict is passed.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  denormalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: pip install ./cli
+
+      - uses: ./
+        with:
+          command: denormalize
+          install: false
+          format: github
+          github-token: ${{ github.token }}
+          args: --exclude '**/migrations/**' --exclude '**/node_modules/**' --exclude '**/venv/**' --exclude '**/.venv/**' --exclude '**/fixtures/**'

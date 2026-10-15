@@ -1,4 +1,4 @@
-"""Schema diff — compare two ``django-orm-lens`` JSON dumps.
+"""Schema diff — compare two ``orm-synapse`` JSON dumps.
 
 Pure stdlib. Takes two dicts in the shape produced by
 ``WorkspaceIndex.to_dict()`` (i.e. what ``scan --format=json`` or

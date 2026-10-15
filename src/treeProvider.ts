@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { concreteFields } from './parser';
 import { ParsedField, ParsedModel, TreeNode, WorkspaceIndex } from './types';
 import {
   FLAG_MISSING_MAX_LENGTH,
@@ -9,7 +10,7 @@ import {
 } from './decorations';
 
 /**
- * Django ORM Lens — sidebar tree.
+ * ORM Synapse — sidebar tree.
  *
  * v0.8 UX overhaul distilled from the top-tier extensions (GitLens,
  * Todo Tree, Docker, GitHub PRs) and community forum feedback:
@@ -29,14 +30,14 @@ import {
  * WorkspaceIndex → TreeNode[] → vscode.TreeItem.
  */
 
-const FILTER_STATE_KEY = 'djangoOrmLens.filter';
+const FILTER_STATE_KEY = 'ormSynapse.filter';
 /**
  * Ids the user has unchecked in the tree. Stored rather than the inverse so a
  * newly added app or model is visible by default — a project that grows should
  * not silently hide its new models because they were absent when the set was
  * written.
  */
-const HIDDEN_STATE_KEY = 'djangoOrmLens.hidden';
+const HIDDEN_STATE_KEY = 'ormSynapse.hidden';
 
 /* -----------------------------  helpers  ----------------------------- */
 
@@ -74,7 +75,7 @@ function fieldFlags(f: ParsedField): string[] {
 
 /** Best-effort primary-key type — falls back to Django's default. */
 function pkTypeOf(model: ParsedModel): string {
-  for (const f of model.fields) {
+  for (const f of concreteFields(model)) {
     if (/\bprimary_key\s*=\s*True\b/.test(f.args)) return f.type;
   }
   return 'BigAutoField';
@@ -132,7 +133,8 @@ function markdownForModel(app: string, model: ParsedModel): string {
   const bases = model.baseClasses.length
     ? `class ${model.name}(${model.baseClasses.join(', ')})`
     : `class ${model.name}`;
-  const rows = model.fields
+  const columns = concreteFields(model);
+  const rows = columns
     .map((f) => {
       const type = f.isRelation
         ? `${f.relationKind} → ${f.relatedModel ?? '?'}`
@@ -147,7 +149,7 @@ function markdownForModel(app: string, model: ParsedModel): string {
   const parts: string[] = [
     `**${app}.${model.name}**  \n\`${bases}\``,
     '',
-    `**Fields** (${model.fields.length})`,
+    `**Fields** (${columns.length})`,
     '',
     '| Name | Type | Flags |',
     '|---|---|---|',
@@ -161,9 +163,9 @@ function markdownForModel(app: string, model: ParsedModel): string {
   }
   parts.push(
     '',
-    `[$(go-to-file) Open definition](command:djangoOrmLens.jumpToModel?${jumpArg})`,
+    `[$(go-to-file) Open definition](command:ormSynapse.jumpToModel?${jumpArg})`,
     ' · ',
-    '[$(type-hierarchy) Show ER diagram](command:djangoOrmLens.showGraph)',
+    '[$(type-hierarchy) Show ER diagram](command:ormSynapse.showGraph)',
   );
   return parts.join('\n');
 }
@@ -200,12 +202,13 @@ function buildTree(index: WorkspaceIndex): TreeNode[] {
     contextValue: 'app',
     children: app.models.map<TreeNode>((model) => {
       const pk = pkTypeOf(model);
+      const columns = concreteFields(model);
       return {
         id: `${app.name}/${model.name}`,
         kind: 'model',
         label: model.name,
-        description: `${model.fields.length} field${
-          model.fields.length === 1 ? '' : 's'
+        description: `${columns.length} field${
+          columns.length === 1 ? '' : 's'
         } · pk ${pk}`,
         tooltipMarkdown: markdownForModel(app.name, model),
         iconId: 'symbol-class',
@@ -213,8 +216,9 @@ function buildTree(index: WorkspaceIndex): TreeNode[] {
         filePath: model.filePath,
         lineNumber: model.lineNumber,
         children: [
-          ...model.fields.map<TreeNode>((field) => {
+          ...columns.map<TreeNode>((field) => {
             const flags = fieldFlags(field);
+            if (field.inheritedFrom) flags.push(`from ${field.inheritedFrom}`);
             const desc = field.isRelation
               ? `${field.relationKind} → ${field.relatedModel ?? '?'}`
               : field.type;
@@ -445,7 +449,7 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       // — and the tooltip text is built from Django model/field names read
       // from the workspace, which could be adversarial in a supply-chain
       // scenario. Match the hover provider's whitelist.
-      md.isTrusted = { enabledCommands: ['djangoOrmLens.jumpToModel', 'djangoOrmLens.showGraph'] };
+      md.isTrusted = { enabledCommands: ['ormSynapse.jumpToModel', 'ormSynapse.showGraph'] };
       md.supportThemeIcons = true;
       item.tooltip = md;
     } else {
@@ -454,7 +458,7 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     if (element.iconId) item.iconPath = new vscode.ThemeIcon(element.iconId);
     // Legacy value kept for backwards-compat with existing menu registrations.
     if (element.kind === 'model') {
-      item.contextValue = 'djangoOrmLensModel';
+      item.contextValue = 'ormSynapseModel';
     } else if (element.contextValue) {
       item.contextValue = element.contextValue;
     }
@@ -465,7 +469,7 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     }
     if (element.filePath && typeof element.lineNumber === 'number') {
       item.command = {
-        command: 'djangoOrmLens.jumpToModel',
+        command: 'ormSynapse.jumpToModel',
         title: 'Jump to definition',
         arguments: [element.filePath, element.lineNumber],
       };

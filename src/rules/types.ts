@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WorkspaceIndex } from '../types';
 
 /**
- * Django ORM Lens — rules engine core types.
+ * ORM Synapse — rules engine core types.
  *
  * The architecture is a hybrid distilled from the mainstream lint ecosystems:
  *
@@ -31,7 +31,7 @@ import { WorkspaceIndex } from '../types';
  */
 
 /** Diagnostic.source shown in Problems panel and hover. Stable. */
-export const DIAGNOSTIC_SOURCE = 'Django ORM Lens';
+export const DIAGNOSTIC_SOURCE = 'ORM Synapse';
 
 /** Prefix for every rule code. Codes are strings like `DOL001`. */
 export const DOL_CODE_PREFIX = 'DOL';
@@ -73,7 +73,7 @@ export interface RuleMeta {
   title: string;
   /** Category for grouping in docs and settings. */
   category: Category;
-  /** Default severity — user can override via djangoOrmLens.rules.<code>. */
+  /** Default severity — user can override via ormSynapse.rules.<code>. */
   defaultSeverity: Severity;
   /** URL rendered as Diagnostic.code target — "Learn more" link on hover. */
   docsUrl: string;
@@ -118,8 +118,16 @@ export interface Finding {
  * no AST — with helpers for bounded windows so N+1 style detectors do not
  * scan the whole document per node.
  */
+/**
+ * Database engine the project targets (`ormSynapse.dbEngine`). `auto` means
+ * "unknown": engine-specific rules still run, as they did before the setting
+ * existed. A concrete engine switches off rules written for another one.
+ */
+export type DbEngine = 'auto' | 'postgres' | 'mysql' | 'sqlite';
+
 export interface RuleContext {
   document: vscode.TextDocument;
+  dbEngine: DbEngine;
   lineCount: number;
   lineAt(index: number): string;
   /** Return up to `n` lines ending at `lineIndex - 1`. */
@@ -210,11 +218,13 @@ export function renderMessage(
  */
 export function makeRuleContext(
   document: vscode.TextDocument,
-  index?: WorkspaceIndex
+  index?: WorkspaceIndex,
+  dbEngine: DbEngine = 'auto'
 ): RuleContext {
   const lineCount = document.lineCount;
   return {
     document,
+    dbEngine,
     lineCount,
     index,
     lineAt(index: number): string {

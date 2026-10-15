@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { concreteFields } from './parser';
 import { ParsedModel, WorkspaceIndex } from './types';
 
 function md(text: string): string {
@@ -29,15 +30,16 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
     if (!model) return undefined;
 
     const doc = new vscode.MarkdownString();
-    doc.isTrusted = { enabledCommands: ['djangoOrmLens.jumpToModel'] };
+    doc.isTrusted = { enabledCommands: ['ormSynapse.jumpToModel'] };
     doc.supportHtml = false;
     doc.appendMarkdown(`**${md(model.appName)}.${md(model.name)}**\n\n`);
     doc.appendMarkdown(
       `_${md(model.baseClasses.join(', ') || 'models.Model')}_\n\n`
     );
 
-    const scalars = model.fields.filter((f) => !f.isRelation);
-    const relations = model.fields.filter((f) => f.isRelation);
+    const columns = concreteFields(model);
+    const scalars = columns.filter((f) => !f.isRelation);
+    const relations = columns.filter((f) => f.isRelation);
 
     if (scalars.length > 0) {
       doc.appendMarkdown('**Fields**\n');
@@ -63,7 +65,7 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
       JSON.stringify([model.filePath, model.lineNumber])
     );
     doc.appendMarkdown(
-      `\n[Jump to ${md(model.name)}](command:djangoOrmLens.jumpToModel?${jumpArgs})`
+      `\n[Jump to ${md(model.name)}](command:ormSynapse.jumpToModel?${jumpArgs})`
     );
 
     return new vscode.Hover(doc, wordRange);

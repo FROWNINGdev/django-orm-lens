@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`django_orm_lens.workspace`.
+"""Unit tests for :mod:`orm_synapse.workspace`.
 
 These pin the exact behaviour of the professional workspace-resolution fix
 shipped in py-1.3.0. The pre-1.3.0 code silently dropped the
@@ -23,7 +23,7 @@ import unittest
 from collections.abc import Iterable
 from pathlib import Path
 
-from django_orm_lens.workspace import (
+from orm_synapse.workspace import (
     _CACHE_MAX,
     _INDEX_CACHE,
     WorkspaceError,
@@ -176,7 +176,7 @@ class WindowsReservedTest(unittest.TestCase):
     real Windows device is touched."""
 
     def test_component_matching_reserved_name_is_rejected(self) -> None:
-        from django_orm_lens.workspace import _has_windows_reserved
+        from orm_synapse.workspace import _has_windows_reserved
 
         self.assertTrue(_has_windows_reserved(Path("/tmp/CON/foo")))
         self.assertTrue(_has_windows_reserved(Path("/tmp/COM1/foo")))

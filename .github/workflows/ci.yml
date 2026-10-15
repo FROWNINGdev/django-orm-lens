@@ -19,12 +19,20 @@ jobs:
       - run: npm run build
       - name: Run tests
         run: npm test
+      # The corpus parity test skips unless it can see node and out/, so the
+      # Python matrix never runs it. Here the build exists, so run it once.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: TS/Python parser parity
+        working-directory: cli
+        run: pip install -e . && python -m unittest tests.test_parity_corpus -v
       - name: Package VSIX
-        run: npx --yes @vscode/vsce package --out django-orm-lens.vsix
+        run: npx --yes @vscode/vsce package --out orm-synapse.vsix
       - uses: actions/upload-artifact@v7
         with:
           name: vsix
-          path: django-orm-lens.vsix
+          path: orm-synapse.vsix
 
   python-cli:
     runs-on: ubuntu-latest
@@ -76,7 +84,7 @@ jobs:
         run: pip install -e ".[dev]"
       - name: ruff
         working-directory: cli
-        run: python -m ruff check django_orm_lens tests
+        run: python -m ruff check orm_synapse tests
       - name: mypy
         working-directory: cli
-        run: python -m mypy django_orm_lens
+        run: python -m mypy orm_synapse

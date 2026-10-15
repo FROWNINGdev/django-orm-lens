@@ -86,7 +86,15 @@
           "baseClasses": [
             "AbstractMessage"
           ],
-          "fields": [],
+          "fields": [
+            {
+              "args": "null=True",
+              "isRelation": false,
+              "lineNumber": 179,
+              "name": "search_tsvector",
+              "type": "SearchVectorField"
+            }
+          ],
           "filePath": "zerver/models/messages.py",
           "lineNumber": 166,
           "meta": {
@@ -371,6 +379,13 @@
               "relatedModel": "Message",
               "relationKind": "ForeignKey",
               "type": "ForeignKey"
+            },
+            {
+              "args": "flags=ALL_FLAGS, default=0",
+              "isRelation": false,
+              "lineNumber": 847,
+              "name": "flags",
+              "type": "BitField"
             }
           ],
           "filePath": "zerver/models/messages.py",
@@ -2314,5 +2329,5 @@
     }
   ],
   "scannedAt": 0,
-  "scannedFiles": 5
+  "scannedFiles": 6
 }

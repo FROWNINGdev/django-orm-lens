@@ -1,20 +1,21 @@
-"""Command-line entry point for ``django-orm-lens``.
+"""Command-line entry point for ``orm-synapse``.
 
 Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
 
-  django-orm-lens scan       — walk workspace, list every model
-  django-orm-lens describe   — one model in detail
-  django-orm-lens er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
-  django-orm-lens hover      — compact hover card for one model
-  django-orm-lens list       — flat list ``app.Model`` for shell piping
-  django-orm-lens diff       — compare two schema JSON dumps
-  django-orm-lens nplusone   — static N+1 detector (text/json/sarif/github)
-  django-orm-lens migration-risk  — flag risky migration operations
-  django-orm-lens suggest-indexes — propose Meta.indexes from QuerySet usage
-  django-orm-lens signals    — sender→signal→handler graph from @receiver
-  django-orm-lens migration-deps  — per-app migration dependency DAG
-  django-orm-lens cascade    — what delete() cascades to, by on_delete
-  django-orm-lens mcp        — start the MCP stdio server (extras required)
+  orm-synapse scan       — walk workspace, list every model
+  orm-synapse describe   — one model in detail
+  orm-synapse er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
+  orm-synapse hover      — compact hover card for one model
+  orm-synapse list       — flat list ``app.Model`` for shell piping
+  orm-synapse diff       — compare two schema JSON dumps
+  orm-synapse nplusone   — static N+1 detector (text/json/sarif/github)
+  orm-synapse migration-risk  — flag risky migration operations
+  orm-synapse suggest-indexes — propose Meta.indexes from QuerySet usage
+  orm-synapse signals    — sender→signal→handler graph from @receiver
+  orm-synapse migration-deps  — per-app migration dependency DAG
+  orm-synapse cascade    — what delete() cascades to, by on_delete
+  orm-synapse denormalize — denormalization smells (review only, exit 0)
+  orm-synapse mcp        — start the MCP stdio server (extras required)
 """
 
 from __future__ import annotations
@@ -126,7 +127,8 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
         if not saw_models_file:
             print(
                 f"hint: no models.py found under {args.path}. Django apps typically have\n"
-                "      <app>/models.py or <app>/models/*.py. Check the path or pass\n"
+                "      <app>/models.py, <app>/models/*.py, or a module nested under\n"
+                "      <app>/models/. Check the path or pass\n"
                 "      --exclude to whitelist non-standard layouts.",
                 file=sys.stderr,
             )
@@ -439,6 +441,48 @@ def _migration_deps_mermaid(result: dict) -> str:
     return "\n".join(lines)
 
 
+def _cmd_denormalize(args: argparse.Namespace) -> int:
+    """Report denormalization smells. Exit 0 unless ``--strict`` is set."""
+    from .denormalize import (
+        analyze_models,
+        format_github,
+        format_text,
+        limit_to_changes,
+        parse_unified_diff,
+        write_step_summary,
+    )
+
+    index = _load_index(args)
+    models = [model for app in index.apps for model in app.models]
+    findings = analyze_models(models)
+    root = str(Path(args.path).resolve())
+    limited = args.only_added is not None
+    if limited:
+        diff = Path(args.only_added).read_text(encoding="utf-8")
+        findings = limit_to_changes(findings, models, parse_unified_diff(diff), root)
+    if args.format == "json":
+        print(json.dumps(
+            {"findings": [item.to_dict() for item in findings], "blocking": False},
+            indent=2,
+            ensure_ascii=False,
+        ))
+    elif args.format == "github":
+        text = format_github(findings, root)
+        if text:
+            print(text)
+        elif limited:
+            print("No new tables or columns to review.")
+    else:
+        if limited and not findings:
+            print("No new tables or columns to review.")
+        else:
+            print(format_text(findings), end="")
+    write_step_summary(findings, limited=limited)
+    if args.strict and findings:
+        return 1
+    return 0
+
+
 def _cmd_drift(args: argparse.Namespace) -> int:
     """Do the migrations still describe the models? No Django boot required."""
     report = detect_drift(args.path)
@@ -456,7 +500,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
 def _cmd_stats_sql(_args: argparse.Namespace) -> int:
     """Print the query that produces a --stats file.
 
-    Printed rather than executed on purpose: django-orm-lens never holds a
+    Printed rather than executed on purpose: orm-synapse never holds a
     database credential. The operator runs this against a replica or a
     read-only role and hands over the JSON.
     """
@@ -637,11 +681,11 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="django-orm-lens",
+        prog="orm-synapse",
         description="Static analysis for Django models. Terminal + AI agent friendly.",
     )
     p.add_argument(
-        "--version", action="version", version=f"django-orm-lens {__version__}"
+        "--version", action="version", version=f"orm-synapse {__version__}"
     )
     sub = p.add_subparsers(dest="command")
     p.set_defaults(func=_cmd_hello)
@@ -886,7 +930,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Production table statistics as JSON — turns 'probably populated' "
             "into an estimated row count. Generate it with "
-            "`django-orm-lens stats-sql`; the tool never connects to a database"
+            "`orm-synapse stats-sql`; the tool never connects to a database"
         ),
     )
     blast.add_argument(
@@ -922,6 +966,40 @@ def build_parser() -> argparse.ArgumentParser:
     )
     drift.set_defaults(func=_cmd_drift)
 
+    denorm = sub.add_parser(
+        "denormalize",
+        help=(
+            "Report denormalization smells (id lists, repeated columns, "
+            "copied attributes). Does not fail the build unless --strict"
+        ),
+    )
+    _add_scan_flags(denorm)
+    denorm.add_argument(
+        "--format", "-f",
+        choices=("text", "json", "github"),
+        default="text",
+        help=(
+            "Output format. 'github' emits ::warning annotations for a "
+            "pull request. This command never emits ::error"
+        ),
+    )
+    denorm.add_argument(
+        "--only-added",
+        default=None,
+        metavar="DIFF",
+        help=(
+            "Unified diff of the pull request. Report only a new table "
+            "(its class line is added) or a newly added column. "
+            "Existing columns are ignored"
+        ),
+    )
+    denorm.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 1 when a smell is found. The default exit is 0",
+    )
+    denorm.set_defaults(func=_cmd_denormalize)
+
     ssql = sub.add_parser(
         "stats-sql",
         help="Print the read-only SQL that produces a --stats file",
@@ -930,7 +1008,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcp = sub.add_parser(
         "mcp",
-        help="Run the MCP stdio server (requires 'pip install django-orm-lens[mcp]')",
+        help="Run the MCP stdio server (requires 'pip install orm-synapse[mcp]')",
     )
     mcp.set_defaults(func=_cmd_mcp)
 
@@ -938,7 +1016,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_hello(_args: argparse.Namespace) -> int:
-    print("django-orm-lens — static analysis for Django models.")
+    print("orm-synapse — static analysis for Django models.")
     print()
     print("commands:")
     print("  scan               Scan the current directory for Django apps + models")
@@ -955,19 +1033,20 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  cascade <model>    What delete() cascades to, grouped by on_delete")
     print("  impact <name>      What still references a model or field, by layer")
     print("  blast-radius       Migration risks joined with what still reads them")
+    print("  denormalize        Denormalization smells for review (does not fail the build)")
     print("  drift              Do the migrations still describe the models?")
     print("  stats-sql          Read-only SQL that produces a --stats file")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
-    print("run `django-orm-lens <command> --help` for options.")
-    print("docs: https://github.com/FROWNINGdev/django-orm-lens")
+    print("run `orm-synapse <command> --help` for options.")
+    print("docs: https://github.com/nam-tong/orm-synapse")
     print()
     print("prefer a visual sidebar + ER diagram in your editor?")
-    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.django-orm-lens")
-    print("  VSCodium / code-server:       codium --install-extension frowningdev.django-orm-lens")
+    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.orm-synapse")
+    print("  VSCodium / code-server:       codium --install-extension frowningdev.orm-synapse")
     print()
     print("if this saves you a search, star helps others find it:")
-    print("  https://github.com/FROWNINGdev/django-orm-lens")
+    print("  https://github.com/nam-tong/orm-synapse")
     return 0
 
 
@@ -977,7 +1056,7 @@ def _cmd_mcp(_args: argparse.Namespace) -> int:
     except ImportError as e:
         print(
             "error: MCP server dependencies not installed.\n"
-            "install with: pip install 'django-orm-lens[mcp]'\n"
+            "install with: pip install 'orm-synapse[mcp]'\n"
             f"({e})",
             file=sys.stderr,
         )

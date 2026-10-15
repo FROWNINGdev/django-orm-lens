@@ -1,6 +1,6 @@
 # Riferimento delle regole
 
-Questa sezione contiene la traduzione italiana delle regole di Django ORM Lens relative ai queryset e alla definizione dei modelli. Ogni codice `DOL` identifica un controllo statico eseguito dall'estensione VS Code durante la scrittura del codice.
+Questa sezione contiene la traduzione italiana delle regole di ORM Synapse relative ai queryset e alla definizione dei modelli. Ogni codice `DOL` identifica un controllo statico eseguito dall'estensione VS Code durante la scrittura del codice.
 
 Per le regole non ancora tradotte, consulta il [riferimento completo in inglese](../../../rules/README.md).
 

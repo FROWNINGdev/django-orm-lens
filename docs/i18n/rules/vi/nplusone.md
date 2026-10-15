@@ -15,11 +15,11 @@ Các finding sẽ liệt kê vị trí vòng lặp, thuộc tính được truy 
 ## Cách dùng
 
 ```bash
-django-orm-lens nplusone --path .                    # toàn bộ dự án
-django-orm-lens nplusone --path apps/blog            # một app cụ thể
-django-orm-lens nplusone --format json               # định dạng máy đọc được
-django-orm-lens nplusone --format github             # GitHub PR annotations
-django-orm-lens nplusone --severity warning          # chỉ báo cáo từ mức warning trở lên
+orm-synapse nplusone --path .                    # toàn bộ dự án
+orm-synapse nplusone --path apps/blog            # một app cụ thể
+orm-synapse nplusone --format json               # định dạng máy đọc được
+orm-synapse nplusone --format github             # GitHub PR annotations
+orm-synapse nplusone --severity warning          # chỉ báo cáo từ mức warning trở lên
 ```
 
 - **`--path PATH`** — thư mục gốc để quét (mặc định: thư mục hiện tại).
@@ -31,7 +31,7 @@ django-orm-lens nplusone --severity warning          # chỉ báo cáo từ mứ
 ## Trong CI
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@action-v1
+- uses: nam-tong/orm-synapse@action-v1
   with:
     command: nplusone
     format: github

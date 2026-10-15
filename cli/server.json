@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.FROWNINGdev/django-orm-lens",
-  "title": "Django ORM Lens",
+  "name": "io.github.nam-tong/orm-synapse",
+  "title": "ORM Synapse",
   "description": "Django ORM static analysis MCP. Models, relations, migrations, indexes, signals, N+1.",
   "version": "1.13.3",
   "repository": {
-    "url": "https://github.com/FROWNINGdev/django-orm-lens",
+    "url": "https://github.com/nam-tong/orm-synapse",
     "source": "github"
   },
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "django-orm-lens",
+      "identifier": "orm-synapse",
       "version": "1.13.3",
       "transport": {
         "type": "stdio"
@@ -20,13 +20,13 @@
       "runtimeArguments": [
         {
           "type": "positional",
-          "value": "django-orm-lens[mcp]"
+          "value": "orm-synapse[mcp]"
         }
       ],
       "packageArguments": [
         {
           "type": "positional",
-          "value": "django-orm-lens-mcp"
+          "value": "orm-synapse-mcp"
         }
       ]
     }
