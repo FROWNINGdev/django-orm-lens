@@ -15,14 +15,14 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.ci_formats import (
+from orm_synapse.ci_formats import (
     migration_risks_github,
     migration_risks_sarif,
     nplusone_github,
     nplusone_sarif,
 )
-from django_orm_lens.migrations_parser import MigrationRisk
-from django_orm_lens.query_analyzer import NPlusOneFinding
+from orm_synapse.migrations_parser import MigrationRisk
+from orm_synapse.query_analyzer import NPlusOneFinding
 
 
 def _nplusone_finding(**overrides) -> NPlusOneFinding:
@@ -66,7 +66,7 @@ class NPlusOneSarifTest(unittest.TestCase):
         self.assertEqual(doc["version"], "2.1.0")
         self.assertEqual(len(doc["runs"]), 1)
         driver = doc["runs"][0]["tool"]["driver"]
-        self.assertEqual(driver["name"], "django-orm-lens")
+        self.assertEqual(driver["name"], "orm-synapse")
         self.assertEqual([r["id"] for r in driver["rules"]], ["nplusone"])
 
     def test_confidence_to_level_mapping(self) -> None:
@@ -201,10 +201,10 @@ class NPlusOneGithubTest(unittest.TestCase):
     def test_title_colon_is_escaped(self) -> None:
         out = nplusone_github([_nplusone_finding()])
 
-        # 'django-orm-lens: N+1 query' — the colon must become %3A inside
+        # 'orm-synapse: N+1 query' — the colon must become %3A inside
         # the title= property or GitHub truncates the annotation.
-        self.assertIn("title=django-orm-lens%3A N+1 query", out)
-        self.assertNotIn("title=django-orm-lens: ", out)
+        self.assertIn("title=orm-synapse%3A N+1 query", out)
+        self.assertNotIn("title=orm-synapse: ", out)
 
     def test_percent_and_newline_in_message_are_escaped(self) -> None:
         finding = _nplusone_finding(
@@ -247,7 +247,7 @@ class MigrationRisksGithubTest(unittest.TestCase):
 
         self.assertIn("file=orders/migrations/0002_add_status.py", out)
         self.assertIn(",line=7,", out)
-        self.assertIn("title=django-orm-lens%3A add_field_not_null_no_default", out)
+        self.assertIn("title=orm-synapse%3A add_field_not_null_no_default", out)
 
     def test_comma_in_property_value_is_escaped(self) -> None:
         # A comma inside file= would split the property list — must be %2C.

@@ -40,5 +40,5 @@ Or list the new tests you added.
 <!--
 Closes #123
 Refs #456
-Discussion: https://github.com/FROWNINGdev/django-orm-lens/discussions/28
+Discussion: https://github.com/nam-tong/orm-synapse/discussions/28
 -->

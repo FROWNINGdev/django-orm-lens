@@ -332,7 +332,7 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     <div className="dol-app">
       <header className="dol-header">
         <div className="dol-header-title">
-          Django ORM Lens<span className="dol-title-sep">·</span>
+          ORM Synapse<span className="dol-title-sep">·</span>
           {workspaceName}
         </div>
         <div className="dol-header-actions">

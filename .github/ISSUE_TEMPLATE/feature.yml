@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea to make Django ORM Lens more useful
+description: An idea to make ORM Synapse more useful
 labels: ["enhancement"]
 body:
   - type: textarea

@@ -1,5 +1,5 @@
 # Jekyll config for the GitHub Pages preview at
-# https://frowningdev.github.io/django-orm-lens/
+# https://frowningdev.github.io/orm-synapse/
 #
 # Without this file GitHub Pages falls back to its legacy default
 # renderer that does NOT process markdown inside HTML blocks. Because
@@ -17,11 +17,11 @@ theme: jekyll-theme-primer
 # Search metadata for the GitHub Pages homepage, consumed by jekyll-seo-tag.
 # Without a `title`/`tagline`/`description` the homepage `<title>` and
 # `<meta name="description">` fell back to the bare repo name — so the page
-# ranked only for the brand name "django-orm-lens", never for the problems
+# ranked only for the brand name "orm-synapse", never for the problems
 # people actually search ("django er diagram", "django n+1", "django migration
 # linter"). `tagline` puts those keywords into the homepage `<title>`
 # ("<title> | <tagline>"); `description` carries them into the meta description.
-title: Django ORM Lens
+title: ORM Synapse
 tagline: Django ER diagram, N+1 and migration-risk linter — no database, no Django boot
 description: >-
   Static analysis for Django models and migrations: ER diagrams, N+1 detection,
@@ -42,14 +42,14 @@ defaults:
   - scope:
       path: ""
     values:
-      image: https://frowningdev.github.io/django-orm-lens/media/hero.png
+      image: https://frowningdev.github.io/orm-synapse/media/hero.png
   # README.md is served twice: as the homepage and again as /README.html. Both
   # point their canonical at the homepage so search engines treat them as one
   # page instead of two competing duplicates.
   - scope:
       path: "README.md"
     values:
-      canonical_url: https://frowningdev.github.io/django-orm-lens/
+      canonical_url: https://frowningdev.github.io/orm-synapse/
 
 # jekyll-sitemap publishes /sitemap.xml, the file search consoles take to
 # discover and recrawl the site. jekyll-seo-tag is named explicitly rather than

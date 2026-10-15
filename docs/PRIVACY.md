@@ -5,7 +5,7 @@
 ## Scope
 
 This document describes the privacy practices of the **FROWNINGdev** developer
-tools, including the `django-orm-lens` open-source project and any personal
+tools, including the `orm-synapse` open-source project and any personal
 automation apps registered by the maintainer (`FROWNINGdev`) on third-party
 platforms (LinkedIn, GitHub, PyPI, and similar).
 
@@ -13,7 +13,7 @@ platforms (LinkedIn, GitHub, PyPI, and similar).
 
 **Nothing from third parties.**
 
-- The `django-orm-lens` VS Code extension, Python CLI, and MCP server operate
+- The `orm-synapse` VS Code extension, Python CLI, and MCP server operate
   entirely on the user's local machine. They read `models.py` files from the
   user's own workspace, produce static analysis output, and never make network
   calls or send telemetry.

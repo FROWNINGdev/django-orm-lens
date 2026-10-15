@@ -81,7 +81,7 @@ export interface TreeNode {
   /** Optional narrower context value — e.g. `field.fk` — for right-click gating. */
   contextValue?: string;
   /**
-   * Optional synthetic URI (scheme `djangoOrmLens:`) whose query encodes a
+   * Optional synthetic URI (scheme `ormSynapse:`) whose query encodes a
    * decoration flag consumed by `FileDecorationProvider`. Set on nodes we
    * want visually badged (e.g. FK without on_delete → red `!`).
    */

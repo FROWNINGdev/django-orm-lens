@@ -1,20 +1,20 @@
-"""Command-line entry point for ``django-orm-lens``.
+"""Command-line entry point for ``orm-synapse``.
 
 Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
 
-  django-orm-lens scan       — walk workspace, list every model
-  django-orm-lens describe   — one model in detail
-  django-orm-lens er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
-  django-orm-lens hover      — compact hover card for one model
-  django-orm-lens list       — flat list ``app.Model`` for shell piping
-  django-orm-lens diff       — compare two schema JSON dumps
-  django-orm-lens nplusone   — static N+1 detector (text/json/sarif/github)
-  django-orm-lens migration-risk  — flag risky migration operations
-  django-orm-lens suggest-indexes — propose Meta.indexes from QuerySet usage
-  django-orm-lens signals    — sender→signal→handler graph from @receiver
-  django-orm-lens migration-deps  — per-app migration dependency DAG
-  django-orm-lens cascade    — what delete() cascades to, by on_delete
-  django-orm-lens mcp        — start the MCP stdio server (extras required)
+  orm-synapse scan       — walk workspace, list every model
+  orm-synapse describe   — one model in detail
+  orm-synapse er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
+  orm-synapse hover      — compact hover card for one model
+  orm-synapse list       — flat list ``app.Model`` for shell piping
+  orm-synapse diff       — compare two schema JSON dumps
+  orm-synapse nplusone   — static N+1 detector (text/json/sarif/github)
+  orm-synapse migration-risk  — flag risky migration operations
+  orm-synapse suggest-indexes — propose Meta.indexes from QuerySet usage
+  orm-synapse signals    — sender→signal→handler graph from @receiver
+  orm-synapse migration-deps  — per-app migration dependency DAG
+  orm-synapse cascade    — what delete() cascades to, by on_delete
+  orm-synapse mcp        — start the MCP stdio server (extras required)
 """
 
 from __future__ import annotations
@@ -456,7 +456,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
 def _cmd_stats_sql(_args: argparse.Namespace) -> int:
     """Print the query that produces a --stats file.
 
-    Printed rather than executed on purpose: django-orm-lens never holds a
+    Printed rather than executed on purpose: orm-synapse never holds a
     database credential. The operator runs this against a replica or a
     read-only role and hands over the JSON.
     """
@@ -637,11 +637,11 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="django-orm-lens",
+        prog="orm-synapse",
         description="Static analysis for Django models. Terminal + AI agent friendly.",
     )
     p.add_argument(
-        "--version", action="version", version=f"django-orm-lens {__version__}"
+        "--version", action="version", version=f"orm-synapse {__version__}"
     )
     sub = p.add_subparsers(dest="command")
     p.set_defaults(func=_cmd_hello)
@@ -886,7 +886,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Production table statistics as JSON — turns 'probably populated' "
             "into an estimated row count. Generate it with "
-            "`django-orm-lens stats-sql`; the tool never connects to a database"
+            "`orm-synapse stats-sql`; the tool never connects to a database"
         ),
     )
     blast.add_argument(
@@ -930,7 +930,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcp = sub.add_parser(
         "mcp",
-        help="Run the MCP stdio server (requires 'pip install django-orm-lens[mcp]')",
+        help="Run the MCP stdio server (requires 'pip install orm-synapse[mcp]')",
     )
     mcp.set_defaults(func=_cmd_mcp)
 
@@ -938,7 +938,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_hello(_args: argparse.Namespace) -> int:
-    print("django-orm-lens — static analysis for Django models.")
+    print("orm-synapse — static analysis for Django models.")
     print()
     print("commands:")
     print("  scan               Scan the current directory for Django apps + models")
@@ -959,15 +959,15 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  stats-sql          Read-only SQL that produces a --stats file")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
-    print("run `django-orm-lens <command> --help` for options.")
-    print("docs: https://github.com/FROWNINGdev/django-orm-lens")
+    print("run `orm-synapse <command> --help` for options.")
+    print("docs: https://github.com/nam-tong/orm-synapse")
     print()
     print("prefer a visual sidebar + ER diagram in your editor?")
-    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.django-orm-lens")
-    print("  VSCodium / code-server:       codium --install-extension frowningdev.django-orm-lens")
+    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.orm-synapse")
+    print("  VSCodium / code-server:       codium --install-extension frowningdev.orm-synapse")
     print()
     print("if this saves you a search, star helps others find it:")
-    print("  https://github.com/FROWNINGdev/django-orm-lens")
+    print("  https://github.com/nam-tong/orm-synapse")
     return 0
 
 
@@ -977,7 +977,7 @@ def _cmd_mcp(_args: argparse.Namespace) -> int:
     except ImportError as e:
         print(
             "error: MCP server dependencies not installed.\n"
-            "install with: pip install 'django-orm-lens[mcp]'\n"
+            "install with: pip install 'orm-synapse[mcp]'\n"
             f"({e})",
             file=sys.stderr,
         )

@@ -1,4 +1,4 @@
-name: "django-orm-lens"
+name: "orm-synapse"
 # Marketplace requires the description to stay under 125 characters.
 description: >-
   Static Django schema gates for CI: N+1 detection, migration risk flags,
@@ -35,12 +35,12 @@ inputs:
     required: false
     default: ""
   version:
-    description: "django-orm-lens version to install from PyPI (default: latest)"
+    description: "orm-synapse version to install from PyPI (default: latest)"
     required: false
     default: ""
   install:
     description: >-
-      Install django-orm-lens from PyPI before running. Set to "false" when the
+      Install orm-synapse from PyPI before running. Set to "false" when the
       workflow has already put a build on PATH — a checkout of this repo, or a
       wheel from an earlier job. Note that a PyPI install can only ever expose
       commands that have been released, so an unreleased command needs this off
@@ -77,7 +77,7 @@ runs:
     # Inputs are passed via env, never interpolated into the script body —
     # ${{ }} inside run: is literal text substitution and a script-injection
     # vector the moment a caller wires an input from untrusted data.
-    - name: Install django-orm-lens
+    - name: Install orm-synapse
       shell: bash
       env:
         DOL_VERSION: ${{ inputs.version }}
@@ -85,20 +85,20 @@ runs:
       run: |
         if [ "$DOL_INSTALL" != "true" ]; then
           echo "install: skipped by input"
-          command -v django-orm-lens >/dev/null 2>&1 || {
-            echo "::error::install is false but django-orm-lens is not on PATH"
+          command -v orm-synapse >/dev/null 2>&1 || {
+            echo "::error::install is false but orm-synapse is not on PATH"
             exit 1
           }
           exit 0
         fi
         if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
         if [ -n "$DOL_VERSION" ]; then
-          "$PY" -m pip install --quiet "django-orm-lens==$DOL_VERSION"
+          "$PY" -m pip install --quiet "orm-synapse==$DOL_VERSION"
         else
-          "$PY" -m pip install --quiet django-orm-lens
+          "$PY" -m pip install --quiet orm-synapse
         fi
 
-    - name: Run django-orm-lens ${{ inputs.command }}
+    - name: Run orm-synapse ${{ inputs.command }}
       shell: bash
       env:
         DOL_COMMAND: ${{ inputs.command }}
@@ -150,9 +150,9 @@ runs:
         # --- run ------------------------------------------------------------
         # DOL_ARGS and ONLY_ARGS are intentionally word-split: they carry flags.
         if [ "$DOL_COMMENT" = "true" ] && [ "$IS_BLAST" = true ]; then
-          REPORT="$RUNNER_TEMP/django-orm-lens-blast-radius.md"
+          REPORT="$RUNNER_TEMP/orm-synapse-blast-radius.md"
           RC=0
-          django-orm-lens "$DOL_COMMAND" --path "$DOL_PATH" --format markdown \
+          orm-synapse "$DOL_COMMAND" --path "$DOL_PATH" --format markdown \
             $ONLY_ARGS $DOL_ARGS > "$REPORT" || RC=$?
           cat "$REPORT"
 
@@ -170,7 +170,7 @@ runs:
             # Reuse our own previous comment so a 20-push PR keeps one report,
             # not twenty. The marker is the first line of the rendered report.
             EXISTING=$(gh api "repos/$DOL_REPO/issues/$DOL_PR/comments" --paginate \
-              --jq '.[] | select(.body | startswith("<!-- django-orm-lens: blast-radius -->")) | .id' \
+              --jq '.[] | select(.body | startswith("<!-- orm-synapse: blast-radius -->")) | .id' \
               | head -n 1 || true)
             if [ -n "$EXISTING" ]; then
               gh api -X PATCH "repos/$DOL_REPO/issues/comments/$EXISTING" \
@@ -183,4 +183,4 @@ runs:
           exit $RC
         fi
 
-        django-orm-lens "$DOL_COMMAND" --path "$DOL_PATH" $FORMAT_ARGS $ONLY_ARGS $DOL_ARGS
+        orm-synapse "$DOL_COMMAND" --path "$DOL_PATH" $FORMAT_ARGS $ONLY_ARGS $DOL_ARGS

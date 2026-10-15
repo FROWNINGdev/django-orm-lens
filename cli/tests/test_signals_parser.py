@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.signals_parser import signal_graph
+from orm_synapse.signals_parser import signal_graph
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "miniapp"
 

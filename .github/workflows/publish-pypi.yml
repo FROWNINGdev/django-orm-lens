@@ -12,8 +12,8 @@ on:
 # https://docs.pypi.org/trusted-publishers/
 #
 # ⚠️  PyPI-side setup required (one-time):
-#   1. https://pypi.org/manage/project/django-orm-lens/settings/publishing/
-#   2. Add trusted publisher — owner=FROWNINGdev, repo=django-orm-lens,
+#   1. https://pypi.org/manage/project/orm-synapse/settings/publishing/
+#   2. Add trusted publisher — owner=FROWNINGdev, repo=orm-synapse,
 #      workflow=publish-pypi.yml, environment=pypi
 #   3. After it lands, delete the PYPI_API_TOKEN repo secret.
 # Until step 1-2 are done, the next tag push fails at the Publish step with

@@ -1,35 +1,35 @@
-# pre-commit hook definitions for django-orm-lens.
+# pre-commit hook definitions for orm-synapse.
 #
 # Usage in a Django project's .pre-commit-config.yaml:
 #
 #   repos:
-#     - repo: https://github.com/FROWNINGdev/django-orm-lens
+#     - repo: https://github.com/nam-tong/orm-synapse
 #       rev: py-v1.8.1
 #       hooks:
-#         - id: django-orm-lens-nplusone
-#         - id: django-orm-lens-migration-risk
+#         - id: orm-synapse-nplusone
+#         - id: orm-synapse-migration-risk
 #
 # The hook environment installs the published PyPI package (see the root
 # pyproject.toml shim). Pin the analyzer itself with:
-#   additional_dependencies: ["django-orm-lens==1.4.0"]
+#   additional_dependencies: ["orm-synapse==1.4.0"]
 
-- id: django-orm-lens-nplusone
-  name: django-orm-lens · static N+1 check
+- id: orm-synapse-nplusone
+  name: orm-synapse · static N+1 check
   description: >-
     Flag FK/M2M access inside loops without select_related/prefetch_related.
     Static analysis — no DB, no Django boot. Exits non-zero on findings.
-  entry: django-orm-lens nplusone --confidence high
+  entry: orm-synapse nplusone --confidence high
   language: python
   pass_filenames: false
   types: [python]
 
-- id: django-orm-lens-migration-risk
-  name: django-orm-lens · migration risk check
+- id: orm-synapse-migration-risk
+  name: orm-synapse · migration risk check
   description: >-
     Flag migration operations that are dangerous on a production database
     (NOT NULL without default, table-locking index builds, irreversible
     data migrations, ...). Exits non-zero on critical findings.
-  entry: django-orm-lens migration-risk
+  entry: orm-synapse migration-risk
   language: python
   pass_filenames: false
   types: [python]

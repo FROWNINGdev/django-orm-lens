@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WorkspaceIndex } from '../types';
 
 /**
- * Django ORM Lens — rules engine core types.
+ * ORM Synapse — rules engine core types.
  *
  * The architecture is a hybrid distilled from the mainstream lint ecosystems:
  *
@@ -31,7 +31,7 @@ import { WorkspaceIndex } from '../types';
  */
 
 /** Diagnostic.source shown in Problems panel and hover. Stable. */
-export const DIAGNOSTIC_SOURCE = 'Django ORM Lens';
+export const DIAGNOSTIC_SOURCE = 'ORM Synapse';
 
 /** Prefix for every rule code. Codes are strings like `DOL001`. */
 export const DOL_CODE_PREFIX = 'DOL';
@@ -73,7 +73,7 @@ export interface RuleMeta {
   title: string;
   /** Category for grouping in docs and settings. */
   category: Category;
-  /** Default severity — user can override via djangoOrmLens.rules.<code>. */
+  /** Default severity — user can override via ormSynapse.rules.<code>. */
   defaultSeverity: Severity;
   /** URL rendered as Diagnostic.code target — "Learn more" link on hover. */
   docsUrl: string;

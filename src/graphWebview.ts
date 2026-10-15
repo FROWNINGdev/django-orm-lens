@@ -70,7 +70,7 @@ export function buildMermaid(index: WorkspaceIndex): string {
 }
 
 function resolveTheme(): 'dark' | 'light' {
-  const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+  const cfg = vscode.workspace.getConfiguration('ormSynapse');
   const raw = cfg.get<string>('diagramTheme', 'auto');
   if (raw === 'default' || raw === 'forest' || raw === 'neutral') return 'light';
   if (raw === 'dark') return 'dark';
@@ -132,7 +132,7 @@ function html(
 <head>
 <meta charset="utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}'; font-src ${cspSource} data:; img-src ${cspSource} data:;">
-<title>Django ORM Lens — ER Diagram</title>
+<title>ORM Synapse — ER Diagram</title>
 <style>
   html, body { margin: 0; padding: 0; height: 100%; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); font-family: var(--vscode-font-family); }
   #dol-root { height: 100vh; width: 100vw; }
@@ -254,8 +254,8 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
     return;
   }
   panel = vscode.window.createWebviewPanel(
-    'djangoOrmLensGraph',
-    'Django ORM Lens — ER Diagram',
+    'ormSynapseGraph',
+    'ORM Synapse — ER Diagram',
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
@@ -304,7 +304,7 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           vscode.window.showWarningMessage(
-            `Django ORM Lens: could not open ${path.basename(msg.filePath)}: ${message}`
+            `ORM Synapse: could not open ${path.basename(msg.filePath)}: ${message}`
           );
         }
         return;

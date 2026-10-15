@@ -13,7 +13,7 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
 
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     if (document.languageId !== 'python') return [];
-    const cfg = vscode.workspace.getConfiguration('djangoOrmLens');
+    const cfg = vscode.workspace.getConfiguration('ormSynapse');
     if (!cfg.get<boolean>('showCodeLens', true)) return [];
     const index = this.getIndex();
     const docPath = document.uri.fsPath.replace(/\\/g, '/').toLowerCase();
@@ -37,14 +37,14 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
         lenses.push(
           new vscode.CodeLens(range, {
             title,
-            command: 'djangoOrmLens.showGraph',
+            command: 'ormSynapse.showGraph',
             tooltip: `${model.appName}.${model.name} — click to open the ER diagram`,
           })
         );
         lenses.push(
           new vscode.CodeLens(range, {
             title: '$(beaker) Generate factory',
-            command: 'djangoOrmLens.generateFactory',
+            command: 'ormSynapse.generateFactory',
             arguments: [model.filePath, model.lineNumber],
             tooltip: `Scaffold a factory_boy DjangoModelFactory for ${model.name}`,
           })

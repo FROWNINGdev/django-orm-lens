@@ -43,8 +43,8 @@ jobs:
         id: pkg
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          npx --yes @vscode/vsce package --no-dependencies --out "django-orm-lens-${VERSION}.vsix"
-          echo "VSIX_PATH=django-orm-lens-${VERSION}.vsix" >> $GITHUB_ENV
+          npx --yes @vscode/vsce package --no-dependencies --out "orm-synapse-${VERSION}.vsix"
+          echo "VSIX_PATH=orm-synapse-${VERSION}.vsix" >> $GITHUB_ENV
           echo "VERSION=${VERSION}"                       >> $GITHUB_ENV
 
       - name: Publish to VS Code Marketplace

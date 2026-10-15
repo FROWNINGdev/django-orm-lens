@@ -15,9 +15,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.drift import detect_drift
-from django_orm_lens.parser import parse_models_file, scan_workspace
-from django_orm_lens.query_analyzer import (
+from orm_synapse.drift import detect_drift
+from orm_synapse.parser import parse_models_file, scan_workspace
+from orm_synapse.query_analyzer import (
     _unique_together_tuples,
     suggest_indexes,
 )

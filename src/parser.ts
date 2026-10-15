@@ -18,7 +18,7 @@ const RELATION_TYPES: RelationKind[] = [
 // django-mptt's Tree* fields are thin subclasses of Django's own relation
 // fields — same `to`, same `on_delete`, same `related_name`. Mapping the name
 // to its Django counterpart is the whole fix: every extractor below keeps
-// working unchanged. Mirrors TREE_FIELD_ALIASES in cli/django_orm_lens/parser.py;
+// working unchanged. Mirrors TREE_FIELD_ALIASES in cli/orm_synapse/parser.py;
 // the two must stay in step or the sidebar and the CLI disagree about a schema.
 const TREE_FIELD_ALIASES: Record<string, RelationKind> = {
   TreeForeignKey: 'ForeignKey',
@@ -78,7 +78,7 @@ export function resolveRelatedTail(
  * This is only the seed. `resolveAndFilter` grows the set transitively, so a
  * project-local base under any other name — `TimeStamped`, `BaseModel`,
  * `Auditable` — still makes its subclasses models once the base itself is
- * recognised. Mirrors `_looks_like_model` in cli/django_orm_lens/parser.py.
+ * recognised. Mirrors `_looks_like_model` in cli/orm_synapse/parser.py.
  */
 const NON_MODEL_TAIL =
   /^(ModelAdmin|ModelForm|ModelSerializer|ModelChoiceField|ModelMultipleChoiceField|Serializer|Form|Admin|View|ViewSet|Manager|QuerySet|Config|AppConfig|Response|Handler|Middleware|Backend|Command)$/;
@@ -263,7 +263,7 @@ function readBalancedArgs(lines: string[], startIdx: number): {
  * No model recognition, no abstract filtering, no inheritance. Callers combine
  * the result with definitions from other files before calling
  * `resolveAndFilter`, so a base declared in another module is still found.
- * Mirrors `_collect_defs` in cli/django_orm_lens/parser.py.
+ * Mirrors `_collect_defs` in cli/orm_synapse/parser.py.
  */
 export function collectDefs(filePath: string, content: string): ParsedModel[] {
   // Strip leading BOM (U+FEFF) — Windows editors (Notepad, VS Code with
@@ -421,7 +421,7 @@ function isAbstract(model: ParsedModel): boolean {
  * inheritance chains this actually matters for. `stack` breaks cycles in
  * malformed source instead of recursing forever.
  *
- * Mirrors `_abstract_bases_fields` in cli/django_orm_lens/parser.py.
+ * Mirrors `_abstract_bases_fields` in cli/orm_synapse/parser.py.
  */
 function abstractBasesFields(
   model: ParsedModel,
@@ -483,7 +483,7 @@ function attachInheritedFields(allDefs: ParsedModel[]): void {
  * The loop runs to a **fixed point** rather than in source order. Order-
  * dependent recognition misses `class Post(TimeStamped)` written above its
  * base, which is ordinary once the base is imported rather than declared
- * locally. Mirrors `_resolve_and_filter` in cli/django_orm_lens/parser.py; the
+ * locally. Mirrors `_resolve_and_filter` in cli/orm_synapse/parser.py; the
  * two must stay in step or the sidebar and the CLI disagree about a schema.
  */
 export function resolveAndFilter(allDefs: ParsedModel[]): ParsedModel[] {
@@ -586,7 +586,7 @@ function fnmatchRegex(pattern: string): RegExp {
  * subclasses — django-oscar does this in all 14 of its apps. Without reading
  * these, oscar's models parse as classes with no fields between them: found,
  * but empty, which reads as a schema that lost its columns. Mirrors
- * MODEL_SOURCE_FILES in cli/django_orm_lens/parser.py.
+ * MODEL_SOURCE_FILES in cli/orm_synapse/parser.py.
  */
 const MODEL_SOURCE_FILES = new Set(['models.py', 'abstract_models.py']);
 
@@ -643,7 +643,7 @@ type ImportTarget = { module: string; name: string | null };
 
 /**
  * Map each name a module binds by import to the module (and name) it came
- * from. Mirrors `_parse_imports` in cli/django_orm_lens/parser.py.
+ * from. Mirrors `_parse_imports` in cli/orm_synapse/parser.py.
  */
 export function parseImports(content: string): Map<string, ImportTarget> {
   const out = new Map<string, ImportTarget>();
@@ -719,7 +719,7 @@ function moduleFiles(module: string, fromFile: string, root: string): string[] {
  * defining each unknown base — through re-exports and relative imports — and
  * returns those classes so `resolveAndFilter` sees the whole chain. Only
  * classes something inherits from are pulled. Mirrors `_pull_imported_bases`
- * in cli/django_orm_lens/parser.py.
+ * in cli/orm_synapse/parser.py.
  */
 export function pullImportedBases(
   allDefs: ParsedModel[],
@@ -877,7 +877,7 @@ export async function scanWorkspace(
     try {
       allDefs.push(...collectDefs(uri.fsPath, content));
     } catch (err) {
-      console.error(`django-orm-lens: parser error in ${uri.fsPath}`, err);
+      console.error(`orm-synapse: parser error in ${uri.fsPath}`, err);
     }
   }
   allDefs.push(

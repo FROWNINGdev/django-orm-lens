@@ -13,10 +13,10 @@ Sự sai lệch (drift) không phải lúc nào cũng sai — một tên bảng 
 ## Cách dùng
 
 ```bash
-django-orm-lens drift --path .                    # toàn bộ dự án
-django-orm-lens drift --path apps/blog            # một app cụ thể
-django-orm-lens drift --format json              # định dạng máy đọc được
-django-orm-lens drift --format github            # GitHub PR annotations
+orm-synapse drift --path .                    # toàn bộ dự án
+orm-synapse drift --path apps/blog            # một app cụ thể
+orm-synapse drift --format json              # định dạng máy đọc được
+orm-synapse drift --format github            # GitHub PR annotations
 ```
 
 - **`--path PATH`** — thư mục gốc để quét (mặc định: thư mục hiện tại).
@@ -37,7 +37,7 @@ blog.Post.author_id — db_column: "author" (mong đợi "author_id")
 ```python
 class Post(models.Model):
     class Meta:
-        db_table = "legacy_posts"  # django-orm-lens-disable drift
+        db_table = "legacy_posts"  # orm-synapse-disable drift
 ```
 
 ## Liên quan

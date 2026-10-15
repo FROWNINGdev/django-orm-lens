@@ -5,9 +5,9 @@
 # tools against the new interpreter.
 FROM python:3.13-slim
 
-LABEL org.opencontainers.image.title="django-orm-lens"
+LABEL org.opencontainers.image.title="orm-synapse"
 LABEL org.opencontainers.image.description="Static analysis for Django models. Sidebar tree, ER diagrams, and JSON output for terminals and AI coding agents."
-LABEL org.opencontainers.image.source="https://github.com/FROWNINGdev/django-orm-lens"
+LABEL org.opencontainers.image.source="https://github.com/nam-tong/orm-synapse"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ARG PKG_VERSION
@@ -25,13 +25,13 @@ ARG PKG_VERSION
 # produce an image that silently lacks the package.
 RUN set -eu; \
     for attempt in 1 2 3 4 5 6; do \
-      if pip install --no-cache-dir "django-orm-lens[mcp]${PKG_VERSION:+==${PKG_VERSION}}"; then \
+      if pip install --no-cache-dir "orm-synapse[mcp]${PKG_VERSION:+==${PKG_VERSION}}"; then \
         break; \
       fi; \
       echo "pip attempt ${attempt} failed - PyPI edge may still be stale, retrying in 30s"; \
       sleep 30; \
     done; \
-    pip show django-orm-lens > /dev/null
+    pip show orm-synapse > /dev/null
 
 # Run as a non-root user. The tool only reads static project files, so root
 # is not needed at any point. Any path-traversal or unsafe file-read bug in
@@ -53,5 +53,5 @@ WORKDIR /workspace
 # Only CMD changes, so every documented CLI invocation is untouched: passing
 # arguments overrides CMD, and `docker run ... scan --path .` behaves exactly
 # as before.
-ENTRYPOINT ["django-orm-lens"]
+ENTRYPOINT ["orm-synapse"]
 CMD ["mcp"]

@@ -18,7 +18,7 @@ import ast
 import unittest
 from pathlib import Path
 
-from django_orm_lens.query_analyzer import (
+from orm_synapse.query_analyzer import (
     NPlusOneScanner,
     _helper_call_name,
     _ReturnedQuerySetTracker,
