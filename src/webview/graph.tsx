@@ -1,4 +1,4 @@
-import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, StrictMode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ReactFlow,
@@ -176,56 +176,236 @@ interface GraphAppProps {
 }
 
 interface PersistedGraphState {
-  filter?: string;
+  apps?: string[] | null;
+  models?: string[] | null;
 }
 
-/** Filter models without mutating the payload received from the extension. */
-export function filterIndex(index: WireIndex, query: string): WireIndex {
-  const needle = query.trim().toLocaleLowerCase();
-  if (!needle) return index;
+interface PickOption {
+  id: string;
+  label: string;
+  detail?: string;
+  group?: string;
+}
+
+/** `null` means every id. An array is an explicit subset, including none. */
+export function filterIndex(
+  index: WireIndex,
+  apps: string[] | null,
+  models: string[] | null
+): WireIndex {
+  const appSet = apps === null ? null : new Set(apps);
+  const modelSet = models === null ? null : new Set(models);
   return {
     ...index,
     apps: index.apps
-      .map((app) => {
-        const appMatches = app.name.toLocaleLowerCase().includes(needle);
-        return {
-          ...app,
-          models: appMatches
+      .filter((app) => appSet === null || appSet.has(app.name))
+      .map((app) => ({
+        ...app,
+        models:
+          modelSet === null
             ? app.models
-            : app.models.filter(
-                (model) =>
-                  model.name.toLocaleLowerCase().includes(needle) ||
-                  model.fields.some(
-                    (field) =>
-                      field.name.toLocaleLowerCase().includes(needle) ||
-                      field.type.toLocaleLowerCase().includes(needle)
-                  )
-              ),
-        };
-      })
+            : app.models.filter((model) => modelSet.has(`${app.name}/${model.name}`)),
+      }))
       .filter((app) => app.models.length > 0),
   };
 }
 
+function toggleSelection(current: string[] | null, id: string, allIds: string[]): string[] | null {
+  const selected = new Set(current ?? allIds);
+  if (selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  if (selected.size === 0 || selected.size === allIds.length) {
+    return selected.size === 0 ? [] : null;
+  }
+  return allIds.filter((item) => selected.has(item));
+}
+
+function MultiSelect({
+  label,
+  allLabel,
+  noun,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  allLabel: string;
+  noun: string;
+  options: PickOption[];
+  value: string[] | null;
+  onChange: (next: string[] | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const allIds = options.map((option) => option.id);
+  const selected = new Set(value ?? allIds);
+  const allChecked = allIds.length > 0 && (value === null || selected.size === allIds.length);
+  const summary =
+    options.length === 0 || selected.size === 0
+      ? `No ${noun}`
+      : allChecked
+        ? label
+        : selected.size === 1
+          ? (options.find((option) => selected.has(option.id))?.label ?? label)
+          : `${selected.size} ${noun}`;
+  const needle = query.trim().toLocaleLowerCase();
+  const visible = needle
+    ? options.filter(
+        (option) =>
+          option.label.toLocaleLowerCase().includes(needle) ||
+          (option.group ?? '').toLocaleLowerCase().includes(needle)
+      )
+    : options;
+  const showGroups = new Set(visible.map((option) => option.group).filter(Boolean)).size > 1;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as globalThis.Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="dol-picker" ref={rootRef}>
+      <button
+        type="button"
+        className={allChecked ? 'dol-picker-btn' : 'dol-picker-btn dol-picker-on'}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`${label}: ${summary}`}
+        title={summary}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="dol-picker-v">{summary}</span>
+        <span className="dol-picker-caret" aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="dol-picker-menu" role="listbox" aria-multiselectable="true">
+          {options.length > 8 && (
+            <input
+              type="search"
+              value={query}
+              placeholder="Filter…"
+              aria-label={`Filter ${noun}`}
+              onChange={(event) => setQuery(event.target.value)}
+              autoFocus
+            />
+          )}
+          <label className="dol-picker-row dol-picker-all">
+            <input
+              type="checkbox"
+              checked={allChecked}
+              ref={(element) => {
+                if (element) element.indeterminate = !allChecked && selected.size > 0;
+              }}
+              onChange={() => onChange(allChecked ? [] : null)}
+            />
+            <span>{allLabel}</span>
+            <em>{options.length}</em>
+          </label>
+          <div className="dol-picker-list">
+            {visible.map((option, i) => (
+              <Fragment key={option.id}>
+                {showGroups && option.group && option.group !== visible[i - 1]?.group && (
+                  <div className="dol-picker-group">{option.group}</div>
+                )}
+                <label className="dol-picker-row">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(option.id)}
+                    onChange={() => onChange(toggleSelection(value, option.id, allIds))}
+                  />
+                  <span>{option.label}</span>
+                  {option.detail && <em>{option.detail}</em>}
+                </label>
+              </Fragment>
+            ))}
+            {visible.length === 0 && <div className="dol-picker-empty">No matches</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GraphApp({ vscode, initialIndex }: GraphAppProps) {
+  const persisted = vscode.getState<PersistedGraphState>() ?? {};
   const [index, setIndex] = useState<WireIndex | null>(initialIndex);
-  const [filter, setFilter] = useState(
-    () => vscode.getState<PersistedGraphState>()?.filter ?? ''
+  const [selectedApps, setSelectedApps] = useState<string[] | null>(persisted.apps ?? null);
+  const [selectedModels, setSelectedModels] = useState<string[] | null>(
+    persisted.models ?? null
   );
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const filteredIndex = useMemo(
-    () => (index ? filterIndex(index, filter) : null),
-    [index, filter]
+  const appOptions = useMemo<PickOption[]>(
+    () =>
+      (index?.apps ?? []).map((app) => ({
+        id: app.name,
+        label: app.name,
+        detail: String(app.models.length),
+      })),
+    [index]
   );
+  const modelOptions = useMemo<PickOption[]>(() => {
+    if (!index) return [];
+    const apps =
+      selectedApps === null
+        ? index.apps
+        : index.apps.filter((app) => selectedApps.includes(app.name));
+    return apps.flatMap((app) =>
+      app.models.map((model) => ({
+        id: `${app.name}/${model.name}`,
+        label: model.name,
+        detail: String(model.fields.length),
+        group: app.name,
+      }))
+    );
+  }, [index, selectedApps]);
+  const filteredIndex = useMemo(
+    () => (index ? filterIndex(index, selectedApps, selectedModels) : null),
+    [index, selectedApps, selectedModels]
+  );
+  const narrowed = selectedApps !== null || selectedModels !== null;
 
   useEffect(() => {
-    vscode.setState<PersistedGraphState>({ filter });
+    if (!index) return;
+    const names = new Set(index.apps.map((app) => app.name));
+    setSelectedApps((prev) => {
+      if (prev === null) return null;
+      const kept = prev.filter((name) => names.has(name));
+      if (kept.length === prev.length) return prev;
+      return kept.length === index.apps.length ? null : kept;
+    });
+  }, [index]);
+
+  useEffect(() => {
+    if (!index) return;
+    const ids = new Set(modelOptions.map((option) => option.id));
+    setSelectedModels((prev) => {
+      if (prev === null) return null;
+      const kept = prev.filter((id) => ids.has(id));
+      if (kept.length === prev.length) return prev;
+      return kept.length === modelOptions.length ? null : kept;
+    });
+  }, [index, modelOptions]);
+
+  useEffect(() => {
+    vscode.setState<PersistedGraphState>({ apps: selectedApps, models: selectedModels });
     setSelectedId(null);
-  }, [filter, vscode]);
+  }, [selectedApps, selectedModels, vscode]);
 
   useEffect(() => {
     const onMsg = (event: MessageEvent<ExtensionMessage>) => {
@@ -385,32 +565,41 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
           ORM Synapse<span className="dol-title-sep">·</span>
           {workspaceName}
         </div>
-        <div className="dol-header-actions">
-          <div className="dol-filter">
-            <input
-              type="search"
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') setFilter('');
+        <div className="dol-filter-bar">
+          <MultiSelect
+            label="Apps"
+            allLabel="All apps"
+            noun="apps"
+            options={appOptions}
+            value={selectedApps}
+            onChange={setSelectedApps}
+          />
+          <MultiSelect
+            label="Models"
+            allLabel="All models"
+            noun="models"
+            options={modelOptions}
+            value={selectedModels}
+            onChange={setSelectedModels}
+          />
+          {narrowed && (
+            <button
+              type="button"
+              className="dol-picker-clear"
+              title="Show every app and model"
+              aria-label="Reset filter"
+              onClick={() => {
+                setSelectedApps(null);
+                setSelectedModels(null);
               }}
-              placeholder="Filter apps, models, fields…"
-              aria-label="Filter apps, models, and fields"
-              spellCheck={false}
-            />
-            {filter && (
-              <button
-                type="button"
-                onClick={() => setFilter('')}
-                title="Clear filter"
-                aria-label="Clear filter"
-              >
-                ×
-              </button>
-            )}
-          </div>
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <div className="dol-header-actions">
           <span className="dol-badge">
-            {filter
+            {narrowed
               ? `${visibleStats.apps}/${totalStats.apps} apps · ${visibleStats.models}/${totalStats.models} models`
               : `${totalStats.apps} app${totalStats.apps === 1 ? '' : 's'} · ${totalStats.models} model${totalStats.models === 1 ? '' : 's'}`}
           </span>
@@ -516,11 +705,18 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
           </ReactFlow>
         ) : (
           <div className="dol-empty-state">
-            {hasAnyModels && filter ? (
+            {hasAnyModels && narrowed ? (
               <>
-                No app, model, or field matches <strong>{filter}</strong>.{' '}
-                <button type="button" className="dol-link-btn" onClick={() => setFilter('')}>
-                  Clear filter
+                No models in this selection.{' '}
+                <button
+                  type="button"
+                  className="dol-link-btn"
+                  onClick={() => {
+                    setSelectedApps(null);
+                    setSelectedModels(null);
+                  }}
+                >
+                  Reset filter
                 </button>
               </>
             ) : (

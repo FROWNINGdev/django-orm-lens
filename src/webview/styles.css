@@ -49,15 +49,15 @@ html, body, #dol-root {
 }
 
 .dol-header {
-  height: 48px;
-  min-height: 48px;
+  height: 40px;
+  min-height: 40px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
+  gap: 10px;
+  padding: 0 12px;
   position: relative;
   background: var(--dol-bg);
-  z-index: 4;
+  z-index: 6;
 }
 
 .dol-header::after {
@@ -73,7 +73,9 @@ html, body, #dol-root {
 }
 
 .dol-header-title {
-  font-size: 14px;
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--dol-fg);
@@ -90,70 +92,226 @@ html, body, #dol-root {
 .dol-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin-left: auto;
+  flex: none;
+}
+
+.dol-filter-bar {
+  display: flex;
+  align-items: stretch;
+  height: 26px;
+  flex: 0 1 auto;
+  min-width: 0;
+  border: 1px solid var(--dol-border);
+  border-radius: 6px;
+  background: var(--vscode-input-background, transparent);
+}
+
+.dol-picker {
+  position: relative;
   min-width: 0;
 }
 
-.dol-filter {
-  position: relative;
-  width: clamp(180px, 24vw, 320px);
+.dol-picker + .dol-picker {
+  box-shadow: inset 1px 0 0 var(--dol-border);
 }
 
-.dol-filter input {
+.dol-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: 168px;
+  height: 100%;
+  padding: 0 8px;
+  color: var(--dol-fg);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dol-picker-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.dol-picker-btn:focus-visible {
+  outline: 1px solid var(--dol-accent);
+  outline-offset: -1px;
+}
+
+.dol-picker-on {
+  color: var(--vscode-textLink-foreground, var(--dol-accent));
+}
+
+.dol-picker-v {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dol-picker-caret {
+  width: 0;
+  height: 0;
+  flex: none;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid currentColor;
+  opacity: 0.55;
+}
+
+.dol-picker-clear {
+  width: 24px;
+  padding: 0;
+  color: var(--dol-node-muted);
+  background: transparent;
+  border: 0;
+  box-shadow: inset 1px 0 0 var(--dol-border);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dol-picker-clear:hover {
+  color: var(--dol-fg);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.dol-picker-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  max-height: 280px;
+  padding: 4px;
+  background: var(--vscode-dropdown-background, var(--dol-node-bg));
+  color: var(--vscode-dropdown-foreground, var(--dol-fg));
+  border: 1px solid var(--dol-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.dol-picker-menu input {
   box-sizing: border-box;
   width: 100%;
-  height: 30px;
-  padding: 5px 30px 5px 10px;
+  height: 24px;
+  margin-bottom: 4px;
+  padding: 0 8px;
   color: var(--vscode-input-foreground, var(--dol-fg));
-  background: var(--vscode-input-background, var(--dol-node-bg));
+  background: var(--vscode-input-background, var(--dol-bg));
   border: 1px solid var(--vscode-input-border, var(--dol-border));
-  border-radius: 6px;
+  border-radius: 4px;
   font: inherit;
   font-size: 12px;
   outline: none;
 }
 
-.dol-filter input:focus {
+.dol-picker-menu input:focus {
   border-color: var(--dol-accent);
-  box-shadow: 0 0 0 1px var(--dol-accent);
 }
 
-.dol-filter input::placeholder {
-  color: var(--vscode-input-placeholderForeground, var(--dol-node-muted));
+.dol-picker-list {
+  overflow: auto;
+  min-height: 0;
 }
 
-.dol-filter input::-webkit-search-cancel-button {
-  display: none;
-}
-
-.dol-filter button {
-  position: absolute;
-  top: 50%;
-  right: 5px;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  transform: translateY(-50%);
-  color: var(--dol-node-muted);
-  background: transparent;
-  border: 0;
+.dol-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  padding: 0 6px;
   border-radius: 4px;
-  font: inherit;
-  font-size: 17px;
-  line-height: 20px;
+  font-size: 12px;
   cursor: pointer;
 }
 
-.dol-filter button:hover {
-  color: var(--dol-fg);
-  background: rgba(148, 163, 184, 0.15);
+.dol-picker-row:hover {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.dol-picker-row input {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex: none;
+  border: 1px solid var(--dol-node-muted);
+  border-radius: 3px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+
+.dol-picker-row input:checked,
+.dol-picker-row input:indeterminate {
+  border-color: var(--dol-accent);
+  background: var(--dol-accent);
+}
+
+.dol-picker-row input:checked::after {
+  content: '';
+  width: 6px;
+  height: 3px;
+  margin-top: -1px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  transform: rotate(-45deg);
+}
+
+.dol-picker-row input:indeterminate::after {
+  content: '';
+  width: 7px;
+  border-top: 1.5px solid #fff;
+}
+
+.dol-picker-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dol-picker-row em {
+  margin-left: auto;
+  color: var(--dol-node-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.dol-picker-all {
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.dol-picker-group {
+  padding: 6px 6px 2px;
+  color: var(--dol-node-muted);
+  font-size: 11px;
+}
+
+.dol-picker-empty {
+  padding: 6px;
+  color: var(--dol-node-muted);
+  font-size: 12px;
 }
 
 .dol-badge {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 26px;
   font-size: 11px;
   color: var(--dol-node-muted);
   background: rgba(148, 163, 184, 0.12);
-  padding: 4px 10px;
+  padding: 0 8px;
   border-radius: 999px;
   border: 1px solid var(--dol-border);
   font-variant-numeric: tabular-nums;
@@ -163,7 +321,8 @@ html, body, #dol-root {
   background: var(--vscode-button-background, #334155);
   color: var(--vscode-button-foreground, #e2e8f0);
   border: 1px solid var(--dol-border);
-  padding: 6px 12px;
+  height: 26px;
+  padding: 0 10px;
   border-radius: 6px;
   font-size: 12px;
   font-family: inherit;
@@ -194,25 +353,9 @@ html, body, #dol-root {
 }
 
 @media (max-width: 760px) {
-  .dol-header {
-    height: auto;
-    min-height: 48px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-
   .dol-header-title,
   .dol-badge {
     display: none;
-  }
-
-  .dol-filter {
-    flex: 1 1 auto;
-    width: auto;
-  }
-
-  .dol-header-actions {
-    width: 100%;
   }
 }
 

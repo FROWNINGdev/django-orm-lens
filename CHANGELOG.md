@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The ER Diagram now has an in-panel filter.** Search by app, model, field,
-  or field type without returning to the sidebar; the badge shows visible
-  versus total counts, Escape clears the query, and the filter survives
-  webview refreshes.
+- **The ER Diagram filters by app, then by model.** Each picker has select-all
+  and multi-select, the model list only contains models from the chosen apps,
+  and a search box inside each menu keeps large projects usable. The badge
+  shows visible versus total counts, Reset restores everything, and the
+  selection survives webview refreshes.
 - **`DOL016` flags an unnamed index or uniqueness declaration in `class Meta`.**
   `index_together` and `unique_together` cannot name their entries.
   `models.Index` (including postgres `*Index`), `UniqueConstraint`, and
