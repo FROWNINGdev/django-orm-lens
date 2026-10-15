@@ -223,6 +223,17 @@ const FIX_DOL022: Fixer = {
   },
 };
 
+/** DOL017: replace an index or unique name with the MySQL convention. */
+const FIX_DOL017: Fixer = {
+  code: 'DOL017',
+  title: 'Rename to the MySQL naming convention',
+  build(ctx) {
+    const next = ctx.finding.fixHint;
+    if (!next) return null;
+    return replaceRange(ctx.finding, next);
+  },
+};
+
 /**
  * The complete v0.8 fixer table. Rules without an entry here surface as
  * diagnostics with no lightbulb (correct behaviour for unsafe/hint-only
@@ -239,6 +250,7 @@ export const ALL_FIXERS: Fixer[] = [
   FIX_DOL013,
   FIX_DOL014,
   FIX_DOL015,
+  FIX_DOL017,
   FIX_DOL021,
   FIX_DOL022,
 ];

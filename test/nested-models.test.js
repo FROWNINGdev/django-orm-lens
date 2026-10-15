@@ -29,11 +29,9 @@ test('isModelSourceRelPath accepts nested models packages', () => {
   assert.equal(isModelSourceRelPath('ai_approval_engine/models/post.py'), true);
   assert.equal(isModelSourceRelPath('ai_approval_engine/models.py'), true);
   assert.equal(isModelSourceRelPath('ai_approval_engine/abstract_models.py'), true);
-  assert.equal(isModelSourceRelPath('ai_approval_engine/models/__init__.py'), false);
-  assert.equal(
-    isModelSourceRelPath('ai_approval_engine/models/builders/__init__.py'),
-    false
-  );
+  assert.equal(isModelSourceRelPath('ai_approval_engine/models/__init__.py'), true);
+  assert.equal(isModelSourceRelPath('ai_api/models/lead/__init__.py'), true);
+  assert.equal(isModelSourceRelPath('ai_approval_engine/__init__.py'), false);
   assert.equal(isModelSourceRelPath('ai_approval_engine/views/flow.py'), false);
 });
 
@@ -61,12 +59,13 @@ test('appDirFor uses the workspace root when the models package is at the root',
   assert.equal(app.dir, root);
 });
 
-test('walkForModels reads nested modules and skips views and __init__.py', () => {
+test('walkForModels reads nested modules and package inits, and skips views', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dol-nested-'));
   const files = [
     'ai_approval_engine/models/builders/approval_flow.py',
     'ai_approval_engine/models/requests/components/offer.py',
     'ai_approval_engine/models/__init__.py',
+    'ai_approval_engine/__init__.py',
     'ai_approval_engine/models/post.py',
     'ai_approval_engine/models.py',
     'ai_approval_engine/views/flow.py',
@@ -83,6 +82,7 @@ test('walkForModels reads nested modules and skips views and __init__.py', () =>
     [...found].sort(),
     [
       'ai_approval_engine/models.py',
+      'ai_approval_engine/models/__init__.py',
       'ai_approval_engine/models/builders/approval_flow.py',
       'ai_approval_engine/models/post.py',
       'ai_approval_engine/models/requests/components/offer.py',

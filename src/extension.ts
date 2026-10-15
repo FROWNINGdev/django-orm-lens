@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { findUserModel, resolveRelatedTail, scanWorkspace } from './parser';
+import { findUserModel, modelNeighborhoodIds, resolveRelatedTail, scanWorkspace } from './parser';
 import { DjangoTreeProvider } from './treeProvider';
 import { isGraphOpen, showGraph } from './graphWebview';
 import { maybeAskForStar } from './starPrompt';
@@ -365,9 +365,21 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ormSynapse.showGraph', async () => {
+    vscode.commands.registerCommand(
+      'ormSynapse.showGraph',
+      async (filePath?: unknown, lineNumber?: unknown) => {
       if (currentIndex.apps.length === 0) await refresh();
-      showGraph(context, treeProvider.applyVisibility(currentIndex));
+      const fromModel = typeof filePath === 'string' && typeof lineNumber === 'number';
+      const focus = fromModel
+        ? modelNeighborhoodIds(currentIndex, filePath, lineNumber)
+        : undefined;
+      // A class lens asks for that model and the models its relations point
+      // at. The sidebar and command palette still open whatever is checked.
+      showGraph(
+        context,
+        fromModel ? currentIndex : treeProvider.applyVisibility(currentIndex),
+        focus
+      );
       // Counted here rather than inside showGraph: this is the user asking
       // for a diagram, whereas showGraph also runs on sidebar refreshes the
       // user did not initiate. Not awaited — the prompt must never sit in

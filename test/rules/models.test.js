@@ -173,6 +173,7 @@ test('DOL016 flags index_together and unique_together inside Meta', () => {
     ['index_together', 'unique_together'],
   );
   assert.equal(findings[0].applicability, 'unsafe');
+  assert.equal(rule.meta.defaultSeverity, 'warning');
 });
 
 test('DOL016 flags Index and UniqueConstraint without name=', () => {
@@ -218,6 +219,83 @@ test('DOL016 allows explicitly named indexes and constraints', () => {
     '        ]',
   ].join('\n');
   assert.equal(rule.check(makeCtx(src)).length, 0);
+});
+
+test('DOL017 renames an index and a unique constraint to the MySQL convention', () => {
+  const rule = ruleByCode('DOL017');
+  const src = [
+    'class Event(models.Model):',
+    '    class Meta:',
+    '        db_table = "ai_events"',
+    '        indexes = [',
+    '            models.Index(fields=["company_id", "status"], name="idx_event_status"),',
+    '        ]',
+    '        constraints = [',
+    "            models.UniqueConstraint(fields=['company_id', 'status'], name='unique_event_status'),",
+    '        ]',
+  ].join('\n');
+  const findings = rule.check(makeCtx(src));
+  assert.deepEqual(
+    findings.map((f) => [f.args.kind, f.args.name, f.args.recommended, f.fixHint]),
+    [
+      ['Index', 'idx_event_status', 'idx_events_company_status', '"idx_events_company_status"'],
+      ['UniqueConstraint', 'unique_event_status', 'uniq_events_company_status', "'uniq_events_company_status'"],
+    ],
+  );
+  assert.equal(findings[0].applicability, 'suggestion');
+  assert.equal(rule.meta.defaultSeverity, 'warning');
+});
+
+test('DOL017 accepts the conventional name and a uuid unique constraint', () => {
+  const rule = ruleByCode('DOL017');
+  const src = [
+    'class Event(models.Model):',
+    '    class Meta:',
+    '        db_table = "ai_events"',
+    '        indexes = [',
+    '            models.Index(fields=["company_id", "status"], name="idx_events_company_status"),',
+    '        ]',
+    '        constraints = [',
+    '            models.UniqueConstraint(fields=["uuid"], name="idx_uniq_ai_events"),',
+    '        ]',
+  ].join('\n');
+  assert.equal(rule.check(makeCtx(src)).length, 0);
+});
+
+test('DOL017 uses the app and model name when Meta has no db_table', () => {
+  const rule = ruleByCode('DOL017');
+  const ctx = makeCtx([
+    'class Order(models.Model):',
+    '    class Meta:',
+    '        indexes = [',
+    '            models.Index(fields=["user_id"], name="idx_user"),',
+    '        ]',
+  ].join('\n'));
+  ctx.document = { uri: { fsPath: '/proj/shop/models.py' } };
+  ctx.index = {
+    apps: [{
+      name: 'shop',
+      path: '/proj/shop',
+      models: [{ name: 'Order', filePath: '/proj/shop/models.py' }],
+    }],
+  };
+  const findings = rule.check(ctx);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].args.recommended, 'idx_shop_order_user');
+});
+
+test('DOL017 stays quiet without a table name and outside Meta', () => {
+  const rule = ruleByCode('DOL017');
+  assert.equal(
+    rule.check(makeCtx(
+      'class Event(models.Model):\n    class Meta:\n        indexes = [models.Index(fields=["company_id"], name="idx_x")]',
+    )).length,
+    0,
+  );
+  assert.equal(
+    rule.check(makeCtx('models.Index(fields=["company_id"], name="idx_x")')).length,
+    0,
+  );
 });
 
 test('DOL016 ignores indexes declared outside class Meta', () => {

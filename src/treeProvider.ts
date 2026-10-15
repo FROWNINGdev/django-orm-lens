@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { concreteFields } from './parser';
 import { ParsedField, ParsedModel, TreeNode, WorkspaceIndex } from './types';
 import {
   FLAG_MISSING_MAX_LENGTH,
@@ -74,7 +75,7 @@ function fieldFlags(f: ParsedField): string[] {
 
 /** Best-effort primary-key type — falls back to Django's default. */
 function pkTypeOf(model: ParsedModel): string {
-  for (const f of model.fields) {
+  for (const f of concreteFields(model)) {
     if (/\bprimary_key\s*=\s*True\b/.test(f.args)) return f.type;
   }
   return 'BigAutoField';
@@ -132,7 +133,8 @@ function markdownForModel(app: string, model: ParsedModel): string {
   const bases = model.baseClasses.length
     ? `class ${model.name}(${model.baseClasses.join(', ')})`
     : `class ${model.name}`;
-  const rows = model.fields
+  const columns = concreteFields(model);
+  const rows = columns
     .map((f) => {
       const type = f.isRelation
         ? `${f.relationKind} → ${f.relatedModel ?? '?'}`
@@ -147,7 +149,7 @@ function markdownForModel(app: string, model: ParsedModel): string {
   const parts: string[] = [
     `**${app}.${model.name}**  \n\`${bases}\``,
     '',
-    `**Fields** (${model.fields.length})`,
+    `**Fields** (${columns.length})`,
     '',
     '| Name | Type | Flags |',
     '|---|---|---|',
@@ -200,12 +202,13 @@ function buildTree(index: WorkspaceIndex): TreeNode[] {
     contextValue: 'app',
     children: app.models.map<TreeNode>((model) => {
       const pk = pkTypeOf(model);
+      const columns = concreteFields(model);
       return {
         id: `${app.name}/${model.name}`,
         kind: 'model',
         label: model.name,
-        description: `${model.fields.length} field${
-          model.fields.length === 1 ? '' : 's'
+        description: `${columns.length} field${
+          columns.length === 1 ? '' : 's'
         } · pk ${pk}`,
         tooltipMarkdown: markdownForModel(app.name, model),
         iconId: 'symbol-class',
@@ -213,8 +216,9 @@ function buildTree(index: WorkspaceIndex): TreeNode[] {
         filePath: model.filePath,
         lineNumber: model.lineNumber,
         children: [
-          ...model.fields.map<TreeNode>((field) => {
+          ...columns.map<TreeNode>((field) => {
             const flags = fieldFlags(field);
+            if (field.inheritedFrom) flags.push(`from ${field.inheritedFrom}`);
             const desc = field.isRelation
               ? `${field.relationKind} → ${field.relatedModel ?? '?'}`
               : field.type;

@@ -29,6 +29,20 @@
               "type": "BooleanField"
             },
             {
+              "args": "verbose_name=_(\"Comments\"",
+              "isRelation": false,
+              "lineNumber": 23,
+              "name": "comments",
+              "type": "CommentsField"
+            },
+            {
+              "args": "verbose_name=_(\"Rating\"",
+              "isRelation": false,
+              "lineNumber": 24,
+              "name": "rating",
+              "type": "RatingField"
+            },
+            {
               "args": "verbose_name=_(\"Featured Image\"),\n        upload_to=upload_to(\"blog.BlogPost.featured_image\", \"blog\"),\n        format=\"Image\",\n        max_length=255,\n        null=True,\n        blank=True,",
               "isRelation": false,
               "lineNumber": 25,

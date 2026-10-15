@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { concreteFields } from './parser';
 import { ParsedModel, WorkspaceIndex } from './types';
 
 function md(text: string): string {
@@ -36,8 +37,9 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
       `_${md(model.baseClasses.join(', ') || 'models.Model')}_\n\n`
     );
 
-    const scalars = model.fields.filter((f) => !f.isRelation);
-    const relations = model.fields.filter((f) => f.isRelation);
+    const columns = concreteFields(model);
+    const scalars = columns.filter((f) => !f.isRelation);
+    const relations = columns.filter((f) => f.isRelation);
 
     if (scalars.length > 0) {
       doc.appendMarkdown('**Fields**\n');

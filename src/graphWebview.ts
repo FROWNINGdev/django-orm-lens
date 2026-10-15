@@ -3,10 +3,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import { WorkspaceIndex } from './types';
-import { findUserModel, resolveRelatedTail } from './parser';
+import { concreteFields, diagramIndex, findUserModel, isUnmanagedModel, resolveRelatedTail } from './parser';
 
 // Kept exported for CLI parity — the Python side still emits Mermaid, and
 // downstream tests import this symbol.
+function isPrimaryKey(field: { args: string }): boolean {
+  return /\bprimary_key\s*=\s*True\b/.test(field.args);
+}
+
 function escapeLabel(s: string): string {
   return s.replace(/[^A-Za-z0-9_]/g, '_');
 }
@@ -81,24 +85,30 @@ function resolveTheme(): 'dark' | 'light' {
     : 'dark';
 }
 
-function buildIndexPayload(index: WorkspaceIndex): Record<string, unknown> {
+function buildIndexPayload(
+  index: WorkspaceIndex,
+  focusModels?: string[]
+): Record<string, unknown> {
   const workspaceName =
     vscode.workspace.workspaceFolders?.[0]?.name ??
     (vscode.workspace.name ? vscode.workspace.name : 'workspace');
-  const userModelName = findUserModel(index)?.name;
+  const diagram = diagramIndex(index);
+  const userModelName = findUserModel(diagram)?.name;
   return {
-    apps: index.apps.map((app) => ({
+    apps: diagram.apps.map((app) => ({
       name: app.name,
       path: app.path,
-      models: app.models.map((m) => ({
+        models: app.models.map((m) => ({
         name: m.name,
         appName: m.appName,
         filePath: m.filePath,
         lineNumber: m.lineNumber,
-        fields: m.fields.map((f) => ({
+        unmanaged: isUnmanagedModel(m),
+        fields: concreteFields(m).map((f) => ({
           name: f.name,
           type: f.type,
           isRelation: f.isRelation,
+          primaryKey: isPrimaryKey(f),
           relatedModel: f.relatedModel,
           relationKind: f.relationKind,
           onDelete: f.onDelete,
@@ -112,6 +122,7 @@ function buildIndexPayload(index: WorkspaceIndex): Record<string, unknown> {
     workspaceName,
     theme: resolveTheme(),
     userModelName,
+    ...(focusModels ? { focusModels } : {}),
   };
 }
 
@@ -207,6 +218,7 @@ async function saveExport(
 
 let panel: vscode.WebviewPanel | undefined;
 let currentIndex: WorkspaceIndex | undefined;
+let focusModels: string[] | undefined;
 
 function renderInto(context: vscode.ExtensionContext, target: vscode.WebviewPanel) {
   const scriptFileUri = vscode.Uri.joinPath(
@@ -231,7 +243,7 @@ function renderInto(context: vscode.ExtensionContext, target: vscode.WebviewPane
     target.webview.asWebviewUri(scriptFileUri).toString() +
     (stamp ? `?v=${encodeURIComponent(stamp)}` : '');
   const payload = currentIndex
-    ? buildIndexPayload(currentIndex)
+    ? buildIndexPayload(currentIndex, focusModels)
     : { apps: [], scannedAt: 0, theme: resolveTheme() };
   target.webview.html = html(target.webview.cspSource, makeNonce(), scriptUri, payload);
 }
@@ -244,13 +256,21 @@ export function isGraphOpen(): boolean {
   return panel !== undefined;
 }
 
-export function showGraph(context: vscode.ExtensionContext, index: WorkspaceIndex) {
+export function showGraph(
+  context: vscode.ExtensionContext,
+  index: WorkspaceIndex,
+  focus?: string[]
+) {
   currentIndex = index;
+  focusModels = focus;
   if (panel) {
     renderInto(context, panel);
     panel.reveal(vscode.ViewColumn.Beside);
     // Also push over messaging so an already-open panel updates without a full reload.
-    panel.webview.postMessage({ type: 'index', payload: buildIndexPayload(index) });
+    panel.webview.postMessage({
+      type: 'index',
+      payload: buildIndexPayload(index, focusModels),
+    });
     return;
   }
   panel = vscode.window.createWebviewPanel(
@@ -278,7 +298,7 @@ export function showGraph(context: vscode.ExtensionContext, index: WorkspaceInde
         if (currentIndex) {
           panel.webview.postMessage({
             type: 'index',
-            payload: buildIndexPayload(currentIndex),
+            payload: buildIndexPayload(currentIndex, focusModels),
           });
         }
         return;

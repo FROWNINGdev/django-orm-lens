@@ -891,6 +891,13 @@
           ],
           "fields": [
             {
+              "args": "_(\"created\"),\n        null=True,\n        blank=True,",
+              "isRelation": false,
+              "lineNumber": 1911,
+              "name": "created",
+              "type": "CreationDateTimeField"
+            },
+            {
               "args": "Project,\n        related_name=\"domains\",\n        on_delete=models.CASCADE,",
               "isRelation": true,
               "lineNumber": 1917,

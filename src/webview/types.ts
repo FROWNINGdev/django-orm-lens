@@ -8,6 +8,8 @@ export interface WireField {
   name: string;
   type: string;
   isRelation: boolean;
+  /** True when the field declares `primary_key=True`. */
+  primaryKey?: boolean;
   relatedModel?: string;
   relationKind?: RelationKind;
   onDelete?: string;
@@ -21,6 +23,8 @@ export interface WireModel {
   appName: string;
   filePath: string;
   lineNumber: number;
+  /** `Meta.managed = False`. The model stays on the diagram. */
+  unmanaged?: boolean;
   fields: WireField[];
 }
 
@@ -38,6 +42,8 @@ export interface WireIndex {
   // Resolved workspace User model name — used to normalise
   // settings.AUTH_USER_MODEL edges without shipping baseClasses over the wire.
   userModelName?: string;
+  /** When set, the diagram opens on these `app/model` ids instead of every model. */
+  focusModels?: string[];
 }
 
 export type ExtensionMessage =

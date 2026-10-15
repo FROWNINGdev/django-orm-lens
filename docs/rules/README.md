@@ -37,7 +37,8 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL013](DOL013.md) | ForeignKey without `on_delete` | model | error | suggestion |
 | [DOL014](DOL014.md) | CharField without `max_length` | model | error | suggestion |
 | [DOL015](DOL015.md) | TextField with `max_length` has no DB effect | model | hint | suggestion |
-| [DOL016](DOL016.md) | Meta index or constraint without a name | model | error | unsafe |
+| [DOL016](DOL016.md) | Meta index or constraint without a name | model | warning | unsafe |
+| [DOL017](DOL017.md) | Meta index or unique name breaks the MySQL naming convention | model | warning | suggestion |
 | [DOL021](DOL021.md) | `datetime.now()` should be `timezone.now()` | datetime | warning | suggestion |
 | [DOL022](DOL022.md) | `datetime.utcnow()` is deprecated | datetime | warning | suggestion |
 | [DOL031](DOL031.md) | `render()` with `locals()` as context | forms | warning | suggestion |

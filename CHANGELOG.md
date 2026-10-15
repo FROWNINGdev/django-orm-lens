@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **ER diagram entities show primary keys and relation fields first.** Other fields stay hidden until the entity is clicked, and a second click folds them away. The expanded list shows every remaining field. Each card is a compact schema row: key, name, and a short type.
+- **The class lens counts child relations.** Only relation fields on other models that point straight at this one are counted, plus self-relations. Fields this model holds toward its own parents are not.
+- **Open ER diagram on a model shows that model, every descendant, and the parents of those descendants.**
+  A descendant holds a relation to a model already shown, or subclasses one, repeated until no new model appears. Only parents of the clicked model are left out. Parents of a descendant are shown and not expanded further, and shared mixins do not count as parents. Reset still brings the rest of the schema back.
+- **Models defined in a package `__init__.py` under `models/` are scanned** (`models/lead/__init__.py`). They were skipped before, so every relation pointing at them was dropped.
+  A class that was indexed twice no longer prints the lens line twice.
 - **The ER Diagram filters by app, then by model.** Each picker has select-all
   and multi-select, the model list only contains models from the chosen apps,
   and a search box inside each menu keeps large projects usable. The badge
   shows visible versus total counts, Reset restores everything, and the
   selection survives webview refreshes.
-- **`DOL016` flags an unnamed index or uniqueness declaration in `class Meta`.**
+- **`DOL016` marks an unnamed index or uniqueness declaration in `class Meta` as a warning.** The editor shows it in yellow.
+- **`DOL017` checks Meta index and unique names against the MySQL naming convention.** An `Index` is `idx_<table>_<columns>` and a `UniqueConstraint` is `uniq_<table>_<columns>`, after dropping a leading `ai_` and a trailing `_id`. A unique constraint on `uuid` alone is `idx_uniq_<table>`. The editor shows it in yellow and can rename the literal.
   `index_together` and `unique_together` cannot name their entries.
   `models.Index` (including postgres `*Index`), `UniqueConstraint`, and
   `CheckConstraint` are flagged when the call has no top-level `name=`.
@@ -25,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `models/`. Those nested modules are read now, and they stay grouped under
   the app that owns the `models` package. The extension watcher and
   impact-analysis layer classification follow the same paths.
+
+### Fixed
+
+- **Relation labels stay off until they are useful.** Edges no longer print the field name on every line. Selecting an entity labels only the lines that touch it and dims the rest. A Labels button prints every line, and the legend matches the stroke: CASCADE, dashed SET_NULL, PROTECT, 1:1, M2M, and unmanaged.
+- **Project-local field classes are parsed.** A field imported by name, such as `TinyIntegerField(...)` or `BaseForeignKey(...)`, was dropped unless its name was on Django's built-in list, so a model built from them showed 0 fields. Any class name ending in `Field` or `ForeignKey` is now read. A subclass ending in `ForeignKey`, `OneToOneField`, or `ManyToManyField` keeps that relation kind, so its edges and child counts appear. `GenericForeignKey` is still skipped because it is not a column.
+- **Proxy models are left off the ER diagram.** A proxy has no table. Opening one diagrams the concrete model that owns the table, and a relation aimed at the proxy is drawn to that model. A model with `managed = False` stays, with a dashed border and an unmanaged label.
+- **A concrete model now shows the columns it inherits from an abstract base.** `Lead` declares no fields of its own; they live on abstract `LeadBase`. The parser already copied them, but the sidebar, class lens, hover, and ER diagram only read fields written on the class, so `Lead` looked empty. Those surfaces now list the inherited columns. The diagram still starts collapsed to primary keys and relations.
 
 ## [py-1.13.3] - 2026-10-14
 

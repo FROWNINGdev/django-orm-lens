@@ -18,7 +18,7 @@ import {
 import reactFlowStyles from '@xyflow/react/dist/style.css';
 import styles from './styles.css';
 import { toPng, toSvg } from 'html-to-image';
-import { ModelNode, type ModelNodeData } from './ModelNode';
+import { ModelNode, collapsedFieldCount, type ModelNodeData } from './ModelNode';
 import { autoLayout } from './layout';
 import type { WireField, WireIndex, WireModel, ExtensionMessage, VsCodeApi } from './types';
 import { acceptsMessage } from '../webviewMessages';
@@ -87,14 +87,39 @@ interface BuiltGraph {
   edges: Edge[];
 }
 
+function stampExpanded(nodes: Node[], expanded: Set<string>): Node[] {
+  return nodes.map((node) => {
+    const open = expanded.has(node.id);
+    const data = node.data as ModelNodeData;
+    return {
+      ...node,
+      zIndex: open ? 10 : 0,
+      data: { ...data, expanded: open } as unknown as Record<string, unknown>,
+    };
+  });
+}
+
 function buildGraph(index: WireIndex): BuiltGraph {
   const nodeIdFor = (app: string, model: string) => `${app}::${model}`;
-  const modelByName = new Map<string, { app: string; model: WireModel }>();
+  const modelsByName = new Map<string, { app: string; model: WireModel }[]>();
   for (const app of index.apps) {
     for (const m of app.models) {
-      modelByName.set(m.name, { app: app.name, model: m });
+      const list = modelsByName.get(m.name) ?? [];
+      list.push({ app: app.name, model: m });
+      modelsByName.set(m.name, list);
     }
   }
+  const targetFor = (related: string, short: string, fromApp: string) => {
+    const candidates = modelsByName.get(short) ?? [];
+    if (candidates.length < 2) return candidates[0];
+    const parts = related.split('.');
+    const label = parts.length >= 2 ? parts[parts.length - 2] : fromApp;
+    return (
+      candidates.find((c) => c.app === label || c.model.appName === label) ??
+      candidates.find((c) => c.app === fromApp) ??
+      candidates[0]
+    );
+  };
 
   const nodes: Node[] = [];
   for (const app of index.apps) {
@@ -105,9 +130,10 @@ function buildGraph(index: WireIndex): BuiltGraph {
         fields: model.fields,
         filePath: model.filePath,
         lineNumber: model.lineNumber,
-        fieldCount: model.fields.length,
+        fieldCount: collapsedFieldCount(model.fields),
         highlighted: false,
         dimmed: false,
+        unmanaged: model.unmanaged,
       };
       nodes.push({
         id: nodeIdFor(app.name, model.name),
@@ -134,7 +160,7 @@ function buildGraph(index: WireIndex): BuiltGraph {
             : rawTail === 'AUTH_USER_MODEL' && index.userModelName
               ? index.userModelName
               : rawTail;
-        const targetInfo = modelByName.get(targetShort);
+        const targetInfo = targetFor(f.relatedModel, targetShort, app.name);
         if (!targetInfo) continue;
         const targetId = nodeIdFor(targetInfo.app, targetInfo.model.name);
         const style = edgeStyle(f);
@@ -148,7 +174,7 @@ function buildGraph(index: WireIndex): BuiltGraph {
           source: sourceId,
           target: targetId,
           animated: false,
-          label: `${f.name}${style.label ? ` · ${style.label}` : ''}`,
+          data: { caption: `${f.name}${style.label ? ` · ${style.label}` : ''}` },
           labelStyle: { fill: 'var(--dol-node-text)', fontSize: 10 },
           labelBgPadding: [4, 3],
           labelBgBorderRadius: 3,
@@ -178,6 +204,29 @@ interface GraphAppProps {
 interface PersistedGraphState {
   apps?: string[] | null;
   models?: string[] | null;
+  showLabels?: boolean;
+}
+
+/** Field name and on_delete stay on the edge, and are drawn only when asked. */
+function presentEdge(edge: Edge, selectedId: string | null, showLabels: boolean): Edge {
+  const caption = (edge.data as { caption?: string } | undefined)?.caption;
+  const active = selectedId === null || edge.source === selectedId || edge.target === selectedId;
+  const show = Boolean(caption) && (showLabels || (selectedId !== null && active));
+  return {
+    ...edge,
+    label: show ? caption : undefined,
+    animated: active && selectedId !== null,
+    labelStyle: {
+      fill: 'var(--dol-node-text)',
+      fontSize: 10,
+      opacity: active ? 1 : 0.35,
+    },
+    labelBgStyle: { fill: 'var(--dol-node-bg)', fillOpacity: active ? 0.92 : 0.35 },
+    style: {
+      ...(edge.style ?? {}),
+      opacity: active ? 1 : 0.15,
+    },
+  };
 }
 
 interface PickOption {
@@ -207,6 +256,13 @@ export function filterIndex(
             : app.models.filter((model) => modelSet.has(`${app.name}/${model.name}`)),
       }))
       .filter((app) => app.models.length > 0),
+  };
+}
+
+function selectionForFocus(ids: string[]): { apps: string[]; models: string[] } {
+  return {
+    apps: [...new Set(ids.map((id) => id.slice(0, id.indexOf('/'))).filter(Boolean))],
+    models: ids,
   };
 }
 
@@ -340,14 +396,25 @@ function MultiSelect({
 
 function GraphApp({ vscode, initialIndex }: GraphAppProps) {
   const persisted = vscode.getState<PersistedGraphState>() ?? {};
+  const openedOn = initialIndex?.focusModels ? selectionForFocus(initialIndex.focusModels) : undefined;
   const [index, setIndex] = useState<WireIndex | null>(initialIndex);
-  const [selectedApps, setSelectedApps] = useState<string[] | null>(persisted.apps ?? null);
+  const [selectedApps, setSelectedApps] = useState<string[] | null>(
+    openedOn ? openedOn.apps : (persisted.apps ?? null)
+  );
   const [selectedModels, setSelectedModels] = useState<string[] | null>(
-    persisted.models ?? null
+    openedOn ? openedOn.models : (persisted.models ?? null)
   );
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showLabels, setShowLabels] = useState(persisted.showLabels ?? false);
+  const selectedIdRef = useRef(selectedId);
+  const showLabelsRef = useRef(showLabels);
+  selectedIdRef.current = selectedId;
+  showLabelsRef.current = showLabels;
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
+  const expandedRef = useRef(expandedIds);
+  expandedRef.current = expandedIds;
   const [exportOpen, setExportOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const appOptions = useMemo<PickOption[]>(
@@ -403,9 +470,16 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
   }, [index, modelOptions]);
 
   useEffect(() => {
-    vscode.setState<PersistedGraphState>({ apps: selectedApps, models: selectedModels });
+    vscode.setState<PersistedGraphState>({
+      apps: selectedApps,
+      models: selectedModels,
+      showLabels,
+    });
+  }, [selectedApps, selectedModels, showLabels, vscode]);
+
+  useEffect(() => {
     setSelectedId(null);
-  }, [selectedApps, selectedModels, vscode]);
+  }, [selectedApps, selectedModels]);
 
   useEffect(() => {
     const onMsg = (event: MessageEvent<ExtensionMessage>) => {
@@ -417,6 +491,11 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
       const data = event.data;
       if (data.type === 'index') {
         setIndex(data.payload);
+        if (data.payload.focusModels) {
+          const focus = selectionForFocus(data.payload.focusModels);
+          setSelectedApps(focus.apps);
+          setSelectedModels(focus.models);
+        }
       } else if (data.type === 'theme') {
         document.body.classList.toggle('dol-light', data.payload === 'light');
       }
@@ -439,20 +518,23 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
     autoLayout(builtNodes, builtEdges)
       .then((laid) => {
         if (cancelled) return;
-        setNodes(laid.nodes);
-        setEdges(laid.edges);
+        setNodes(stampExpanded(laid.nodes, expandedRef.current));
+        setEdges(laid.edges.map((edge) => presentEdge(edge, selectedIdRef.current, showLabelsRef.current)));
       })
       .catch(() => {
         if (cancelled) return;
         // Fallback: grid layout if elk fails.
         const cols = Math.max(1, Math.ceil(Math.sqrt(builtNodes.length)));
         setNodes(
-          builtNodes.map((n, i) => ({
-            ...n,
-            position: { x: (i % cols) * 320, y: Math.floor(i / cols) * 280 },
-          }))
+          stampExpanded(
+            builtNodes.map((n, i) => ({
+              ...n,
+              position: { x: (i % cols) * 320, y: Math.floor(i / cols) * 280 },
+            })),
+            expandedRef.current
+          )
         );
-        setEdges(builtEdges);
+        setEdges(builtEdges.map((edge) => presentEdge(edge, selectedIdRef.current, showLabelsRef.current)));
       });
     return () => {
       cancelled = true;
@@ -472,35 +554,31 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
               (e.target === selectedId && e.source === n.id)
           );
         const nd = n.data as ModelNodeData;
+        const expanded = expandedIds.has(n.id);
         return {
           ...n,
+          zIndex: expanded ? 10 : 0,
           data: {
             ...nd,
+            expanded,
             highlighted: n.id === selectedId,
             dimmed: selectedId !== null && !connected,
           } as unknown as Record<string, unknown>,
         };
       })
     );
-    setEdges((curr) =>
-      curr.map((e) => {
-        const active =
-          selectedId === null || e.source === selectedId || e.target === selectedId;
-        return {
-          ...e,
-          animated: active && selectedId !== null,
-          style: {
-            ...(e.style ?? {}),
-            opacity: active ? 1 : 0.15,
-          },
-        };
-      })
-    );
+    setEdges((curr) => curr.map((edge) => presentEdge(edge, selectedId, showLabels)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
+  }, [selectedId, expandedIds, showLabels]);
 
   const onNodeClick = useCallback<NodeMouseHandler>((_, node) => {
     setSelectedId((prev) => (prev === node.id ? null : node.id));
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(node.id)) next.delete(node.id);
+      else next.add(node.id);
+      return next;
+    });
   }, []);
 
   const onNodeDoubleClick = useCallback<NodeMouseHandler>(
@@ -598,6 +676,15 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
           )}
         </div>
         <div className="dol-header-actions">
+          <button
+            className={showLabels ? 'dol-btn dol-btn-on' : 'dol-btn'}
+            type="button"
+            aria-pressed={showLabels}
+            title="Print the field name and on_delete on every relation"
+            onClick={() => setShowLabels((current) => !current)}
+          >
+            Labels
+          </button>
           <span className="dol-badge">
             {narrowed
               ? `${visibleStats.apps}/${totalStats.apps} apps · ${visibleStats.models}/${totalStats.models} models`
@@ -676,30 +763,31 @@ function GraphApp({ vscode, initialIndex }: GraphAppProps) {
             />
             <div className="dol-legend">
               <span className="dol-legend-item">
-                <span className="dol-legend-swatch" style={{ background: 'var(--dol-color-fk)' }} />
-                FK / CASCADE
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-fk-cascade)' }} />
+                CASCADE
               </span>
               <span className="dol-legend-item">
                 <span
-                  className="dol-legend-swatch"
-                  style={{ background: 'var(--dol-color-fk-setnull)' }}
+                  className="dol-legend-swatch dol-legend-dashed"
+                  style={{ borderTopColor: 'var(--dol-color-fk-setnull)' }}
                 />
                 SET_NULL
               </span>
               <span className="dol-legend-item">
-                <span
-                  className="dol-legend-swatch"
-                  style={{ background: 'var(--dol-color-fk-protect)' }}
-                />
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-fk-protect)' }} />
                 PROTECT
               </span>
               <span className="dol-legend-item">
-                <span className="dol-legend-swatch" style={{ background: 'var(--dol-color-o2o)' }} />
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-o2o)' }} />
                 1:1
               </span>
               <span className="dol-legend-item">
-                <span className="dol-legend-swatch" style={{ background: 'var(--dol-color-m2m)' }} />
+                <span className="dol-legend-swatch" style={{ borderTopColor: 'var(--dol-color-m2m)' }} />
                 M2M
+              </span>
+              <span className="dol-legend-item">
+                <span className="dol-legend-card" />
+                unmanaged
               </span>
             </div>
           </ReactFlow>

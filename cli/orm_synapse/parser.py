@@ -83,8 +83,30 @@ BARE_FIELD_TYPES = "|".join(
         "ForeignKey", "OneToOneField", "ManyToManyField",
         "TaggableManager",
         "TreeForeignKey", "TreeOneToOneField", "TreeManyToManyField",
+        # Project-local subclasses: ``TinyIntegerField``, ``BaseForeignKey``, ...
+        r"[A-Z][A-Za-z0-9_]*Field", r"[A-Z][A-Za-z0-9_]*ForeignKey",
     ]
 )
+# GenericForeignKey is a descriptor over two columns, not a column itself.
+BARE_FIELD_PATTERN = rf"(?!GenericForeignKey\b)(?:{BARE_FIELD_TYPES})"
+
+
+def _relation_kind(ftype: str) -> str | None:
+    """Relation kind for a field class name, decided by Django's suffix.
+
+    Subclasses such as ``BaseForeignKey`` keep the suffix. Mirrors
+    ``relationKindOf`` in src/parser.ts.
+    """
+    if ftype == "TaggableManager":
+        return "ManyToManyField"
+    if ftype in TREE_FIELD_ALIASES:
+        return TREE_FIELD_ALIASES[ftype]
+    if ftype == "GenericForeignKey":
+        return None
+    for kind in ("ManyToManyField", "OneToOneField", "ForeignKey"):
+        if ftype.endswith(kind):
+            return kind
+    return None
 
 
 def _read_multiline_class(lines: Sequence[str], start: int):
@@ -162,7 +184,7 @@ def _build_body_regexes(indent: int):
             rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*models\.([A-Za-z_][A-Za-z0-9_]*)\s*\("
         ),
         "BARE_FIELD_RE": re.compile(
-            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*{prefix_opt}({BARE_FIELD_TYPES})\s*\("
+            rf"^{w}([a-zA-Z_][a-zA-Z0-9_]*){ann}\s*=\s*{prefix_opt}({BARE_FIELD_PATTERN})\s*\("
         ),
         "META_START_RE": re.compile(rf"^{w}class\s+Meta\s*(?:\([^)]*\))?\s*:"),
         "META_ITEM_RE": re.compile(
@@ -555,12 +577,7 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
             if fm:
                 fname, ftype = fm.group(1), fm.group(2)
                 args_block, end_idx = _read_balanced_args(lines, j)
-                relation_kind = (
-                    "ManyToManyField"
-                    if ftype == "TaggableManager"
-                    else TREE_FIELD_ALIASES.get(ftype)
-                    or (ftype if ftype in RELATION_TYPES else None)
-                )
+                relation_kind = _relation_kind(ftype)
                 is_rel = relation_kind is not None
                 field = ParsedField(
                     name=fname,
@@ -902,11 +919,12 @@ def _is_model_source(rel_posix: str) -> bool:
 
     ``app/models.py`` and ``app/abstract_models.py`` match by filename.
     ``app/models/order.py`` and ``app/models/builders/flow.py`` match because
-    a directory on the path is named ``models``. ``__init__.py`` is skipped:
-    those files re-export, and the class bodies live in the submodules.
+    a directory on the path is named ``models``. A package ``__init__.py``
+    under ``models`` counts too: ``models/lead/__init__.py`` can define the
+    model itself rather than re-export it.
     """
     name = rel_posix.rsplit("/", 1)[-1]
-    if name == "__init__.py" or not name.endswith(".py"):
+    if not name.endswith(".py"):
         return False
     if name in MODEL_SOURCE_FILES:
         return True
@@ -1000,7 +1018,7 @@ def scan_workspace(
 
     Model modules are ``models.py``, ``abstract_models.py``, and any
     ``*.py`` under a ``models/`` package — including nested ones such as
-    ``models/builders/flow.py``. ``__init__.py`` is not parsed.
+    ``models/builders/flow.py`` and package ``__init__.py`` files.
 
     Collects class definitions from every file first, then resolves
     transitive model inheritance once over that union — so a model whose

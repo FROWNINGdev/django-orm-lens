@@ -9,12 +9,6 @@ import {
   WorkspaceIndex,
 } from './types';
 
-const RELATION_TYPES: RelationKind[] = [
-  'ForeignKey',
-  'ManyToManyField',
-  'OneToOneField',
-];
-
 // django-mptt's Tree* fields are thin subclasses of Django's own relation
 // fields — same `to`, same `on_delete`, same `related_name`. Mapping the name
 // to its Django counterpart is the whole fix: every extractor below keeps
@@ -67,6 +61,274 @@ export function resolveRelatedTail(
   const tail = related.split('.').pop() ?? '';
   if (tail === 'AUTH_USER_MODEL' && userModelName) return userModelName;
   return tail;
+}
+
+interface NeighborhoodNode {
+  id: string;
+  app: string;
+  model: ParsedModel;
+}
+
+interface RelationGraph {
+  nodes: NeighborhoodNode[];
+  byId: Map<string, NeighborhoodNode>;
+  resolve(related: string, self: NeighborhoodNode): string[];
+  /** `resolve`, with a proxy target replaced by the concrete model that owns its table. */
+  tableIds(related: string, self: NeighborhoodNode): string[];
+  concreteNode(node: NeighborhoodNode): NeighborhoodNode;
+}
+
+function metaToken(model: ParsedModel, key: string): string {
+  return (model.meta?.[key] ?? '').trim().replace(/,$/, '').trim();
+}
+
+/** `Meta.proxy = True`. A proxy has no table of its own. */
+export function isProxyModel(model: ParsedModel): boolean {
+  return ['True', '1', 'true'].includes(metaToken(model, 'proxy'));
+}
+
+/** `Meta.managed = False`. The table exists; Django does not create it. */
+export function isUnmanagedModel(model: ParsedModel): boolean {
+  return ['False', '0', 'false'].includes(metaToken(model, 'managed'));
+}
+
+function buildRelationGraph(index: WorkspaceIndex): RelationGraph {
+  const nodes: NeighborhoodNode[] = [];
+  const byName = new Map<string, NeighborhoodNode[]>();
+  const byId = new Map<string, NeighborhoodNode>();
+  for (const app of index.apps) {
+    for (const model of app.models) {
+      const node: NeighborhoodNode = { id: `${app.name}/${model.name}`, app: app.name, model };
+      nodes.push(node);
+      byId.set(node.id, node);
+      const list = byName.get(model.name) ?? [];
+      list.push(node);
+      byName.set(model.name, list);
+    }
+  }
+  const userModelName = findUserModel(index)?.name;
+  const resolve = (related: string, self: NeighborhoodNode): string[] => {
+    if (related === 'self') return [self.id];
+    const tail = resolveRelatedTail(related, userModelName);
+    if (!tail || tail === 'Model' || tail === 'object') return [];
+    const candidates = byName.get(tail) ?? [];
+    const parts = related.split('.');
+    if (parts.length >= 2) {
+      const label = parts[parts.length - 2];
+      const labeled = candidates.filter(
+        (node) =>
+          node.app === label ||
+          node.model.appName === label ||
+          node.model.filePath.replace(/\\/g, '/').split('/').includes(label)
+      );
+      if (labeled.length > 0) return labeled.map((node) => node.id);
+    }
+    return candidates.map((node) => node.id);
+  };
+  const concreteNode = (node: NeighborhoodNode): NeighborhoodNode => {
+    const seen = new Set<string>();
+    let current = node;
+    while (isProxyModel(current.model) && !seen.has(current.id)) {
+      seen.add(current.id);
+      let next: NeighborhoodNode | undefined;
+      for (const base of current.model.baseClasses ?? []) {
+        const tail = base.split('.').pop() ?? '';
+        if (!tail || /Mixin$/.test(tail)) continue;
+        const candidates = byName.get(tail) ?? [];
+        const label = base.split('.').length >= 2 ? base.split('.').at(-2) : undefined;
+        const labeled = label
+          ? candidates.filter((candidate) => candidate.app === label || candidate.model.appName === label)
+          : [];
+        const pick =
+          labeled[0] ??
+          candidates.find((candidate) => candidate.app === current.app || candidate.model.appName === current.app) ??
+          candidates[0];
+        if (pick && pick.id !== current.id) {
+          next = pick;
+          break;
+        }
+      }
+      if (!next) break;
+      current = next;
+    }
+    return current;
+  };
+  const tableIds = (related: string, self: NeighborhoodNode): string[] => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const id of resolve(related, self)) {
+      const node = byId.get(id);
+      const table = node ? concreteNode(node).id : id;
+      if (seen.has(table)) continue;
+      seen.add(table);
+      out.push(table);
+    }
+    return out;
+  };
+  return { nodes, byId, resolve, tableIds, concreteNode };
+}
+
+/**
+ * The model whose table a proxy uses. A concrete model is returned unchanged.
+ */
+export function tableModel(index: WorkspaceIndex, model: ParsedModel): ParsedModel {
+  const graph = buildRelationGraph(index);
+  const node = graph.byId.get(`${model.appName}/${model.name}`);
+  return node ? graph.concreteNode(node).model : model;
+}
+
+/**
+ * Index the ER diagram draws.
+ *
+ * Proxy models are omitted once their concrete table is in the index, and a
+ * relation that names a proxy is redrawn onto that table. Unmanaged models
+ * stay: they still have a table.
+ */
+export function diagramIndex(index: WorkspaceIndex): WorkspaceIndex {
+  const graph = buildRelationGraph(index);
+  const rewrite = (model: ParsedModel, field: ParsedField): ParsedField => {
+    if (!field.isRelation || !field.relatedModel || field.relatedModel === 'self') return field;
+    const node = graph.byId.get(`${model.appName}/${model.name}`);
+    if (!node) return field;
+    const raw = graph.resolve(field.relatedModel, node);
+    const rawNodes = raw.map((id) => graph.byId.get(id)).filter((item): item is NeighborhoodNode => !!item);
+    if (rawNodes.length === 0 || rawNodes.some((item) => !isProxyModel(item.model))) return field;
+    const tables = graph.tableIds(field.relatedModel, node);
+    if (tables.length !== 1) return field;
+    const table = graph.byId.get(tables[0]);
+    if (!table) return field;
+    const next = `${table.model.appName}.${table.model.name}`;
+    return next === field.relatedModel ? field : { ...field, relatedModel: next };
+  };
+  return {
+    ...index,
+    apps: index.apps
+      .map((app) => ({
+        ...app,
+        models: app.models
+          .filter((model) => {
+            const node = graph.byId.get(`${app.name}/${model.name}`);
+            return !node || graph.concreteNode(node).id === node.id;
+          })
+          .map((model) => ({
+            ...model,
+            fields: model.fields.map((field) => rewrite(model, field)),
+            inheritedFields: (model.inheritedFields ?? []).map((field) => rewrite(model, field)),
+          })),
+      }))
+      .filter((app) => app.models.length > 0),
+  };
+}
+
+/**
+ * Columns Django copies onto this model's table: abstract-base fields first,
+ * then fields the class declares itself. A concrete parent is not included —
+ * those columns stay on the parent's table.
+ */
+export function concreteFields(model: ParsedModel): ParsedField[] {
+  return [...(model.inheritedFields ?? []), ...model.fields];
+}
+
+function relationFields(model: ParsedModel): ParsedField[] {
+  return concreteFields(model).filter((field) => field.isRelation && !!field.relatedModel);
+}
+
+/**
+ * How many relation fields point straight at each model: its children.
+ *
+ * A child is a model holding a ForeignKey, OneToOneField, or ManyToManyField
+ * to this one. A self-relation is a child relation too. Fields this model
+ * holds toward its own parents are not counted, and neither are grandchildren.
+ */
+export function childRelationCounts(index: WorkspaceIndex): Map<ParsedModel, number> {
+  const graph = buildRelationGraph(index);
+  const counts = new Map<ParsedModel, number>();
+  for (const node of graph.nodes) counts.set(node.model, 0);
+  for (const node of graph.nodes) {
+    for (const field of relationFields(node.model)) {
+      for (const targetId of graph.tableIds(field.relatedModel!, node)) {
+        const target = graph.byId.get(targetId);
+        if (target) counts.set(target.model, (counts.get(target.model) ?? 0) + 1);
+      }
+    }
+  }
+  return counts;
+}
+
+/**
+ * Models kept when a class lens opens the ER diagram.
+ *
+ * Keeps the clicked model, every descendant, and the parents of those
+ * descendants. A descendant is reached through a relation field pointing at a
+ * model already kept, or a subclass of one (mixins excluded), repeated until
+ * no new model appears. Parents of the clicked model itself are left out,
+ * even when a descendant also points at one of them. Parents added this way
+ * are not expanded further. A proxy model is not drawn: opening one starts
+ * from the concrete model that owns its table, and a relation aimed at a
+ * proxy is treated as a relation to that table. Ids are `app/model`. Returns
+ * undefined when the file and line do not match a model.
+ */
+export function modelNeighborhoodIds(
+  index: WorkspaceIndex,
+  filePath: string,
+  lineNumber: number
+): string[] | undefined {
+  const want = filePath.replace(/\\/g, '/').toLowerCase();
+  const graph = buildRelationGraph(index);
+  const source = graph.nodes.find((node) => {
+    const path = node.model.filePath.replace(/\\/g, '/').toLowerCase();
+    return path === want && node.model.lineNumber === lineNumber;
+  });
+  if (!source) return undefined;
+  const root = graph.concreteNode(source);
+
+  const parentIdsOf = (node: NeighborhoodNode): string[] => {
+    const ids: string[] = [];
+    for (const field of relationFields(node.model)) {
+      ids.push(...graph.tableIds(field.relatedModel!, node));
+    }
+    for (const base of node.model.baseClasses ?? []) {
+      // A mixin shared by dozens of models is not a parent.
+      if (/Mixin$/.test(base.split('.').pop() ?? '')) continue;
+      ids.push(...graph.tableIds(base, node));
+    }
+    return ids;
+  };
+
+  const children = new Map<string, Set<string>>();
+  const addChild = (parentId: string, childId: string) => {
+    if (parentId === childId) return;
+    const set = children.get(parentId) ?? new Set<string>();
+    set.add(childId);
+    children.set(parentId, set);
+  };
+  for (const node of graph.nodes) {
+    for (const parentId of parentIdsOf(node)) addChild(parentId, node.id);
+  }
+
+  const rootParents = new Set(parentIdsOf(root));
+  const seen = new Set<string>();
+  const queue = [root.id];
+  while (queue.length > 0) {
+    const id = queue.pop()!;
+    if (seen.has(id)) continue;
+    const node = graph.byId.get(id);
+    if (node && isProxyModel(node.model) && graph.concreteNode(node).id !== id) continue;
+    seen.add(id);
+    for (const next of children.get(id) ?? []) {
+      if (!seen.has(next)) queue.push(next);
+    }
+  }
+  const descendants = [...seen];
+  for (const id of descendants) {
+    if (id === root.id) continue;
+    const node = graph.byId.get(id);
+    if (!node) continue;
+    for (const parentId of parentIdsOf(node)) {
+      if (!rootParents.has(parentId)) seen.add(parentId);
+    }
+  }
+  return [...seen];
 }
 
 // `(?:\s*\[[^\]]*\])?` — optional PEP-695 generic type parameter list
@@ -151,7 +413,27 @@ const BARE_FIELD_TYPES = [
   'ForeignKey', 'OneToOneField', 'ManyToManyField',
   'TaggableManager',
   'TreeForeignKey', 'TreeOneToOneField', 'TreeManyToManyField',
+  // Project-local subclasses: `TinyIntegerField`, `BaseForeignKey`, ...
+  '[A-Z][A-Za-z0-9_]*Field', '[A-Z][A-Za-z0-9_]*ForeignKey',
 ].join('|');
+// GenericForeignKey is a descriptor over two columns, not a column itself.
+const BARE_FIELD_PATTERN = `(?!GenericForeignKey\\b)(?:${BARE_FIELD_TYPES})`;
+
+/**
+ * Relation kind for a field class name. Subclasses keep Django's suffix
+ * (`BaseForeignKey`, `BaseOneToOneField`), so the suffix decides.
+ * Mirrors `_relation_kind` in cli/orm_synapse/parser.py.
+ */
+function relationKindOf(fieldType: string): RelationKind | undefined {
+  if (fieldType === 'TaggableManager') return 'ManyToManyField';
+  const alias = TREE_FIELD_ALIASES[fieldType];
+  if (alias) return alias;
+  if (fieldType === 'GenericForeignKey') return undefined;
+  if (fieldType.endsWith('ManyToManyField')) return 'ManyToManyField';
+  if (fieldType.endsWith('OneToOneField')) return 'OneToOneField';
+  if (fieldType.endsWith('ForeignKey')) return 'ForeignKey';
+  return undefined;
+}
 
 function buildBodyRegexes(indent: number) {
   const w = `\\s{${indent}}`;
@@ -172,7 +454,7 @@ function buildBodyRegexes(indent: number) {
       `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*models\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(`
     ),
     BARE_FIELD_RE: new RegExp(
-      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*${prefixOpt}(${BARE_FIELD_TYPES})\\s*\\(`
+      `^${w}([a-zA-Z_][a-zA-Z0-9_]*)${ann}\\s*=\\s*${prefixOpt}(${BARE_FIELD_PATTERN})\\s*\\(`
     ),
     META_START_RE: new RegExp(`^${w}class\\s+Meta\\s*(?:\\([^)]*\\))?\\s*:`),
     META_ITEM_RE: new RegExp(
@@ -353,13 +635,7 @@ export function collectDefs(filePath: string, content: string): ParsedModel[] {
         const fieldName = fieldMatch[1];
         const fieldType = fieldMatch[2];
         const { argsBlock, endIdx } = readBalancedArgs(lines, j);
-        const relationKind =
-          fieldType === 'TaggableManager'
-            ? 'ManyToManyField'
-            : TREE_FIELD_ALIASES[fieldType] ??
-              (RELATION_TYPES.includes(fieldType as RelationKind)
-                ? (fieldType as RelationKind)
-                : undefined);
+        const relationKind = relationKindOf(fieldType);
         const isRel = relationKind !== undefined;
         const field: ParsedField = {
           name: fieldName,
@@ -618,14 +894,15 @@ const MODEL_SOURCE_FILES = new Set(['models.py', 'abstract_models.py']);
  * Workspace-relative path of a Django model module.
  *
  * Matches `models.py`, `abstract_models.py`, and any other `.py` under a
- * `models/` package, including nested modules (`models/builders/flow.py`).
- * `__init__.py` is not a model module. Mirrors `_is_model_source` in
+ * `models/` package, including nested modules (`models/builders/flow.py`)
+ * and package `__init__.py` files, which can define models themselves
+ * (`models/lead/__init__.py`). Mirrors `_is_model_source` in
  * cli/orm_synapse/parser.py.
  */
 export function isModelSourceRelPath(relPosix: string): boolean {
   const norm = relPosix.replace(/\\/g, '/').replace(/^\.\//, '');
   const name = norm.split('/').pop() ?? '';
-  if (name === '__init__.py' || !name.endsWith('.py')) return false;
+  if (!name.endsWith('.py')) return false;
   if (MODEL_SOURCE_FILES.has(name)) return true;
   return norm.split('/').slice(0, -1).includes('models');
 }
@@ -882,7 +1159,6 @@ export async function scanWorkspace(
   const uris: vscode.Uri[] = [];
   for (const batch of results) {
     for (const u of batch) {
-      if (u.fsPath.endsWith('__init__.py')) continue;
       if (seen.has(u.fsPath)) continue;
       seen.add(u.fsPath);
       uris.push(u);
