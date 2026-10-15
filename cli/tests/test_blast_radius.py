@@ -159,6 +159,11 @@ class LayerOfTest(unittest.TestCase):
             layer_of(root, root / "blog" / "tests" / "test_views.py"), "tests"
         )
 
+    def test_nested_models_package_is_the_models_layer(self) -> None:
+        root = Path("/home/dev/shop").resolve()
+        nested = root / "blog" / "models" / "builders" / "approval_flow.py"
+        self.assertEqual(layer_of(root, nested), "models")
+
     def test_fixture_files_classify_by_their_project_role(self) -> None:
         # The fixture lives under cli/tests/, so this is the live regression.
         self.assertEqual(layer_of(FIXTURE, FIXTURE / "blog" / "views.py"), "views")

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Nested modules inside a `models/` package are scanned.**
+  `app/models/builders/approval_flow.py` and
+  `app/models/requests/components/offer.py` were invisible: the walk only
+  opened `models.py`, `abstract_models.py`, and files sitting directly in
+  `models/`. Those nested modules are read now, and they stay grouped under
+  the app that owns the `models` package. The extension watcher and
+  impact-analysis layer classification follow the same paths.
+
 ## [py-1.13.3] - 2026-10-14
 
 ### Fixed

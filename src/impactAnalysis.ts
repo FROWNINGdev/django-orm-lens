@@ -83,7 +83,7 @@ export function detectLayer(filePath: string): Layer {
   if (/\/migrations\/[^/]+\.py$/.test(p)) return 'migrations';
   if (/\/tests?\.py$/.test(p) || /\/tests?\//.test(p) || /\/test_[^/]+\.py$/.test(p))
     return 'tests';
-  if (/\/models(\.py|\/[^/]+\.py)$/.test(p)) return 'models';
+  if (/\/models\.py$/.test(p) || /\/models\/.+\.py$/.test(p)) return 'models';
   if (/\/serializers?(\.py|\/[^/]+\.py)$/.test(p) || /\/api\/[^/]+\.py$/.test(p))
     return 'serializers';
   if (/\/forms?(\.py|\/[^/]+\.py)$/.test(p)) return 'forms';
@@ -115,7 +115,7 @@ export function layerOf(relativePath: string): Layer {
 
 /** Glob patterns per layer — order matters (models first for early wins). */
 export const LAYER_GLOBS: Record<Exclude<Layer, 'other'>, string[]> = {
-  models: ['**/models.py', '**/models/*.py'],
+  models: ['**/models.py', '**/models/*.py', '**/models/**/*.py'],
   serializers: [
     '**/serializers.py',
     '**/serializers/*.py',

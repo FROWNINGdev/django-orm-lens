@@ -32,6 +32,7 @@ let treeProvider: DjangoTreeProvider;
 let codeLensProvider: DjangoCodeLensProvider;
 let statusItem: vscode.StatusBarItem;
 let watcher: vscode.FileSystemWatcher | undefined;
+let modelWatchers: vscode.FileSystemWatcher[] = [];
 let outputChannel: vscode.OutputChannel;
 
 let scanGeneration = 0;
@@ -103,16 +104,26 @@ async function refresh(): Promise<void> {
 
 let watcherDisposables: vscode.Disposable[] = [];
 
+function disposeModelWatchers(): void {
+  for (const w of modelWatchers) w.dispose();
+  modelWatchers = [];
+  watcher = undefined;
+}
+
 function setupWatcher(context: vscode.ExtensionContext) {
   const cfg = vscode.workspace.getConfiguration('ormSynapse');
   const autoRefresh = cfg.get<boolean>('autoRefresh', true);
   watcherDisposables.forEach((d) => d.dispose());
   watcherDisposables = [];
-  watcher?.dispose();
-  watcher = undefined;
+  disposeModelWatchers();
   if (!autoRefresh) return;
-  watcher = vscode.workspace.createFileSystemWatcher('**/models.py');
-  const watcherSplit = vscode.workspace.createFileSystemWatcher('**/models/*.py');
+  // `**/models/*.py` is one level deep. `**/models/**/*.py` covers nested
+  // packages such as `models/builders/flow.py`.
+  const patterns = ['**/models.py', '**/models/*.py', '**/models/**/*.py'];
+  modelWatchers = patterns.map((pattern) =>
+    vscode.workspace.createFileSystemWatcher(pattern)
+  );
+  watcher = modelWatchers[0];
   const trigger = () => {
     refresh().catch((err) =>
       outputChannel.appendLine(
@@ -120,15 +131,14 @@ function setupWatcher(context: vscode.ExtensionContext) {
       )
     );
   };
-  watcherDisposables.push(
-    watcher.onDidChange(trigger),
-    watcher.onDidCreate(trigger),
-    watcher.onDidDelete(trigger),
-    watcherSplit.onDidChange(trigger),
-    watcherSplit.onDidCreate(trigger),
-    watcherSplit.onDidDelete(trigger),
-  );
-  context.subscriptions.push(watcher, watcherSplit);
+  for (const w of modelWatchers) {
+    watcherDisposables.push(
+      w.onDidChange(trigger),
+      w.onDidCreate(trigger),
+      w.onDidDelete(trigger),
+    );
+    context.subscriptions.push(w);
+  }
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -883,7 +893,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  watcher?.dispose();
+  disposeModelWatchers();
   watcherDisposables.forEach((d) => d.dispose());
   watcherDisposables = [];
   statusItem?.dispose();

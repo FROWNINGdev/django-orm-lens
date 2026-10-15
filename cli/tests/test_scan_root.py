@@ -78,6 +78,81 @@ class ScanAppAsRootTest(unittest.TestCase):
             self.assertEqual(len(idx.apps[0].models), 3)
 
 
+class ScanNestedModelsPackageTest(unittest.TestCase):
+    """Models live several directories under ``app/models/``, not in ``models.py``."""
+
+    def test_nested_modules_belong_to_the_app_that_owns_models(self) -> None:
+        with TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            app = project / "src" / "ai_approval_engine"
+            flow = app / "models" / "builders" / "approval_flow.py"
+            abstract = app / "models" / "requests" / "abstracts" / "request.py"
+            offer = app / "models" / "requests" / "components" / "offer.py"
+            helper = app / "models" / "builders" / "utils.py"
+            for path in (flow, abstract, offer, helper):
+                path.parent.mkdir(parents=True, exist_ok=True)
+            (app / "models" / "__init__.py").write_text(
+                "from ai_approval_engine.models.builders.approval_flow import *\n",
+                encoding="utf-8",
+            )
+            (app / "views" / "flow.py").parent.mkdir(parents=True, exist_ok=True)
+            (app / "views" / "flow.py").write_text(
+                "from django.db import models\n\nclass NotAModel(models.Model):\n    x = models.IntegerField()\n",
+                encoding="utf-8",
+            )
+            flow.write_text(
+                "from django.db import models\n\n"
+                "class ApprovalFlow(models.Model):\n"
+                "    name = models.CharField(max_length=255)\n",
+                encoding="utf-8",
+            )
+            abstract.write_text(
+                "from django.db import models\n\n"
+                "class ApprovalRequest(models.Model):\n"
+                "    company_id = models.IntegerField()\n\n"
+                "    class Meta:\n"
+                "        abstract = True\n",
+                encoding="utf-8",
+            )
+            offer.write_text(
+                "from django.db import models\n\n"
+                "class OfferRequest(ApprovalRequest):\n"
+                "    note = models.CharField(max_length=10)\n",
+                encoding="utf-8",
+            )
+            helper.write_text(
+                "class FlowHelper:\n    pass\n",
+                encoding="utf-8",
+            )
+
+            idx = scan_workspace(str(project))
+
+            self.assertEqual([a.name for a in idx.apps], ["ai_approval_engine"])
+            models = {m.name: m for m in idx.apps[0].models}
+            self.assertEqual(sorted(models), ["ApprovalFlow", "OfferRequest"])
+            self.assertEqual(
+                [f.name for f in models["OfferRequest"].all_fields()],
+                ["company_id", "note"],
+            )
+            self.assertTrue(str(idx.apps[0].path).endswith("ai_approval_engine"))
+
+    def test_nested_package_with_the_app_folder_as_root(self) -> None:
+        with TemporaryDirectory() as tmp:
+            app = Path(tmp) / "ai_approval_engine"
+            flow = app / "models" / "builders" / "approval_flow.py"
+            flow.parent.mkdir(parents=True)
+            flow.write_text(
+                "from django.db import models\n\n"
+                "class ApprovalFlow(models.Model):\n"
+                "    name = models.CharField(max_length=255)\n",
+                encoding="utf-8",
+            )
+            idx = scan_workspace(str(app))
+            self.assertEqual(len(idx.apps), 1)
+            self.assertEqual(idx.apps[0].name, "ai_approval_engine")
+            self.assertEqual([m.name for m in idx.apps[0].models], ["ApprovalFlow"])
+
+
 class ScanProjectAsRootTest(unittest.TestCase):
     """Workspace root is the Django project — app folders one level down."""
 

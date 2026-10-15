@@ -804,7 +804,7 @@ Yes. The extension reads Python source directly — it does not import Django an
 <details>
 <summary><b>My models are split across multiple files inside a <code>models/</code> package. Does that work?</b></summary>
 <br/>
-Yes, since v0.2.0. Both the extension and the CLI walk <code>models/*.py</code> alongside classic <code>models.py</code>.
+Yes. Both the extension and the CLI read <code>models.py</code>, <code>abstract_models.py</code>, and every Python module under a <code>models/</code> package — one level (<code>models/order.py</code>) or nested (<code>models/builders/approval_flow.py</code>).
 </details>
 
 <details>

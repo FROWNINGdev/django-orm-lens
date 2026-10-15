@@ -126,7 +126,8 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
         if not saw_models_file:
             print(
                 f"hint: no models.py found under {args.path}. Django apps typically have\n"
-                "      <app>/models.py or <app>/models/*.py. Check the path or pass\n"
+                "      <app>/models.py, <app>/models/*.py, or a module nested under\n"
+                "      <app>/models/. Check the path or pass\n"
                 "      --exclude to whitelist non-standard layouts.",
                 file=sys.stderr,
             )

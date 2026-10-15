@@ -520,14 +520,38 @@ export function parseModelsFile(filePath: string, content: string): ParsedModel[
   return resolveAndFilter(collectDefs(filePath, content));
 }
 
-function appDirFor(fsPath: string): { dir: string; name: string } {
-  const parent = path.dirname(fsPath);
-  const parentName = path.basename(parent);
-  if (parentName === 'models') {
-    const grand = path.dirname(parent);
+/**
+ * App directory for a model file.
+ *
+ * `models.py` belongs to the directory that contains it (`shop/models.py` →
+ * shop). Any other module under a `models/` package belongs to that package's
+ * parent, so `shop/models/builders/flow.py` is still the shop app — not
+ * `builders`. `root` is the workspace folder so a directory named `models`
+ * above the project is not treated as a Django models package.
+ * Mirrors `_app_dir_for` in cli/orm_synapse/parser.py.
+ */
+export function appDirFor(fsPath: string, root?: string): { dir: string; name: string } {
+  const directory = path.dirname(fsPath);
+  if (path.basename(fsPath) === 'models.py') {
+    return { dir: directory, name: path.basename(directory) };
+  }
+  if (root) {
+    const rel = path.relative(root, directory);
+    const outside = rel.startsWith('..') || path.isAbsolute(rel);
+    if (!outside) {
+      const parts = rel === '' ? [] : rel.split(path.sep);
+      const idx = parts.lastIndexOf('models');
+      if (idx !== -1) {
+        const appDir = idx === 0 ? root : path.join(root, ...parts.slice(0, idx));
+        return { dir: appDir, name: path.basename(appDir) };
+      }
+    }
+  }
+  if (path.basename(directory) === 'models') {
+    const grand = path.dirname(directory);
     return { dir: grand, name: path.basename(grand) };
   }
-  return { dir: parent, name: parentName };
+  return { dir: directory, name: path.basename(directory) };
 }
 
 // Convert a "**/name/**" style glob prefix/segment into a simple test.
@@ -590,12 +614,37 @@ function fnmatchRegex(pattern: string): RegExp {
  */
 const MODEL_SOURCE_FILES = new Set(['models.py', 'abstract_models.py']);
 
-// Walk a directory synchronously collecting every models.py and models/*.py.
-// Used as a fallback when vscode.workspace.findFiles returns no results
-// (workspace file index cold, or platform-specific glob quirks that
-// silently drop root-level models.py — the recurring "opened the Django
-// app folder as the workspace root, extension shows empty" report).
-function walkForModels(root: string, isExcluded: (rel: string) => boolean): string[] {
+/**
+ * Workspace-relative path of a Django model module.
+ *
+ * Matches `models.py`, `abstract_models.py`, and any other `.py` under a
+ * `models/` package, including nested modules (`models/builders/flow.py`).
+ * `__init__.py` is not a model module. Mirrors `_is_model_source` in
+ * cli/orm_synapse/parser.py.
+ */
+export function isModelSourceRelPath(relPosix: string): boolean {
+  const norm = relPosix.replace(/\\/g, '/').replace(/^\.\//, '');
+  const name = norm.split('/').pop() ?? '';
+  if (name === '__init__.py' || !name.endsWith('.py')) return false;
+  if (MODEL_SOURCE_FILES.has(name)) return true;
+  return norm.split('/').slice(0, -1).includes('models');
+}
+
+function workspaceRootFor(fsPath: string, roots: string[]): string | undefined {
+  const resolved = path.resolve(fsPath);
+  const matches = roots
+    .map((r) => path.resolve(r))
+    .filter((r) => resolved === r || resolved.startsWith(r + path.sep));
+  matches.sort((a, b) => b.length - a.length);
+  return matches[0];
+}
+
+// Walk a directory synchronously collecting model modules: models.py,
+// abstract_models.py, and every .py under a models/ package (nested
+// subpackages included). Used as a fallback when vscode.workspace.findFiles
+// returns no results (workspace file index cold, or platform-specific glob
+// quirks that silently drop root-level models.py).
+export function walkForModels(root: string, isExcluded: (rel: string) => boolean): string[] {
   const results: string[] = [];
   const stack: string[] = [root];
   while (stack.length) {
@@ -616,15 +665,7 @@ function walkForModels(root: string, isExcluded: (rel: string) => boolean): stri
         continue;
       }
       if (!entry.isFile()) continue;
-      if (entry.name === '__init__.py') continue;
-      if (MODEL_SOURCE_FILES.has(entry.name)) {
-        results.push(full);
-        continue;
-      }
-      // models/<something>.py — the split-package layout.
-      if (path.basename(dir) === 'models' && entry.name.endsWith('.py')) {
-        results.push(full);
-      }
+      if (isModelSourceRelPath(rel)) results.push(full);
     }
   }
   return results;
@@ -828,6 +869,13 @@ export async function scanWorkspace(
         new vscode.RelativePattern(folder, '**/models/*.py'),
         excludePattern
       ),
+      // Nested modules under models/, any depth: models/builders/flow.py
+      // and models/requests/components/offer.py. `**/models/*.py` is only
+      // one level and misses these.
+      vscode.workspace.findFiles(
+        new vscode.RelativePattern(folder, '**/models/**/*.py'),
+        excludePattern
+      ),
     ])
   );
   const seen = new Set<string>();
@@ -888,8 +936,13 @@ export async function scanWorkspace(
     )
   );
 
+  const fileRoots = folders.filter((f) => f.uri.scheme === 'file').map((f) => f.uri.fsPath);
+
   for (const model of resolveAndFilter(allDefs)) {
-    const { dir: appDir, name: appName } = appDirFor(model.filePath);
+    const { dir: appDir, name: appName } = appDirFor(
+      model.filePath,
+      workspaceRootFor(model.filePath, fileRoots)
+    );
     let app = appMap.get(appDir);
     if (!app) {
       app = { name: appName, path: appDir, models: [] };

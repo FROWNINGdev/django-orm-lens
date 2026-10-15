@@ -104,7 +104,7 @@ def detect_layer(file_path: str) -> str:
         or re.search(r"/test_[^/]+\.py$", p)
     ):
         return "tests"
-    if re.search(r"/models(\.py|/[^/]+\.py)$", p):
+    if re.search(r"/models\.py$", p) or re.search(r"/models/.+\.py$", p):
         return "models"
     if re.search(r"/serializers?(\.py|/[^/]+\.py)$", p) or re.search(
         r"/api/[^/]+\.py$", p

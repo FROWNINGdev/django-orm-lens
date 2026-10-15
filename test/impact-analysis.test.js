@@ -23,6 +23,11 @@ test.after(() => {
 test('detectLayer classifies by path shape', () => {
   assert.equal(detectLayer('/repo/blog/models.py'), 'models');
   assert.equal(detectLayer('/repo/blog/models/post.py'), 'models');
+  assert.equal(detectLayer('/repo/blog/models/builders/approval_flow.py'), 'models');
+  assert.equal(
+    detectLayer('/repo/src/ai_approval_engine/models/requests/components/offer.py'),
+    'models'
+  );
   assert.equal(detectLayer('/repo/blog/serializers.py'), 'serializers');
   assert.equal(detectLayer('/repo/blog/api/serializers_v2.py'), 'serializers');
   assert.equal(detectLayer('/repo/blog/admin.py'), 'admin');

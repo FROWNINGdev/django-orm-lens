@@ -692,7 +692,7 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 <details>
 <summary><b>我的模型拆分到了 <code>models/</code> 包下的多个文件里。这样能工作吗？</b></summary>
 <br/>
-可以，自 v0.2.0 起。扩展与 CLI 都会在遍历经典 <code>models.py</code> 的同时遍历 <code>models/*.py</code>。
+可以。扩展和 CLI 都会读取 <code>models.py</code>、<code>abstract_models.py</code>，以及 <code>models/</code> 包里的每个 Python 模块，包括一层（<code>models/order.py</code>）和更深层（<code>models/builders/approval_flow.py</code>）。
 </details>
 
 <details>

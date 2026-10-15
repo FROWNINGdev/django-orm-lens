@@ -692,7 +692,7 @@ Applicability следует модели Clippy из Rust: **safe**-фиксы 
 <details>
 <summary><b>Мои модели разбиты по нескольким файлам внутри пакета <code>models/</code>. Это поддерживается?</b></summary>
 <br/>
-Да, начиная с v0.2.0. И расширение, и CLI обходят <code>models/*.py</code> наряду с классическим <code>models.py</code>.
+Да. И расширение, и CLI читают <code>models.py</code>, <code>abstract_models.py</code> и любой Python-модуль внутри пакета <code>models/</code> — на один уровень (<code>models/order.py</code>) или глубже (<code>models/builders/approval_flow.py</code>).
 </details>
 
 <details>

@@ -692,7 +692,7 @@ Sí. La extensión lee el código fuente de Python directamente — no importa D
 <details>
 <summary><b>Mis modelos están divididos en varios archivos dentro de un paquete <code>models/</code>. ¿Funciona eso?</b></summary>
 <br/>
-Sí, desde la v0.2.0. Tanto la extensión como la CLI recorren <code>models/*.py</code> junto al clásico <code>models.py</code>.
+Sí. Tanto la extensión como la CLI leen <code>models.py</code>, <code>abstract_models.py</code> y cada módulo Python dentro de un paquete <code>models/</code>, ya sea a un nivel (<code>models/order.py</code>) o anidado (<code>models/builders/approval_flow.py</code>).
 </details>
 
 <details>
