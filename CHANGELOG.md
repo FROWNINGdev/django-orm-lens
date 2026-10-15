@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`DOL016` flags an unnamed index or uniqueness declaration in `class Meta`.**
+  `index_together` and `unique_together` cannot name their entries.
+  `models.Index` (including postgres `*Index`), `UniqueConstraint`, and
+  `CheckConstraint` are flagged when the call has no top-level `name=`.
 - **Nested modules inside a `models/` package are scanned.**
   `app/models/builders/approval_flow.py` and
   `app/models/requests/components/offer.py` were invisible: the walk only

@@ -5,7 +5,7 @@
 
 ORM Synapse ships two rule surfaces:
 
-1. **Editor rules (`DOL###`)** — 18 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `ORM Synapse`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
+1. **Editor rules (`DOL###`)** — 19 line-oriented static checks that run inside the VS Code extension on every `.py` file. Findings appear in the Problems panel under the source `ORM Synapse`, link to these pages from the diagnostic code, and — where a fix is safe to express as a text edit — carry a QuickFix lightbulb. Detection is regex-based with bounded windows; no Python process is involved.
 2. **CLI / CI analyzers** — AST-based checks in the Python package (`pip install orm-synapse`) for terminals and pipelines: [`migration-risk`](migrations.md), [`nplusone`](nplusone.md), [`blast-radius`](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/blast-radius.md) — which joins migration risks with the code that still references what they change — and [`drift`](drift.md), a `makemigrations --check` that needs no Django boot.
 
 ## Severity and applicability
@@ -37,6 +37,7 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL013](DOL013.md) | ForeignKey without `on_delete` | model | error | suggestion |
 | [DOL014](DOL014.md) | CharField without `max_length` | model | error | suggestion |
 | [DOL015](DOL015.md) | TextField with `max_length` has no DB effect | model | hint | suggestion |
+| [DOL016](DOL016.md) | Meta index or constraint without a name | model | error | unsafe |
 | [DOL021](DOL021.md) | `datetime.now()` should be `timezone.now()` | datetime | warning | suggestion |
 | [DOL022](DOL022.md) | `datetime.utcnow()` is deprecated | datetime | warning | suggestion |
 | [DOL031](DOL031.md) | `render()` with `locals()` as context | forms | warning | suggestion |

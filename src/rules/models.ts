@@ -296,4 +296,140 @@ const DOL015: Rule = {
   },
 };
 
-export const modelRules: Rule[] = [DOL011, DOL012, DOL013, DOL014, DOL015];
+/** `models.Index(`, `GinIndex(`, `UniqueConstraint(`, `CheckConstraint(`. */
+const RE_NAMED_META_CALL =
+  /\b(?:models\.)?((?:[A-Z]\w*)?Index|UniqueConstraint|CheckConstraint)\s*\(/g;
+
+const RE_META_HEAD = /^(\s*)class\s+Meta\b[^:]*:/;
+const RE_TOGETHER = /^(\s*)(index_together|unique_together)\s*=/;
+
+/**
+ * Argument text of the call whose opening `(` is at `openIdx` on `startLine`.
+ * The opening paren itself is not included. Stops at the matching close.
+ */
+function readCallArgs(ctx: RuleContext, startLine: number, openIdx: number): string {
+  let depth = 0;
+  let args = '';
+  for (let line = startLine; line < ctx.lineCount; line++) {
+    const text = ctx.lineAt(line);
+    for (let i = line === startLine ? openIdx : 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(') {
+        depth++;
+        if (depth > 1) args += ch;
+        continue;
+      }
+      if (ch === ')') {
+        depth--;
+        if (depth === 0) return args;
+        args += ch;
+        continue;
+      }
+      if (depth > 0) args += ch;
+    }
+    if (depth > 0) args += '\n';
+  }
+  return args;
+}
+
+/**
+ * True when `name=` is a keyword of this call, not of a nested call or a
+ * string. `condition=Q(name="active")` does not count; `name="idx_a"` does.
+ */
+function hasTopLevelName(args: string): boolean {
+  let depth = 0;
+  let bracket = 0;
+  let brace = 0;
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < args.length; i++) {
+    const ch = args[i];
+    if (quote) {
+      if (ch === '\\') {
+        i++;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (ch === '[') bracket++;
+    else if (ch === ']') bracket--;
+    else if (ch === '{') brace++;
+    else if (ch === '}') brace--;
+    else if (depth === 0 && bracket === 0 && brace === 0 && /^name\s*=/.test(args.slice(i))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * DOL016 — Meta index or uniqueness declaration with no explicit name.
+ *
+ * `index_together` and `unique_together` cannot name their entries at all.
+ * `models.Index`, postgres `*Index`, `UniqueConstraint`, and `CheckConstraint`
+ * can, via `name=`. The rule only looks inside `class Meta`.
+ */
+const DOL016: Rule = {
+  meta: {
+    code: 'DOL016',
+    title: 'Meta index or constraint without a name',
+    category: 'correctness',
+    defaultSeverity: 'error',
+    docsUrl: `${DOCS_BASE}/DOL016.md`,
+    since: '0.19.4',
+    messages: {
+      together:
+        '{option} cannot name its entries. Use indexes/constraints with an explicit name= instead.',
+      call: '{kind} is missing name=. Name every index and constraint in Meta explicitly.',
+    },
+  },
+  check(ctx: RuleContext): Finding[] {
+    const out: Finding[] = [];
+    for (let i = 0; i < ctx.lineCount; i++) {
+      const head = RE_META_HEAD.exec(ctx.lineAt(i));
+      if (!head) continue;
+      for (const { lineIndex, text } of iterClassBody(ctx, i, head[1])) {
+        if (isCommentLine(text)) continue;
+        const together = RE_TOGETHER.exec(text);
+        if (together) {
+          const option = together[2];
+          const startCol = text.indexOf(option);
+          out.push({
+            code: 'DOL016',
+            messageId: 'together',
+            args: { option },
+            range: { line: lineIndex, startCol, endCol: startCol + option.length },
+            applicability: 'unsafe',
+          });
+        }
+        RE_NAMED_META_CALL.lastIndex = 0;
+        let call: RegExpExecArray | null;
+        while ((call = RE_NAMED_META_CALL.exec(text)) !== null) {
+          const openIdx = call.index + call[0].length - 1;
+          const args = readCallArgs(ctx, lineIndex, openIdx);
+          if (hasTopLevelName(args)) continue;
+          out.push({
+            code: 'DOL016',
+            messageId: 'call',
+            args: { kind: call[1] },
+            range: {
+              line: lineIndex,
+              startCol: call.index,
+              endCol: call.index + call[0].length,
+            },
+            applicability: 'unsafe',
+          });
+        }
+      }
+    }
+    return out;
+  },
+};
+
+export const modelRules: Rule[] = [DOL011, DOL012, DOL013, DOL014, DOL015, DOL016];

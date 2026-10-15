@@ -638,12 +638,12 @@ The defaults are opinionated and sensible. If you need to tweak:
 
 ## 🔬 Rule catalogue
 
-Eighteen editor-side checks (`DOL001`–`DOL041`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus sixteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
+Nineteen editor-side checks (`DOL001`–`DOL041`) with Ruff-style codes, per-rule severity, and Clippy-style applicability — plus sixteen CLI-side migration-risk rules and the static N+1 analyzer. **Every rule now has its own documentation page.**
 
 | Category | Rules | Examples |
 |---|---|---|
 | [Queryset](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/README.md) | `DOL001`–`DOL007` | `.count() > 0` → `.exists()`, FK access in loops (N+1) |
-| [Model definition](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/README.md) | `DOL011`–`DOL015` | `ForeignKey` without `on_delete`, `null=True` on string fields |
+| [Model definition](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/README.md) | `DOL011`–`DOL016` | `ForeignKey` without `on_delete`, unnamed Meta indexes |
 | [Datetime](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/README.md) | `DOL021`–`DOL022` | `datetime.now()` → `timezone.now()` |
 | [Forms / views](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/README.md) | `DOL031`–`DOL032` | `locals()` in `render()`, `Meta.fields = '__all__'` |
 | [Raw SQL](https://github.com/nam-tong/orm-synapse/blob/main/docs/rules/DOL041.md) | `DOL041` | `SET enable_hashjoin = off`, `plan_cache_mode`, `jit` overrides in app code |
