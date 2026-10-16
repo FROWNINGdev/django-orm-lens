@@ -78,13 +78,19 @@ class CascadeCommandTest(unittest.TestCase):
                 "from django.db import models\n\n"
                 "class Category(models.Model):\n"
                 "    parent = models.ForeignKey('self', null=True, blank=True, "
-                "on_delete=models.CASCADE, related_name='children')\n",
+                "on_delete=models.CASCADE, related_name='children')\n"
+                "    nullable_parent = models.ForeignKey('self', null=True, blank=True, "
+                "on_delete=models.SET_NULL, related_name='null_children')\n"
+                "    protected_parent = models.ForeignKey('self', on_delete=models.PROTECT, "
+                "related_name='protected_children')\n",
             )
             code, out, _err = _run(
                 ["cascade", "catalog.Category", "--path", tmp]
             )
             self.assertEqual(code, 0)
             self.assertIn("catalog.Category  via parent (self)", out)
+            self.assertIn("catalog.Category  via nullable_parent (self)", out)
+            self.assertIn("catalog.Category  via protected_parent (self)", out)
 
             code, out, _err = _run(
                 ["cascade", "catalog.Category", "--path", tmp, "--format", "json"]
@@ -94,6 +100,10 @@ class CascadeCommandTest(unittest.TestCase):
             self.assertEqual(payload["cascade_kills"][0]["model"], "catalog.Category")
             self.assertEqual(payload["cascade_kills"][0]["via_field"], "parent")
             self.assertTrue(payload["cascade_kills"][0]["self"])
+            self.assertEqual(payload["set_null"][0]["via_field"], "nullable_parent")
+            self.assertTrue(payload["set_null"][0]["self"])
+            self.assertEqual(payload["protected"][0]["via_field"], "protected_parent")
+            self.assertTrue(payload["protected"][0]["self"])
 
     def test_unknown_model_exits_2(self) -> None:
         code, out, err = _run(
