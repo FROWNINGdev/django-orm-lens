@@ -159,7 +159,7 @@ summary: 1 target(s), 1 critical risk(s), 2 certain reference(s)
 }
 ```
 
-Các finding về ảnh hưởng sử dụng `line` và `column` **zero-based** (bắt đầu từ số không), khớp với extension VS Code và bộ LSP. Các trình kết xuất dưới dạng văn bản và markdown sẽ cộng thêm một trước khi in ra kết quả, bởi vì con người và các editor thường sử dụng dạng one-based (bắt đầu từ số một).
+`line` của impact finding được tuần tự hóa **bắt đầu từ số một** (one-based) — đúng với dòng mà trình kết xuất văn bản/markdown in ra, nên `--format json` và `--format text` không còn mâu thuẫn với nhau (trước đây JSON báo 0-based, văn bản báo 1-based). `column` vẫn **zero-based** (bắt đầu từ số không): đây là vị trí chuỗi bên trong dòng, mà editor đếm từ 0. Bên trong, `ImpactFinding.line` vẫn được lưu ở dạng zero-based, khớp với extension VS Code và bộ LSP; chỉ hợp đồng JSON được cộng thêm một.
 
 ## Liên quan
 

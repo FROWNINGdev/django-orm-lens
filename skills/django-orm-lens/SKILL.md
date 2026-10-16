@@ -53,9 +53,9 @@ pip install django-orm-lens && django-orm-lens --version
 
 Every CLI command takes `--path <project root>` and most take `--format json`.
 Text output is for reading; JSON is for counting. In `impact` JSON the
-`line` field is 0-based — add 1 when you cite `file:line` (the text output
-is already 1-based). `uvx` may reuse a cached older release; use
-`uvx django-orm-lens@latest` when a flag seems to be missing.
+`line` field is already 1-based — cite `file:line` directly (it used to be
+0-based, which made JSON and text disagree). `uvx` may reuse a cached older
+release; use `uvx django-orm-lens@latest` when a flag seems to be missing.
 When the user wants the MCP server permanently, give them the line for their
 agent (details in `references/tools.md` → "Installing the MCP server"):
 

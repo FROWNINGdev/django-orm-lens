@@ -9,6 +9,9 @@ Run: python -m unittest discover cli/tests -v
 
 from __future__ import annotations
 
+import contextlib
+import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -222,6 +225,58 @@ class ScanImpactTest(unittest.TestCase):
             (root / "blog").mkdir()
             (root / "blog" / "views.py").write_bytes(b"\xff\xfe post.author\n")
             scan_impact(root, "author")  # must not raise
+
+
+class JsonLineContractTest(unittest.TestCase):
+    """Regression (#150): JSON must report 1-based lines, like the text output.
+
+    ``ImpactFinding.line`` is stored 0-based (matching the TypeScript
+    implementation and the LSP); ``to_dict()`` — the JSON contract used by
+    ``impact --format json``, ``blast-radius --format json`` and the MCP
+    ``impact`` tool — must add one, exactly like every human-facing renderer
+    does. A finding on line 21 used to come back as ``"line": 20``.
+    """
+
+    def test_to_dict_line_is_one_based_while_the_attribute_stays_zero_based(
+        self,
+    ) -> None:
+        text = "import os\nqs = Post.objects.filter(author__id=1)\n"
+        found = scan_file_text("blog/views.py", text, "author")
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].line, 1)  # stored, 0-based — unchanged
+        self.assertEqual(found[0].to_dict()["line"], 2)  # serialized, 1-based
+
+    def test_json_and_text_cli_output_agree_on_a_known_line(self) -> None:
+        from django_orm_lens.cli import main
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "blog").mkdir()
+            (root / "blog" / "views.py").write_text(
+                "import os\nqs = Post.objects.filter(author__id=1)\n",
+                encoding="utf-8",
+            )
+
+            def run(argv: list[str]) -> str:
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    code = main(argv)
+                self.assertEqual(code, 0)
+                return out.getvalue()
+
+            text_out = run(["impact", "author", "--path", str(root)])
+            json_out = run(
+                ["impact", "author", "--path", str(root), "--format", "json"]
+            )
+
+        # The reference is on line 2 (1-based) of the fixture.
+        self.assertIn("views.py:2", text_out)
+        payload = json.loads(json_out)
+        lines = {f["line"] for f in payload["findings"]}
+        self.assertEqual(lines, {2})
+        # Column stays 0-based — it is an offset into the line string.
+        (finding,) = payload["findings"]
+        self.assertEqual(finding["column"], 25)
 
 
 if __name__ == "__main__":
