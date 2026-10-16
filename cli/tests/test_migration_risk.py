@@ -380,7 +380,9 @@ class AddIndexTest(unittest.TestCase):
             findings = analyze_migration_risks(tmp, current_schema=_empty_schema())
             risk = _by_rule(findings)["add_index_locks_table"][0]
             self.assertIn("SHARE lock", risk.description)
+            self.assertIn("blocking writes", risk.description)
             self.assertIn("reads continue", risk.description)
+            self.assertIn("transaction commits", risk.description)
 
     def test_add_index_concurrently_is_safe(self) -> None:
         with TemporaryDirectory() as tmp:
