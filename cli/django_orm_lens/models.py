@@ -256,7 +256,7 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
                 elif related_tail != m.name:
                     continue
                 on_delete = (f.on_delete or "").upper()
-                entry = {
+                entry: dict[str, Any] = {
                     "model": f"{app.name}.{other.name}",
                     "via_field": f.name,
                 }
