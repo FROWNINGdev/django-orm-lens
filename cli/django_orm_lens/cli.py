@@ -562,7 +562,8 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
     if kills:
         print(f"  CASCADE-deletes rows in ({len(kills)}):")
         for e in kills:
-            print(f"    - {e['model']}  via {e['via_field']}")
+            suffix = " (self)" if e.get("self") else ""
+            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
     if nulls:
         print(f"  sets FK to NULL/default in ({len(nulls)}):")
         for e in nulls:

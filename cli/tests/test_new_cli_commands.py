@@ -71,6 +71,30 @@ class CascadeCommandTest(unittest.TestCase):
         self.assertEqual(kills[0]["model"], "orders.LineItem")
         self.assertEqual(kills[0]["via_field"], "order")
 
+    def test_self_referential_cascade_is_reported(self) -> None:
+        with TemporaryDirectory() as tmp:
+            _write(
+                Path(tmp) / "catalog" / "models.py",
+                "from django.db import models\n\n"
+                "class Category(models.Model):\n"
+                "    parent = models.ForeignKey('self', null=True, blank=True, "
+                "on_delete=models.CASCADE, related_name='children')\n",
+            )
+            code, out, _err = _run(
+                ["cascade", "catalog.Category", "--path", tmp]
+            )
+            self.assertEqual(code, 0)
+            self.assertIn("catalog.Category  via parent (self)", out)
+
+            code, out, _err = _run(
+                ["cascade", "catalog.Category", "--path", tmp, "--format", "json"]
+            )
+            self.assertEqual(code, 0)
+            payload = json.loads(out)
+            self.assertEqual(payload["cascade_kills"][0]["model"], "catalog.Category")
+            self.assertEqual(payload["cascade_kills"][0]["via_field"], "parent")
+            self.assertTrue(payload["cascade_kills"][0]["self"])
+
     def test_unknown_model_exits_2(self) -> None:
         code, out, err = _run(
             ["cascade", "GhostModel", "--path", str(MINIAPP)]

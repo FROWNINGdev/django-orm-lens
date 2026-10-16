@@ -245,18 +245,23 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
     user_name = user_model.name if user_model is not None else None
     for app in index.apps:
         for other in app.models:
-            if other is m:
-                continue
+            is_self = other is m
             for f in other.fields:
                 if not f.is_relation or not f.related_model:
                     continue
-                if resolve_related_tail(f.related_model, user_name) != m.name:
+                related_tail = resolve_related_tail(f.related_model, user_name)
+                if related_tail == "self":
+                    if not is_self:
+                        continue
+                elif related_tail != m.name:
                     continue
                 on_delete = (f.on_delete or "").upper()
                 entry = {
                     "model": f"{app.name}.{other.name}",
                     "via_field": f.name,
                 }
+                if is_self:
+                    entry["self"] = True
                 if on_delete == "CASCADE":
                     entry["count_hint"] = "unknown"
                     out["cascade_kills"].append(entry)
