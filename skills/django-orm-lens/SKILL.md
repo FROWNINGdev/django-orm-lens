@@ -18,7 +18,7 @@ compatibility: >-
   Read-only: never imports the project, never touches a database.
 metadata:
   author: FROWNINGdev
-  version: 1.0.0
+  version: 1.0.1
   homepage: https://github.com/FROWNINGdev/django-orm-lens
 ---
 
@@ -52,9 +52,11 @@ pip install django-orm-lens && django-orm-lens --version
 ```
 
 Every CLI command takes `--path <project root>` and most take `--format json`.
-Text output is for reading; JSON is for counting. In `impact` JSON the
-`line` field is already 1-based — cite `file:line` directly (it used to be
-0-based, which made JSON and text disagree). `uvx` may reuse a cached older
+Text output is for reading; JSON is for counting. Text output is always
+1-based. The `line` field in `impact` JSON (also `blast_radius` impact
+entries and the MCP `impact` tool) depends on the release: 1-based from
+py-1.13.4, 0-based in 1.13.3 and earlier. Check `--version` once and add 1
+on an older release before you cite `file:line`. `uvx` may reuse a cached older
 release; use `uvx django-orm-lens@latest` when a flag seems to be missing.
 When the user wants the MCP server permanently, give them the line for their
 agent (details in `references/tools.md` → "Installing the MCP server"):
