@@ -171,7 +171,7 @@ summary: 1 target(s), 1 critical risk(s), 2 certain reference(s)
 }
 ```
 
-Impact findings use **zero-based** `line` and `column`, matching the VS Code extension and the LSP. The text and markdown renderers add one before printing, because humans and editors are one-based.
+Impact findings serialize a **one-based** `line` — the same line the text and markdown renderers print, so `--format json` and `--format text` no longer disagree (they used to: JSON reported 0-based, text 1-based). `column` stays **zero-based**: it is an offset into the line string, which editors count from 0. Internally `ImpactFinding.line` is still stored zero-based, matching the VS Code extension and the LSP; only the JSON contract converts.
 
 ## Related
 

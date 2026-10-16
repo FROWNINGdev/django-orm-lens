@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`impact --format json` and the MCP `impact` tool reported 0-based line
+  numbers while the text output printed the same finding 1-based (#150).** A
+  reference on line 21 came back as `"line": 20`, so agents citing `file:line`
+  from JSON pointed one line above the real code. `ImpactFinding.to_dict()`
+  now serializes a 1-based `line` (the same number the text and markdown
+  renderers print), which also fixes `blast-radius --format json`. This is a
+  JSON contract change: consumers that added 1 themselves should stop.
+  `column` stays 0-based, and the in-memory `ImpactFinding.line` attribute
+  stays 0-based to match the VS Code extension and the LSP.
+
 - **Migration-risk AddIndex finding overstated PostgreSQL's lock mode (#151).**
   Plain `AddIndex` now correctly reports a SHARE lock: writes block while reads
   continue. `AlterUniqueTogether` and table-rewriting column type changes

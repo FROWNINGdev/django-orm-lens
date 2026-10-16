@@ -77,11 +77,21 @@ class ImpactFinding:
     reason: str
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialized finding, as emitted by ``--format json`` and the MCP
+        ``impact`` tool.
+
+        ``line`` is **one-based** here — humans, editors' ``file:line``
+        citations and CI annotations are one-based, and the text/markdown
+        renderers already add one before printing. The stored attribute stays
+        zero-based (matching the TypeScript implementation and the LSP), so
+        only the JSON contract converts. ``column`` stays zero-based: it is an
+        offset into the line, which editors count from 0.
+        """
         return {
             "layer": self.layer,
             "confidence": self.confidence,
             "filePath": self.file_path,
-            "line": self.line,
+            "line": self.line + 1,
             "column": self.column,
             "snippet": self.snippet,
             "reason": self.reason,
