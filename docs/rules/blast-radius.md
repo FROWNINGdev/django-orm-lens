@@ -171,7 +171,7 @@ summary: 1 target(s), 1 critical risk(s), 2 certain reference(s)
 }
 ```
 
-Impact findings use **zero-based** `line` and `column`, matching the VS Code extension and the LSP. The text and markdown renderers add one before printing, because humans and editors are one-based.
+Python CLI/MCP impact findings use **one-based** `line` and **zero-based** `column`. The JSON, text and Markdown outputs report the same source line directly; this differs from the zero-based lines used internally by the VS Code extension and the LSP.
 
 ## Related
 

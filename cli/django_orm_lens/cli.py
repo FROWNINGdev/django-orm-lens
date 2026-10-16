@@ -492,8 +492,7 @@ def _cmd_impact(args: argparse.Namespace) -> int:
                 rel = Path(f.file_path).resolve().relative_to(root).as_posix()
             except (ValueError, OSError):
                 rel = f.file_path
-            # +1 on the line: the finding is zero-based, humans and editors
-            # are one-based.
+            # ImpactFinding.line is already one-based; do not increment again.
             print(f"  {rel}:{f.line}  [{f.confidence}] {f.snippet}")
             print(f"      {f.reason}")
     print(f"\n{len(findings)} reference(s) to {args.name!r}.")
