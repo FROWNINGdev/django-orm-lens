@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea to make ORM Synapse more useful
+description: An idea to make DB Synapse more useful
 labels: ["enhancement"]
 body:
   - type: textarea

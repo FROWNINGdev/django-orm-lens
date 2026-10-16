@@ -18,7 +18,7 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from orm_synapse.parser import parse_models_file
+from db_synapse.parser import parse_models_file
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "cli" / "tests" / "fixtures"

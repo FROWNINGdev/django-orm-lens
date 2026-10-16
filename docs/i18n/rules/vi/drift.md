@@ -13,10 +13,10 @@ Sự sai lệch (drift) không phải lúc nào cũng sai — một tên bảng 
 ## Cách dùng
 
 ```bash
-orm-synapse drift --path .                    # toàn bộ dự án
-orm-synapse drift --path apps/blog            # một app cụ thể
-orm-synapse drift --format json              # định dạng máy đọc được
-orm-synapse drift --format github            # GitHub PR annotations
+db-synapse drift --path .                    # toàn bộ dự án
+db-synapse drift --path apps/blog            # một app cụ thể
+db-synapse drift --format json              # định dạng máy đọc được
+db-synapse drift --format github            # GitHub PR annotations
 ```
 
 - **`--path PATH`** — thư mục gốc để quét (mặc định: thư mục hiện tại).
@@ -37,7 +37,7 @@ blog.Post.author_id — db_column: "author" (mong đợi "author_id")
 ```python
 class Post(models.Model):
     class Meta:
-        db_table = "legacy_posts"  # orm-synapse-disable drift
+        db_table = "legacy_posts"  # db-synapse-disable drift
 ```
 
 ## Liên quan

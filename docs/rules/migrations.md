@@ -1,6 +1,6 @@
 # Migration risk rules
 
-`orm-synapse migration-risk --path .` statically analyzes every `<app>/migrations/*.py` in the workspace via `ast.parse` — no Django boot, no database connection, no execution of the migration. It implements **16 rules** over the `operations = [...]` list of each `Migration` class. Every finding carries a severity (`critical` | `warning` | `info`) and a confidence (`high` | `medium` | `low`), plus the description and mitigation shown below.
+`db-synapse migration-risk --path .` statically analyzes every `<app>/migrations/*.py` in the workspace via `ast.parse` — no Django boot, no database connection, no execution of the migration. It implements **16 rules** over the `operations = [...]` list of each `Migration` class. Every finding carries a severity (`critical` | `warning` | `info`) and a confidence (`high` | `medium` | `low`), plus the description and mitigation shown below.
 
 Usage and CI semantics:
 

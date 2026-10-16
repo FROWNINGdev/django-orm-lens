@@ -27,11 +27,11 @@ Public issues let attackers weaponise the report before the patch ships.
 Please use one of these private channels instead:
 
 1. **Preferred — GitHub Private Security Advisory.** Open
-   [github.com/nam-tong/orm-synapse/security/advisories/new](https://github.com/nam-tong/orm-synapse/security/advisories/new).
+   [github.com/nam-tong/db-synapse/security/advisories/new](https://github.com/nam-tong/db-synapse/security/advisories/new).
    This gives us an encrypted thread, keeps the reporter credited, and
    lets us request a CVE once the fix is ready.
 2. **Alternative — email.** Send to `frowningdev@gmail.com` with
-   subject `[orm-synapse SECURITY]`. Include a clear reproducer,
+   subject `[db-synapse SECURITY]`. Include a clear reproducer,
    the affected version, and a proof-of-concept if you have one.
 
 ## What to expect
@@ -47,8 +47,8 @@ Please use one of these private channels instead:
 ## Scope
 
 In-scope: the code shipped as
-`frowningdev.orm-synapse` (VS Code Marketplace + Open VSX),
-`orm-synapse` (PyPI), and `ghcr.io/nam-tong/orm-synapse`
+`frowningdev.db-synapse` (VS Code Marketplace + Open VSX),
+`db-synapse` (PyPI), and `ghcr.io/nam-tong/db-synapse`
 (GHCR image). This includes the MCP server, the static analysis
 parser, and the CLI.
 

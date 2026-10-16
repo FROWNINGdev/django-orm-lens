@@ -27,13 +27,13 @@ Bản thân nơi khai báo sẽ không bị đếm — một field không báo c
 ## Cách dùng
 
 ```bash
-orm-synapse blast-radius --path .                     # chỉ rủi ro mức critical
-orm-synapse blast-radius --severity all               # mọi thứ
-orm-synapse blast-radius --format markdown            # dùng làm PR-comment body
-orm-synapse blast-radius --format github              # GitHub PR annotations
-orm-synapse blast-radius --format json                # định dạng máy đọc được
-orm-synapse blast-radius --no-cascade                 # bỏ qua phân tích cascade bổ sung
-orm-synapse blast-radius --only blog/migrations/0002_drop_author.py
+db-synapse blast-radius --path .                     # chỉ rủi ro mức critical
+db-synapse blast-radius --severity all               # mọi thứ
+db-synapse blast-radius --format markdown            # dùng làm PR-comment body
+db-synapse blast-radius --format github              # GitHub PR annotations
+db-synapse blast-radius --format json                # định dạng máy đọc được
+db-synapse blast-radius --no-cascade                 # bỏ qua phân tích cascade bổ sung
+db-synapse blast-radius --only blog/migrations/0002_drop_author.py
 ```
 
 - **`--severity critical|warning|info|all`** (mặc định `critical`) — rủi ro tối thiểu, tương tự `migration-risk`.
@@ -46,7 +46,7 @@ orm-synapse blast-radius --only blog/migrations/0002_drop_author.py
 Là một GitHub Action, các finding sẽ trở thành các PR annotation mà không yêu cầu thêm quyền (permissions) nào:
 
 ```yaml
-- uses: nam-tong/orm-synapse@action-v1
+- uses: nam-tong/db-synapse@action-v1
   with:
     command: blast-radius
     format: github
@@ -55,7 +55,7 @@ Là một GitHub Action, các finding sẽ trở thành các PR annotation mà k
 Các annotation sẽ trỏ thẳng vào **dòng trong migration** — dòng mã mà người duyệt có thể thao tác — và nêu rõ số lượng tham chiếu trong tiêu đề, để thấy rõ hậu quả mà không cần mở tab thứ hai:
 
 ```
-::error file=blog/migrations/0002_drop_author.py,line=7,title=orm-synapse: remove_field_still_referenced (2 certain reference(s))::…
+::error file=blog/migrations/0002_drop_author.py,line=7,title=db-synapse: remove_field_still_referenced (2 certain reference(s))::…
 ```
 
 ### Dùng làm PR comment
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: nam-tong/orm-synapse@action-v1
+      - uses: nam-tong/db-synapse@action-v1
         with:
           command: blast-radius
           only-changed: true
@@ -88,19 +88,19 @@ Một số lưu ý về cách hoạt động, để không có gì khiến bạn
 - Comment được tạo **trước** khi job báo fail, do vậy một PR bị block vẫn sẽ mang theo lời giải thích về nguyên nhân. Mã thoát được bảo toàn — rủi ro critical vẫn làm bài kiểm tra fail.
 - Danh sách file thay đổi đến từ API chứ không phải từ `git diff`: `actions/checkout` mặc định dùng `fetch-depth: 1`, do đó commit cơ sở không có trong lịch sử git ở local và diff sẽ sai hoặc rỗng.
 - Đối với sự kiện `push`, cả hai flag đều bị bỏ qua (kèm theo một thông báo) thay vì làm lệnh fail — vì thế cùng một workflow có thể chạy trên event push mà không cần phải viết điều kiện ngoại lệ (special-casing).
-- Việc cập nhật hoạt động bằng cách tìm đoạn mã đánh dấu `<!-- orm-synapse: blast-radius -->`, thứ mà trình kết xuất markdown luôn tạo ra ở dòng đầu tiên.
+- Việc cập nhật hoạt động bằng cách tìm đoạn mã đánh dấu `<!-- db-synapse: blast-radius -->`, thứ mà trình kết xuất markdown luôn tạo ra ở dòng đầu tiên.
 - `github-token: ${{ github.token }}` là đủ; không cần PAT, không cần App.
 
 ## Số liệu thống kê Production (tùy chọn)
 
 Tất cả những phân tích bên trên đều là tĩnh (static), điều này để lại một khoảng trống trung thực: mã nguồn không thể phân biệt được một bảng có bốn mươi triệu dòng với một bảng rỗng. Lệnh `migration-risk` tạm thời vượt qua điều này bằng một phương pháp ước lượng (heuristic) — *bất kỳ thứ gì được tạo ra sau file `0001_` đều được giả định là có dữ liệu* — đủ đúng để hữu ích, nhưng cũng đủ sai để gây phiền toái.
 
-Cờ `--stats` sẽ thu hẹp khoảng trống này, và **orm-synapse vẫn sẽ không bao giờ kết nối tới một cơ sở dữ liệu**. Bạn tự chạy một câu truy vấn chỉ đọc (read-only) và đưa lại kết quả cho công cụ:
+Cờ `--stats` sẽ thu hẹp khoảng trống này, và **db-synapse vẫn sẽ không bao giờ kết nối tới một cơ sở dữ liệu**. Bạn tự chạy một câu truy vấn chỉ đọc (read-only) và đưa lại kết quả cho công cụ:
 
 ```bash
-orm-synapse stats-sql > stats.sql
+db-synapse stats-sql > stats.sql
 psql -At -d "$DATABASE_URL" -f stats.sql > stats.json     # truy xuất trên bản replica là ổn
-orm-synapse blast-radius --path . --stats stats.json
+db-synapse blast-radius --path . --stats stats.json
 ```
 
 Khi đó báo cáo sẽ mang theo kích thước thực tế:

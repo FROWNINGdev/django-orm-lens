@@ -20,7 +20,7 @@ const DEFAULT_EXCLUDES = [
 
 function getExcludeGlobs(): string[] {
   return vscode.workspace
-    .getConfiguration('ormSynapse')
+    .getConfiguration('dbSynapse')
     .get<string[]>('excludeGlobs', DEFAULT_EXCLUDES);
 }
 
@@ -60,17 +60,17 @@ export class IndexScanner {
       const total = next.apps.reduce((n, a) => n + a.models.length, 0);
       const took = Date.now() - before;
       statusItem.text = `$(database) ${total} model${total === 1 ? '' : 's'}`;
-      statusItem.tooltip = `ORM Synapse — scanned in ${took}ms`;
+      statusItem.tooltip = `DB Synapse — scanned in ${took}ms`;
       statusItem.show();
       // Signal viewsWelcome: the initial scan has completed. From now on the
       // "empty state" reads "no Django models found" instead of "scanning…".
-      vscode.commands.executeCommand('setContext', 'ormSynapse.scanCompleted', true);
+      vscode.commands.executeCommand('setContext', 'dbSynapse.scanCompleted', true);
     } catch (err) {
       outputChannel.appendLine(
         `[scan #${myGen}] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
       );
-      statusItem.text = '$(warning) ORM Synapse';
-      statusItem.tooltip = 'Scan failed — see the ORM Synapse output channel';
+      statusItem.text = '$(warning) DB Synapse';
+      statusItem.tooltip = 'Scan failed — see the DB Synapse output channel';
       statusItem.show();
     }
   }
@@ -96,7 +96,7 @@ export class IndexScanner {
 
   setupWatcher(context: vscode.ExtensionContext): void {
     const autoRefresh = vscode.workspace
-      .getConfiguration('ormSynapse')
+      .getConfiguration('dbSynapse')
       .get<boolean>('autoRefresh', true);
     this.dispose();
     if (!autoRefresh) return;

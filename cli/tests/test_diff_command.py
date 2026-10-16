@@ -9,9 +9,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from orm_synapse.cli import main
-from orm_synapse.diff import diff_schemas, format_diff
-from orm_synapse.parser import scan_workspace
+from db_synapse.cli import main
+from db_synapse.diff import diff_schemas, format_diff
+from db_synapse.parser import scan_workspace
 
 # --- Hand-written fixture schemas ------------------------------------------
 

@@ -51,15 +51,15 @@ jobs:
           fi
           echo "PKG_VERSION=${VER}" >> $GITHUB_OUTPUT
           if [ -n "$VER" ]; then
-            echo "TAGS=ghcr.io/nam-tong/orm-synapse:${VER},ghcr.io/nam-tong/orm-synapse:latest" >> $GITHUB_OUTPUT
+            echo "TAGS=ghcr.io/nam-tong/db-synapse:${VER},ghcr.io/nam-tong/db-synapse:latest" >> $GITHUB_OUTPUT
           else
-            echo "TAGS=ghcr.io/nam-tong/orm-synapse:latest" >> $GITHUB_OUTPUT
+            echo "TAGS=ghcr.io/nam-tong/db-synapse:latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Wait for PyPI to index the version
         # This workflow runs in parallel with publish-pypi.yml, so a fresh
         # tag push often races: GHCR starts before PyPI has indexed the new
-        # version and `pip install orm-synapse==X` in the Dockerfile
+        # version and `pip install db-synapse==X` in the Dockerfile
         # errors with "No matching distribution found".
         #
         # Poll the SIMPLE index (pypi.org/simple/*) — this is what pip
@@ -74,10 +74,10 @@ jobs:
         if: steps.ver.outputs.PKG_VERSION != ''
         run: |
           VER="${{ steps.ver.outputs.PKG_VERSION }}"
-          echo "Waiting for orm-synapse==$VER on the PyPI simple index..."
+          echo "Waiting for db-synapse==$VER on the PyPI simple index..."
           for i in $(seq 1 90); do
-            if curl -fsS "https://pypi.org/simple/orm-synapse/" | grep -q "orm_synapse-${VER}-\|orm-synapse-${VER}.tar.gz"; then
-              echo "orm-synapse==$VER is on the simple index (attempt $i)"
+            if curl -fsS "https://pypi.org/simple/db-synapse/" | grep -q "db_synapse-${VER}-\|db-synapse-${VER}.tar.gz"; then
+              echo "db-synapse==$VER is on the simple index (attempt $i)"
               exit 0
             fi
             echo "Not yet on simple index (attempt $i/90), sleeping 10s..."

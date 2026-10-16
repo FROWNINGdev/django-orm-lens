@@ -15,9 +15,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.drift import detect_drift
-from orm_synapse.parser import parse_models_file, scan_workspace
-from orm_synapse.query_analyzer import (
+from db_synapse.drift import detect_drift
+from db_synapse.parser import parse_models_file, scan_workspace
+from db_synapse.query_analyzer import (
     _unique_together_tuples,
     suggest_indexes,
 )

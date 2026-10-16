@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.query_analyzer import (
+from db_synapse.query_analyzer import (
     NPlusOneFinding,
     NPlusOneScanner,
     scan_for_nplusone,
@@ -411,7 +411,7 @@ class ReverseOneToOneTest(unittest.TestCase):
     )
 
     def _scan(self, views: str) -> list[NPlusOneFinding]:
-        from orm_synapse.parser import scan_workspace
+        from db_synapse.parser import scan_workspace
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

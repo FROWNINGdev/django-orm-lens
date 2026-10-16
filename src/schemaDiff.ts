@@ -2,7 +2,7 @@ import { ParsedField, ParsedModel } from './types';
 import { levenshtein } from './textDistance';
 
 /**
- * ORM Synapse — schema-diff engine.
+ * DB Synapse — schema-diff engine.
  *
  * Pure, side-effect-free. Given two `ParsedModel[]` snapshots (from two
  * git blobs, replayed through `src/parser.ts`), produce a stream of
@@ -22,7 +22,7 @@ import { levenshtein } from './textDistance';
  * Callers:
  *   - src/diffWebview.ts (UI overlay on the ER diagram)
  *   - test/schema-diff.test.js (snapshot tests over pair fixtures)
- *   - future CLI parity: `orm-synapse diff --from <ref> --to <ref>`
+ *   - future CLI parity: `db-synapse diff --from <ref> --to <ref>`
  */
 
 /* ------------------------------  types  ------------------------------ */

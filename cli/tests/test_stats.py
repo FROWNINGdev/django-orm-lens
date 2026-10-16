@@ -1,4 +1,4 @@
-"""Tests for the optional production-statistics input (orm_synapse/stats.py).
+"""Tests for the optional production-statistics input (db_synapse/stats.py).
 
 The contract this file guards is mostly about honesty: a missing table means
 "unknown", never "empty"; every rendered number says it is an estimate; and
@@ -14,13 +14,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from orm_synapse.blast_radius import (
+from db_synapse.blast_radius import (
     analyze_blast_radius,
     format_markdown,
     format_text,
 )
-from orm_synapse.parser import scan_workspace
-from orm_synapse.stats import (
+from db_synapse.parser import scan_workspace
+from db_synapse.stats import (
     STATS_QUERY,
     ProductionStats,
     StatsError,

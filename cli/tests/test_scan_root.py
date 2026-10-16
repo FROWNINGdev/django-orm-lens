@@ -19,7 +19,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.parser import scan_workspace
+from db_synapse.parser import scan_workspace
 
 MODELS_SOURCE = """from django.db import models
 

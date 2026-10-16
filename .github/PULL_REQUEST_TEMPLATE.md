@@ -40,5 +40,5 @@ Or list the new tests you added.
 <!--
 Closes #123
 Refs #456
-Discussion: https://github.com/nam-tong/orm-synapse/discussions/28
+Discussion: https://github.com/nam-tong/db-synapse/discussions/28
 -->

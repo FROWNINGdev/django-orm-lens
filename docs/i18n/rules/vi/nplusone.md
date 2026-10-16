@@ -15,11 +15,11 @@ Các finding sẽ liệt kê vị trí vòng lặp, thuộc tính được truy 
 ## Cách dùng
 
 ```bash
-orm-synapse nplusone --path .                    # toàn bộ dự án
-orm-synapse nplusone --path apps/blog            # một app cụ thể
-orm-synapse nplusone --format json               # định dạng máy đọc được
-orm-synapse nplusone --format github             # GitHub PR annotations
-orm-synapse nplusone --severity warning          # chỉ báo cáo từ mức warning trở lên
+db-synapse nplusone --path .                    # toàn bộ dự án
+db-synapse nplusone --path apps/blog            # một app cụ thể
+db-synapse nplusone --format json               # định dạng máy đọc được
+db-synapse nplusone --format github             # GitHub PR annotations
+db-synapse nplusone --severity warning          # chỉ báo cáo từ mức warning trở lên
 ```
 
 - **`--path PATH`** — thư mục gốc để quét (mặc định: thư mục hiện tại).
@@ -31,7 +31,7 @@ orm-synapse nplusone --severity warning          # chỉ báo cáo từ mức wa
 ## Trong CI
 
 ```yaml
-- uses: nam-tong/orm-synapse@action-v1
+- uses: nam-tong/db-synapse@action-v1
   with:
     command: nplusone
     format: github

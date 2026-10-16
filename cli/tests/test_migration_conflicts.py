@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.migrations_parser import analyze_migration_risks
+from db_synapse.migrations_parser import analyze_migration_risks
 
 RULE = "conflicting_migration_leaves"
 

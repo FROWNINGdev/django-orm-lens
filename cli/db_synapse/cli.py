@@ -1,21 +1,21 @@
-"""Command-line entry point for ``orm-synapse``.
+"""Command-line entry point for ``db-synapse``.
 
 Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
 
-  orm-synapse scan       — walk workspace, list every model
-  orm-synapse describe   — one model in detail
-  orm-synapse er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
-  orm-synapse hover      — compact hover card for one model
-  orm-synapse list       — flat list ``app.Model`` for shell piping
-  orm-synapse diff       — compare two schema JSON dumps
-  orm-synapse nplusone   — static N+1 detector (text/json/sarif/github)
-  orm-synapse migration-risk  — flag risky migration operations
-  orm-synapse suggest-indexes — propose Meta.indexes from QuerySet usage
-  orm-synapse signals    — sender→signal→handler graph from @receiver
-  orm-synapse migration-deps  — per-app migration dependency DAG
-  orm-synapse cascade    — what delete() cascades to, by on_delete
-  orm-synapse denormalize — denormalization smells (review only, exit 0)
-  orm-synapse mcp        — start the MCP stdio server (extras required)
+  db-synapse scan       — walk workspace, list every model
+  db-synapse describe   — one model in detail
+  db-synapse er         — ER diagram: mermaid / dbml / d2 / plantuml / dot
+  db-synapse hover      — compact hover card for one model
+  db-synapse list       — flat list ``app.Model`` for shell piping
+  db-synapse diff       — compare two schema JSON dumps
+  db-synapse nplusone   — static N+1 detector (text/json/sarif/github)
+  db-synapse migration-risk  — flag risky migration operations
+  db-synapse suggest-indexes — propose Meta.indexes from QuerySet usage
+  db-synapse signals    — sender→signal→handler graph from @receiver
+  db-synapse migration-deps  — per-app migration dependency DAG
+  db-synapse cascade    — what delete() cascades to, by on_delete
+  db-synapse denormalize — denormalization smells (review only, exit 0)
+  db-synapse mcp        — start the MCP stdio server (extras required)
 """
 
 from __future__ import annotations
@@ -500,7 +500,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
 def _cmd_stats_sql(_args: argparse.Namespace) -> int:
     """Print the query that produces a --stats file.
 
-    Printed rather than executed on purpose: orm-synapse never holds a
+    Printed rather than executed on purpose: db-synapse never holds a
     database credential. The operator runs this against a replica or a
     read-only role and hands over the JSON.
     """
@@ -681,11 +681,11 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="orm-synapse",
+        prog="db-synapse",
         description="Static analysis for Django models. Terminal + AI agent friendly.",
     )
     p.add_argument(
-        "--version", action="version", version=f"orm-synapse {__version__}"
+        "--version", action="version", version=f"db-synapse {__version__}"
     )
     sub = p.add_subparsers(dest="command")
     p.set_defaults(func=_cmd_hello)
@@ -930,7 +930,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Production table statistics as JSON — turns 'probably populated' "
             "into an estimated row count. Generate it with "
-            "`orm-synapse stats-sql`; the tool never connects to a database"
+            "`db-synapse stats-sql`; the tool never connects to a database"
         ),
     )
     blast.add_argument(
@@ -1008,7 +1008,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcp = sub.add_parser(
         "mcp",
-        help="Run the MCP stdio server (requires 'pip install orm-synapse[mcp]')",
+        help="Run the MCP stdio server (requires 'pip install db-synapse[mcp]')",
     )
     mcp.set_defaults(func=_cmd_mcp)
 
@@ -1016,7 +1016,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_hello(_args: argparse.Namespace) -> int:
-    print("orm-synapse — static analysis for Django models.")
+    print("db-synapse — static analysis for Django models.")
     print()
     print("commands:")
     print("  scan               Scan the current directory for Django apps + models")
@@ -1038,15 +1038,15 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  stats-sql          Read-only SQL that produces a --stats file")
     print("  mcp                Run the MCP stdio server for AI coding agents")
     print()
-    print("run `orm-synapse <command> --help` for options.")
-    print("docs: https://github.com/nam-tong/orm-synapse")
+    print("run `db-synapse <command> --help` for options.")
+    print("docs: https://github.com/nam-tong/db-synapse")
     print()
     print("prefer a visual sidebar + ER diagram in your editor?")
-    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.orm-synapse")
-    print("  VSCodium / code-server:       codium --install-extension frowningdev.orm-synapse")
+    print("  VS Code / Cursor / Windsurf:  code --install-extension frowningdev.db-synapse")
+    print("  VSCodium / code-server:       codium --install-extension frowningdev.db-synapse")
     print()
     print("if this saves you a search, star helps others find it:")
-    print("  https://github.com/nam-tong/orm-synapse")
+    print("  https://github.com/nam-tong/db-synapse")
     return 0
 
 
@@ -1056,7 +1056,7 @@ def _cmd_mcp(_args: argparse.Namespace) -> int:
     except ImportError as e:
         print(
             "error: MCP server dependencies not installed.\n"
-            "install with: pip install 'orm-synapse[mcp]'\n"
+            "install with: pip install 'db-synapse[mcp]'\n"
             f"({e})",
             file=sys.stderr,
         )

@@ -1,6 +1,6 @@
 # Blast radius
 
-`orm-synapse blast-radius --path .` answers the question a schema change actually raises in review: **what does this hit?**
+`db-synapse blast-radius --path .` answers the question a schema change actually raises in review: **what does this hit?**
 
 Three analyzers in this package each answer a third of it, and running them separately leaves the reviewer to join the results by hand — which in practice nobody does:
 
@@ -39,13 +39,13 @@ The definition site itself is not counted — a field does not report its own de
 ## Usage
 
 ```bash
-orm-synapse blast-radius --path .                     # critical risks only
-orm-synapse blast-radius --severity all               # everything
-orm-synapse blast-radius --format markdown            # PR-comment body
-orm-synapse blast-radius --format github              # PR annotations
-orm-synapse blast-radius --format json                # machine-readable
-orm-synapse blast-radius --no-cascade                 # skip the extra parse
-orm-synapse blast-radius --only blog/migrations/0002_drop_author.py
+db-synapse blast-radius --path .                     # critical risks only
+db-synapse blast-radius --severity all               # everything
+db-synapse blast-radius --format markdown            # PR-comment body
+db-synapse blast-radius --format github              # PR annotations
+db-synapse blast-radius --format json                # machine-readable
+db-synapse blast-radius --no-cascade                 # skip the extra parse
+db-synapse blast-radius --only blog/migrations/0002_drop_author.py
 ```
 
 - **`--severity critical|warning|info|all`** (default `critical`) — minimum risk severity, matching `migration-risk`.
@@ -58,7 +58,7 @@ orm-synapse blast-radius --only blog/migrations/0002_drop_author.py
 As a GitHub Action, findings become PR annotations with no extra permissions:
 
 ```yaml
-- uses: nam-tong/orm-synapse@action-v1
+- uses: nam-tong/db-synapse@action-v1
   with:
     command: blast-radius
     format: github
@@ -67,7 +67,7 @@ As a GitHub Action, findings become PR annotations with no extra permissions:
 Annotations point at the **migration line** — the line a reviewer can act on — and name the reference count in the title, so the consequence is visible without opening a second tab:
 
 ```
-::error file=blog/migrations/0002_drop_author.py,line=7,title=orm-synapse: remove_field_still_referenced (2 certain reference(s))::…
+::error file=blog/migrations/0002_drop_author.py,line=7,title=db-synapse: remove_field_still_referenced (2 certain reference(s))::…
 ```
 
 ### As a PR comment
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: nam-tong/orm-synapse@action-v1
+      - uses: nam-tong/db-synapse@action-v1
         with:
           command: blast-radius
           only-changed: true
@@ -100,19 +100,19 @@ Notes on behaviour, so nothing surprises you in a live run:
 - The comment is posted **before** the job fails, so a blocked PR still carries the explanation of why. The exit code is preserved — critical risks still fail the check.
 - The changed-file list comes from the API, not `git diff`: `actions/checkout` defaults to `fetch-depth: 1`, so the base commit is not in the local history and a diff would be wrong or empty.
 - On a `push` event both flags are skipped with a notice rather than failing — the same workflow can run on pushes without special-casing.
-- Updating works by matching the marker `<!-- orm-synapse: blast-radius -->`, which the markdown renderer always emits as its first line.
+- Updating works by matching the marker `<!-- db-synapse: blast-radius -->`, which the markdown renderer always emits as its first line.
 - `github-token: ${{ github.token }}` is enough; no PAT, no app.
 
 ## Production statistics (optional)
 
 Everything above is static, which leaves one honest gap: source code cannot tell a table with forty million rows from an empty one. `migration-risk` papers over it with a heuristic — *anything after `0001_` is assumed populated* — right often enough to be useful, wrong often enough to be annoying.
 
-`--stats` closes the gap, and **orm-synapse still never connects to a database**. You run one read-only query yourself and hand over the result:
+`--stats` closes the gap, and **db-synapse still never connects to a database**. You run one read-only query yourself and hand over the result:
 
 ```bash
-orm-synapse stats-sql > stats.sql
+db-synapse stats-sql > stats.sql
 psql -At -d "$DATABASE_URL" -f stats.sql > stats.json     # a replica is fine
-orm-synapse blast-radius --path . --stats stats.json
+db-synapse blast-radius --path . --stats stats.json
 ```
 
 The report then carries the real size:

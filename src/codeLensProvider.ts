@@ -14,7 +14,7 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
 
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     if (document.languageId !== 'python') return [];
-    const cfg = vscode.workspace.getConfiguration('ormSynapse');
+    const cfg = vscode.workspace.getConfiguration('dbSynapse');
     if (!cfg.get<boolean>('showCodeLens', true)) return [];
     const index = this.getIndex();
     const docPath = document.uri.fsPath.replace(/\\/g, '/').toLowerCase();
@@ -38,7 +38,7 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
           lenses.push(
             new vscode.CodeLens(range, {
               title: `$(references) proxy of ${table.name} · Open ER diagram`,
-              command: 'ormSynapse.showGraph',
+              command: 'dbSynapse.showGraph',
               arguments: [model.filePath, model.lineNumber],
               tooltip: `${model.appName}.${model.name} has no table of its own. The diagram shows ${table.appName}.${table.name}.`,
             })
@@ -46,7 +46,7 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
           lenses.push(
             new vscode.CodeLens(range, {
               title: '$(beaker) Generate factory',
-              command: 'ormSynapse.generateFactory',
+              command: 'dbSynapse.generateFactory',
               arguments: [model.filePath, model.lineNumber],
               tooltip: `Scaffold a factory_boy DjangoModelFactory for ${model.name}`,
             })
@@ -64,7 +64,7 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
         lenses.push(
           new vscode.CodeLens(range, {
             title,
-            command: 'ormSynapse.showGraph',
+            command: 'dbSynapse.showGraph',
             arguments: [model.filePath, model.lineNumber],
             tooltip: `${model.appName}.${model.name} — ${relations} relation field${relations === 1 ? '' : 's'} point here. Click to diagram this model, every descendant, and the parents of those descendants`,
           })
@@ -72,7 +72,7 @@ export class DjangoCodeLensProvider implements vscode.CodeLensProvider {
         lenses.push(
           new vscode.CodeLens(range, {
             title: '$(beaker) Generate factory',
-            command: 'ormSynapse.generateFactory',
+            command: 'dbSynapse.generateFactory',
             arguments: [model.filePath, model.lineNumber],
             tooltip: `Scaffold a factory_boy DjangoModelFactory for ${model.name}`,
           })

@@ -1,6 +1,6 @@
 # Static N+1 detector
 
-`orm-synapse nplusone --path .` (alias: `n-plus-one`) walks every `.py` file in the workspace — skipping `migrations/`, virtualenvs, `node_modules/`, hidden directories, `site-packages`, `dist`, `build`, `eggs` — parses each with `ast.parse`, and flags the classic Django N+1 shape: a `for` loop over a queryset whose body accesses a related object per iteration, with no matching `select_related` / `prefetch_related` on the source queryset. No Django boot, no database, no code execution.
+`db-synapse nplusone --path .` (alias: `n-plus-one`) walks every `.py` file in the workspace — skipping `migrations/`, virtualenvs, `node_modules/`, hidden directories, `site-packages`, `dist`, `build`, `eggs` — parses each with `ast.parse`, and flags the classic Django N+1 shape: a `for` loop over a queryset whose body accesses a related object per iteration, with no matching `select_related` / `prefetch_related` on the source queryset. No Django boot, no database, no code execution.
 
 ## What it detects
 
@@ -44,10 +44,10 @@ When the source model is known but the attribute is not a declared relation, the
 ## CLI usage
 
 ```bash
-orm-synapse nplusone --path .                    # all findings, text output
-orm-synapse nplusone --confidence high           # schema-confirmed findings only
-orm-synapse nplusone --format sarif > npo.sarif  # SARIF 2.1.0 for GitHub Code Scanning
-orm-synapse nplusone --format github             # ::warning workflow commands for PR annotations
+db-synapse nplusone --path .                    # all findings, text output
+db-synapse nplusone --confidence high           # schema-confirmed findings only
+db-synapse nplusone --format sarif > npo.sarif  # SARIF 2.1.0 for GitHub Code Scanning
+db-synapse nplusone --format github             # ::warning workflow commands for PR annotations
 ```
 
 - **`--confidence high|medium|all`** (default `all`) — minimum confidence to report; `medium` includes `high`. Use `high` in CI to keep the gate noise-free.

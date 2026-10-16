@@ -21,7 +21,7 @@ Existing ``Meta.indexes`` are read from the parser output and returned so
 callers can dedupe suggestions the user has already covered.
 
 Implementation is split by concern; this module re-exports both halves so
-existing ``from orm_synapse.query_analyzer import ...`` callers keep working:
+existing ``from db_synapse.query_analyzer import ...`` callers keep working:
 
 * ``index_suggestions`` — ``suggest_indexes`` and its helpers
 * ``nplusone`` — ``scan_for_nplusone`` and the N+1 detector

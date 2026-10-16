@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WorkspaceIndex } from '../types';
 
 /**
- * ORM Synapse — rules engine core types.
+ * DB Synapse — rules engine core types.
  *
  * The architecture is a hybrid distilled from the mainstream lint ecosystems:
  *
@@ -31,7 +31,7 @@ import { WorkspaceIndex } from '../types';
  */
 
 /** Diagnostic.source shown in Problems panel and hover. Stable. */
-export const DIAGNOSTIC_SOURCE = 'ORM Synapse';
+export const DIAGNOSTIC_SOURCE = 'DB Synapse';
 
 /** Prefix for every rule code. Codes are strings like `DOL001`. */
 export const DOL_CODE_PREFIX = 'DOL';
@@ -73,7 +73,7 @@ export interface RuleMeta {
   title: string;
   /** Category for grouping in docs and settings. */
   category: Category;
-  /** Default severity — user can override via ormSynapse.rules.<code>. */
+  /** Default severity — user can override via dbSynapse.rules.<code>. */
   defaultSeverity: Severity;
   /** URL rendered as Diagnostic.code target — "Learn more" link on hover. */
   docsUrl: string;
@@ -119,7 +119,7 @@ export interface Finding {
  * scan the whole document per node.
  */
 /**
- * Database engine the project targets (`ormSynapse.dbEngine`). `auto` means
+ * Database engine the project targets (`dbSynapse.dbEngine`). `auto` means
  * "unknown": engine-specific rules still run, as they did before the setting
  * existed. A concrete engine switches off rules written for another one.
  */

@@ -1,7 +1,7 @@
 # Golden fixtures — real-world Django `models.py`
 
 Vendored `models.py` files from established open-source Django projects. Used
-by `cli/tests/test_golden_fixtures.py` to prove `orm-synapse` survives
+by `cli/tests/test_golden_fixtures.py` to prove `db-synapse` survives
 real-world code at scale.
 
 **Fetch date:** 2026-07-30

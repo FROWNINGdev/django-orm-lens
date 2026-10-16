@@ -1,6 +1,6 @@
 # Denormalization review
 
-`orm-synapse denormalize` reports three smells. It does not prove 2NF or 3NF, and the default exit code is 0, so a pull request is not blocked.
+`db-synapse denormalize` reports three smells. It does not prove 2NF or 3NF, and the default exit code is 0, so a pull request is not blocked.
 
 On a pull request the check looks only at a **new table** (the `class` line is added) or a **new column** (the field line is added). A column that was already there is not annotated. A local run without `--only-added` still reports the whole schema.
 
@@ -13,9 +13,9 @@ On a pull request the check looks only at a **new table** (the `class` line is a
 `company_id = IntegerField()` is not reported. A scalar id without a foreign key is a convention, not a copied column.
 
 ```bash
-orm-synapse denormalize --path . --format github
-orm-synapse denormalize --path . --only-added pr.diff
-orm-synapse denormalize --path . --strict   # exit 1 when a smell is found
+db-synapse denormalize --path . --format github
+db-synapse denormalize --path . --only-added pr.diff
+db-synapse denormalize --path . --strict   # exit 1 when a smell is found
 ```
 
 `--format github` prints `::warning` annotations, never `::error`. Inside GitHub Actions the command also appends a markdown table to the job summary.
@@ -23,7 +23,7 @@ orm-synapse denormalize --path . --strict   # exit 1 when a smell is found
 Silence one column:
 
 ```python
-# orm-synapse-disable-next-line DOL020
+# db-synapse-disable-next-line DOL020
 company_name = models.CharField(max_length=100)  # snapshot taken at checkout
 ```
 
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: frowningdev/orm-synapse@v1
+      - uses: frowningdev/db-synapse@v1
         with:
           command: denormalize
           path: .

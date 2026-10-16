@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.signals_parser import signal_graph
+from db_synapse.signals_parser import signal_graph
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "miniapp"
 

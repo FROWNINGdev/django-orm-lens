@@ -3,7 +3,7 @@
 ## Our Pledge
 
 We as members, contributors, and maintainers pledge to make participation in
-ORM Synapse a harassment-free experience for everyone, regardless of age,
+DB Synapse a harassment-free experience for everyone, regardless of age,
 body size, visible or invisible disability, ethnicity, sex characteristics,
 gender identity and expression, level of experience, education, socio-economic
 status, nationality, personal appearance, race, religion, or sexual identity
@@ -50,7 +50,7 @@ when an individual is officially representing the community in public spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the maintainers by opening a private security advisory at
-<https://github.com/nam-tong/orm-synapse/security/advisories/new>.
+<https://github.com/nam-tong/db-synapse/security/advisories/new>.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.migrations_parser import describe_migration_dependency
+from db_synapse.migrations_parser import describe_migration_dependency
 
 
 def _write_migration(app_dir: Path, name: str, body: str) -> None:

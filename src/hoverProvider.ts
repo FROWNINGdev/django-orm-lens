@@ -30,7 +30,7 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
     if (!model) return undefined;
 
     const doc = new vscode.MarkdownString();
-    doc.isTrusted = { enabledCommands: ['ormSynapse.jumpToModel'] };
+    doc.isTrusted = { enabledCommands: ['dbSynapse.jumpToModel'] };
     doc.supportHtml = false;
     doc.appendMarkdown(`**${md(model.appName)}.${md(model.name)}**\n\n`);
     doc.appendMarkdown(
@@ -65,7 +65,7 @@ export class DjangoHoverProvider implements vscode.HoverProvider {
       JSON.stringify([model.filePath, model.lineNumber])
     );
     doc.appendMarkdown(
-      `\n[Jump to ${md(model.name)}](command:ormSynapse.jumpToModel?${jumpArgs})`
+      `\n[Jump to ${md(model.name)}](command:dbSynapse.jumpToModel?${jumpArgs})`
     );
 
     return new vscode.Hover(doc, wordRange);

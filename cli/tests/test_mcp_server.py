@@ -1,4 +1,4 @@
-"""Integration tests for :mod:`orm_synapse.mcp_server`.
+"""Integration tests for :mod:`db_synapse.mcp_server`.
 
 These validate the contract that FastMCP will expose to AI agents:
 
@@ -43,8 +43,8 @@ except ImportError:
         # Binding it once here keeps the name defined on all three paths.
         FastMCP = None  # type: ignore[assignment, misc]
 
-from orm_synapse import __version__
-from orm_synapse.mcp_server import (
+from db_synapse import __version__
+from db_synapse.mcp_server import (
     TOOLS,
     _advertise_our_version,
     _load_server_class,
@@ -61,7 +61,7 @@ from orm_synapse.mcp_server import (
     _tool_signal_graph,
     _tool_suggest_indexes,
 )
-from orm_synapse.workspace import WorkspaceError, clear_cache
+from db_synapse.workspace import WorkspaceError, clear_cache
 
 _MODELS_SOURCE = """from django.db import models
 
@@ -282,7 +282,7 @@ class HappyPathTest(unittest.TestCase):
         result = _tool_er_diagram(
             {"workspace_root": str(self.tmp), "diagram_format": "dot"}
         )
-        self.assertTrue(result.startswith("digraph orm_synapse {"))
+        self.assertTrue(result.startswith("digraph db_synapse {"))
         self.assertIn('subgraph "cluster_myapp" {', result)
 
     def test_describe_model_returns_field_detail(self) -> None:
@@ -341,7 +341,7 @@ def _registered_server():
     import io
     from unittest import mock
 
-    from orm_synapse import mcp_server
+    from db_synapse import mcp_server
 
     loaded = _load_server_class()
     if loaded is None:
@@ -438,7 +438,7 @@ class AdvertisedVersionTest(unittest.TestCase):
     def test_sets_the_package_version_on_the_low_level_server(self) -> None:
         if FastMCP is None:
             self.skipTest("mcp extra not installed")
-        server = FastMCP("orm-synapse")
+        server = FastMCP("db-synapse")
         self.assertEqual(_advertise_our_version(server), __version__)
         self.assertEqual(_lowlevel_handle(server).version, __version__)
 
@@ -451,11 +451,11 @@ class AdvertisedVersionTest(unittest.TestCase):
         """
         if FastMCP is None:
             self.skipTest("mcp extra not installed")
-        server = FastMCP("orm-synapse")
+        server = FastMCP("db-synapse")
         _advertise_our_version(server)
         opts = _lowlevel_handle(server).create_initialization_options()
         self.assertEqual(opts.server_version, __version__)
-        self.assertEqual(opts.server_name, "orm-synapse")
+        self.assertEqual(opts.server_name, "db-synapse")
 
     def test_unexpected_sdk_shape_is_survivable(self) -> None:
         """A stub without the private handle must not raise."""

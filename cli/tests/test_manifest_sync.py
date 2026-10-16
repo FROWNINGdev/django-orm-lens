@@ -28,7 +28,7 @@ REPO_ROOT = CLI_DIR.parent
 PYPROJECT = CLI_DIR / "pyproject.toml"
 SERVER_JSON = CLI_DIR / "server.json"
 SMITHERY_YAML = REPO_ROOT / "smithery.yaml"
-MCP_SERVER_PY = CLI_DIR / "orm_synapse" / "mcp_server.py"
+MCP_SERVER_PY = CLI_DIR / "db_synapse" / "mcp_server.py"
 
 # Written-out numerals for the docstring phrase "Exposes <word> read-only
 # tools". Extend if the registry ever grows past fifteen.
@@ -96,7 +96,7 @@ def _registered_tool_count_and_docstring():
     package at import time), fall back to reading the source text.
     """
     try:
-        from orm_synapse import mcp_server
+        from db_synapse import mcp_server
 
         return len(mcp_server.TOOLS), mcp_server.__doc__ or ""
     except ImportError:

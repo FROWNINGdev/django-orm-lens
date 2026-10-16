@@ -19,7 +19,7 @@ import json as _json
 import unittest
 from pathlib import Path
 
-from orm_synapse.cli import main
+from db_synapse.cli import main
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
 MINIAPP = FIXTURE_ROOT / "miniapp"

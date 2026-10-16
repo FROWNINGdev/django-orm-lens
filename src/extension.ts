@@ -35,10 +35,10 @@ let scanner: IndexScanner;
 
 export async function activate(context: vscode.ExtensionContext) {
   treeProvider = new DjangoTreeProvider(context.workspaceState);
-  outputChannel = vscode.window.createOutputChannel('ORM Synapse');
+  outputChannel = vscode.window.createOutputChannel('DB Synapse');
   context.subscriptions.push(outputChannel);
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  statusItem.command = 'ormSynapse.showGraph';
+  statusItem.command = 'dbSynapse.showGraph';
   context.subscriptions.push(statusItem);
   scanner = new IndexScanner({
     setIndex: (index) => treeProvider.setIndex(index),
@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel,
   });
 
-  const treeView = vscode.window.createTreeView('ormSynapse.models', {
+  const treeView = vscode.window.createTreeView('dbSynapse.models', {
     treeDataProvider: treeProvider,
     manageCheckboxStateManually: true,
   });
@@ -101,7 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Activity-bar badge: passive count of ORM Synapse findings.
+  // Activity-bar badge: passive count of DB Synapse findings.
   // GitHub PRs / Docker style — user glances at the icon and knows what's
   // outstanding without opening the view. Dot when unknown, number when > 0.
   const updateBadge = () => {
@@ -115,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext) {
       ? undefined
       : {
           value: n,
-          tooltip: `${n} ORM Synapse issue${n === 1 ? '' : 's'}`,
+          tooltip: `${n} DB Synapse issue${n === 1 ? '' : 's'}`,
         };
   };
   updateBadge();
@@ -181,7 +181,7 @@ export async function activate(context: vscode.ExtensionContext) {
           // the setting takes effect without a window reload.
           if (
             !vscode.workspace
-              .getConfiguration('ormSynapse')
+              .getConfiguration('dbSynapse')
               .get<boolean>('completions.enabled', true)
           ) {
             return [];
@@ -232,21 +232,21 @@ export async function activate(context: vscode.ExtensionContext) {
   // v0.8 · WOW-feature #3 from Discussion #27 — static-analysis QuickFixes:
   // `.count() > 0` -> `.exists()`, `.first() is None` -> `not .exists()`,
   // and N+1 attribute-access-in-loop diagnostics. Feature-flagged via
-  // ormSynapse.codeFixes.enabled (default true).
+  // dbSynapse.codeFixes.enabled (default true).
   context.subscriptions.push(scanner.emitter);
   for (const d of registerCodeFixes(context, () => scanner.index, scanner.onDidChange)) {
     context.subscriptions.push(d);
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ormSynapse.refresh', async () => {
+    vscode.commands.registerCommand('dbSynapse.refresh', async () => {
       await scanner.refresh();
-      vscode.window.setStatusBarMessage('$(check) ORM Synapse refreshed', 2000);
+      vscode.window.setStatusBarMessage('$(check) DB Synapse refreshed', 2000);
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ormSynapse.filter', async () => {
+    vscode.commands.registerCommand('dbSynapse.filter', async () => {
       const value = await vscode.window.showInputBox({
         prompt: 'Filter models and fields',
         placeHolder: 'e.g. User, order.status, ForeignKey',
@@ -257,14 +257,14 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ormSynapse.clearFilter', () => {
+    vscode.commands.registerCommand('dbSynapse.clearFilter', () => {
       treeProvider.setFilter('');
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'ormSynapse.showGraph',
+      'dbSynapse.showGraph',
       async (filePath?: unknown, lineNumber?: unknown) => {
       if (scanner.index.apps.length === 0) await scanner.refresh();
       const fromModel = typeof filePath === 'string' && typeof lineNumber === 'number';
@@ -293,7 +293,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // M2M gets .prefetch_related, reverse FK gets Count() annotation.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'ormSynapse.buildQuery',
+      'dbSynapse.buildQuery',
       async (arg?: TreeNode) => {
         if (scanner.index.apps.length === 0) await scanner.refresh();
         let target: Parameters<typeof generateQueryTemplates>[0] | undefined;
@@ -329,7 +329,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ])
           );
           const chosen = await vscode.window.showQuickPick(picks, {
-            title: 'ORM Synapse — Query Builder',
+            title: 'DB Synapse — Query Builder',
             placeHolder: 'Pick a target field or model',
           });
           if (!chosen) return;
@@ -339,7 +339,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const templates = generateQueryTemplates(target, scanner.index);
         if (templates.length === 0) {
           vscode.window.showInformationMessage(
-            'ORM Synapse: no templates apply to this target.',
+            'DB Synapse: no templates apply to this target.',
           );
           return;
         }
@@ -368,7 +368,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const modelName =
           target.kind === 'model' ? target.modelName : target.modelName;
         const boiler = [
-          `# ORM Synapse — Query Builder scratch`,
+          `# DB Synapse — Query Builder scratch`,
           `# from ${
             scanner.index.apps.find((a) =>
               a.models.some((m) => m.name === modelName),
@@ -396,7 +396,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // Certain/Likely/Possibly confidence badges; picking one jumps there.
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'ormSynapse.findImpact',
+      'dbSynapse.findImpact',
       async (arg?: TreeNode | string) => {
         if (scanner.index.apps.length === 0) await scanner.refresh();
         let needle: string | undefined;
@@ -427,7 +427,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ])
           );
           const chosen = await vscode.window.showQuickPick(picks, {
-            title: 'ORM Synapse — Impact Analysis',
+            title: 'DB Synapse — Impact Analysis',
             placeHolder: 'Pick a field or model to trace',
           });
           if (!chosen) return;
@@ -438,14 +438,14 @@ export async function activate(context: vscode.ExtensionContext) {
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            title: `ORM Synapse: scanning references to '${needle}'…`,
+            title: `DB Synapse: scanning references to '${needle}'…`,
             cancellable: true,
           },
           async (_progress, token) => {
             const findings = await scanImpact(needle!, { skipFiles, token });
             if (findings.length === 0) {
               vscode.window.showInformationMessage(
-                `ORM Synapse: no references to '${needle}' found across the workspace.`,
+                `DB Synapse: no references to '${needle}' found across the workspace.`,
               );
               return;
             }
@@ -493,7 +493,7 @@ export async function activate(context: vscode.ExtensionContext) {
     Awaited<ReturnType<typeof parseModelsFile>>
   >(50);
   context.subscriptions.push(
-    vscode.commands.registerCommand('ormSynapse.showDiff', async () => {
+    vscode.commands.registerCommand('dbSynapse.showDiff', async () => {
       if (scanner.index.apps.length === 0) await scanner.refresh();
       const modelsFiles = [
         ...new Set(
@@ -502,7 +502,7 @@ export async function activate(context: vscode.ExtensionContext) {
       ];
       if (modelsFiles.length === 0) {
         vscode.window.showInformationMessage(
-          'ORM Synapse: no models.py found — scan a Django project first.',
+          'DB Synapse: no models.py found — scan a Django project first.',
         );
         return;
       }
@@ -510,7 +510,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (modelsFiles.length > 1) {
         const pick = await vscode.window.showQuickPick(
           modelsFiles.map((p) => ({ label: p, description: 'models.py' })),
-          { title: 'ORM Synapse — schema diff', placeHolder: 'Pick a models.py' },
+          { title: 'DB Synapse — schema diff', placeHolder: 'Pick a models.py' },
         );
         if (!pick) return;
         target = pick.label;
@@ -518,7 +518,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(target));
       if (!wsFolder) {
         vscode.window.showWarningMessage(
-          'ORM Synapse: file is outside the current workspace.',
+          'DB Synapse: file is outside the current workspace.',
         );
         return;
       }
@@ -529,7 +529,7 @@ export async function activate(context: vscode.ExtensionContext) {
         commits = await gitLogFollow(cwd, target, 200);
       } catch (err) {
         vscode.window.showWarningMessage(
-          `ORM Synapse: git log failed — is this a git repo? (${
+          `DB Synapse: git log failed — is this a git repo? (${
             err instanceof Error ? err.message : String(err)
           })`,
         );
@@ -537,7 +537,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       if (commits.length < 2) {
         vscode.window.showInformationMessage(
-          'ORM Synapse: need at least 2 commits touching this file for a diff.',
+          'DB Synapse: need at least 2 commits touching this file for a diff.',
         );
         return;
       }
@@ -577,7 +577,7 @@ export async function activate(context: vscode.ExtensionContext) {
         ]);
       } catch (err) {
         vscode.window.showWarningMessage(
-          `ORM Synapse: could not read historical models.py (${
+          `DB Synapse: could not read historical models.py (${
             err instanceof Error ? err.message : String(err)
           })`,
         );
@@ -586,7 +586,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const events = diffSchemas(oldModels, newModels);
       const header = [
-        `# ORM Synapse — Schema Diff`,
+        `# DB Synapse — Schema Diff`,
         '',
         `**From:** \`${fromPick.sha.slice(0, 8)}\` — ${new Date(
           commits.find((c) => c.sha === fromPick.sha)!.ct * 1000,
@@ -615,7 +615,7 @@ export async function activate(context: vscode.ExtensionContext) {
   //   (c) from the command palette (no args):   pick model via QuickPick
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'ormSynapse.generateFactory',
+      'dbSynapse.generateFactory',
       async (arg1?: string | TreeNode, arg2?: number) => {
         if (scanner.index.apps.length === 0) await scanner.refresh();
         let target: { filePath: string; lineNumber?: number; name?: string } | undefined;
@@ -657,7 +657,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         if (!model) {
           vscode.window.showInformationMessage(
-            'ORM Synapse: no model matched — try Refresh and retry.'
+            'DB Synapse: no model matched — try Refresh and retry.'
           );
           return;
         }
@@ -673,7 +673,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'ormSynapse.jumpToModel',
+      'dbSynapse.jumpToModel',
       async (filePath: string, lineNumber: number) => {
         try {
           if (typeof filePath !== 'string' || typeof lineNumber !== 'number') {
@@ -694,7 +694,7 @@ export async function activate(context: vscode.ExtensionContext) {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           vscode.window.showWarningMessage(
-            `ORM Synapse: could not open ${filePath}. It may have been moved, deleted, or is outside the workspace. (${msg})`
+            `DB Synapse: could not open ${filePath}. It may have been moved, deleted, or is outside the workspace. (${msg})`
           );
           scanner.refresh().catch((refreshErr) =>
             outputChannel.appendLine(
@@ -708,11 +708,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'ormSynapse.findReverseRefs',
+      'dbSynapse.findReverseRefs',
       async (node?: TreeNode) => {
         if (!node || node.kind !== 'model') {
           vscode.window.showInformationMessage(
-            'ORM Synapse: right-click a model in the sidebar to find reverse references.'
+            'DB Synapse: right-click a model in the sidebar to find reverse references.'
           );
           return;
         }
@@ -768,15 +768,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('ormSynapse.autoRefresh')) scanner.setupWatcher(context);
-      if (e.affectsConfiguration('ormSynapse.excludeGlobs')) {
+      if (e.affectsConfiguration('dbSynapse.autoRefresh')) scanner.setupWatcher(context);
+      if (e.affectsConfiguration('dbSynapse.excludeGlobs')) {
         scanner.refresh().catch((err) =>
           outputChannel.appendLine(
             `[config-refresh] ${err instanceof Error ? err.stack ?? err.message : String(err)}`
           )
         );
       }
-      if (e.affectsConfiguration('ormSynapse.showCodeLens')) {
+      if (e.affectsConfiguration('dbSynapse.showCodeLens')) {
         codeLensProvider?.refresh();
       }
     })

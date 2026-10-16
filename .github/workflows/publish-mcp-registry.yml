@@ -101,18 +101,18 @@ jobs:
             echo "::error::could not read .packages[0].version from cli/server.json"
             exit 1
           fi
-          URL="https://pypi.org/pypi/orm-synapse/${VERSION}/json"
+          URL="https://pypi.org/pypi/db-synapse/${VERSION}/json"
           echo "waiting for $URL"
           for attempt in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
             if [ "$code" = "200" ]; then
-              echo "PyPI has orm-synapse==${VERSION} after ${attempt} attempt(s)"
+              echo "PyPI has db-synapse==${VERSION} after ${attempt} attempt(s)"
               exit 0
             fi
             echo "attempt ${attempt}: pypi returned ${code} — sleeping 10s"
             sleep 10
           done
-          echo "::error::timed out waiting for orm-synapse==${VERSION} on PyPI after 5 minutes"
+          echo "::error::timed out waiting for db-synapse==${VERSION} on PyPI after 5 minutes"
           exit 1
 
       - name: Publish

@@ -1,4 +1,4 @@
-"""Tests for the Python impact analyzer (cli/orm_synapse/impact.py).
+"""Tests for the Python impact analyzer (cli/db_synapse/impact.py).
 
 Mirrors the intent of the TypeScript impact-analysis tests — the two
 implementations must classify the same line the same way, so these cases are
@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from orm_synapse.impact import (
+from db_synapse.impact import (
     ImpactFinding,
     classify_line,
     detect_layer,
