@@ -70,7 +70,7 @@ class ImpactFinding:
     confidence: str
     file_path: str
     line: int
-    """Zero-based, matching the TypeScript implementation and the LSP."""
+    """One-based source line number, matching human/editor line numbering."""
     column: int
     """Zero-based column of the match start."""
     snippet: str
@@ -211,7 +211,7 @@ def scan_file_text(
                 layer=layer,
                 confidence=confidence,
                 file_path=file_path,
-                line=i,
+                line=i + 1,
                 column=m.start() if m else 0,
                 snippet=line.strip()[:200],
                 reason=reason,

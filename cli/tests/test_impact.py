@@ -108,11 +108,11 @@ class ClassifyLineTest(unittest.TestCase):
 
 
 class ScanFileTextTest(unittest.TestCase):
-    def test_reports_line_and_column_zero_based(self) -> None:
+    def test_reports_one_based_line_and_zero_based_column(self) -> None:
         text = "import os\nqs = Post.objects.filter(author__id=1)\n"
         found = scan_file_text("blog/views.py", text, "author")
         self.assertEqual(len(found), 1)
-        self.assertEqual(found[0].line, 1)
+        self.assertEqual(found[0].line, 2)
         self.assertEqual(found[0].column, text.splitlines()[1].index("author"))
         self.assertEqual(found[0].layer, "views")
         self.assertEqual(found[0].confidence, "certain")
@@ -128,7 +128,7 @@ class ScanFileTextTest(unittest.TestCase):
         text = "import os\r\nqs = Post.objects.filter(author=1)\r\n"
         found = scan_file_text("blog/views.py", text, "author")
         self.assertEqual(len(found), 1)
-        self.assertEqual(found[0].line, 1)
+        self.assertEqual(found[0].line, 2)
 
     def test_no_matches_returns_empty(self) -> None:
         self.assertEqual(scan_file_text("blog/views.py", "x = 1\n", "author"), [])

@@ -494,7 +494,7 @@ def _cmd_impact(args: argparse.Namespace) -> int:
                 rel = f.file_path
             # +1 on the line: the finding is zero-based, humans and editors
             # are one-based.
-            print(f"  {rel}:{f.line + 1}  [{f.confidence}] {f.snippet}")
+            print(f"  {rel}:{f.line}  [{f.confidence}] {f.snippet}")
             print(f"      {f.reason}")
     print(f"\n{len(findings)} reference(s) to {args.name!r}.")
     return 0

@@ -323,7 +323,7 @@ def format_text(report: BlastRadiusReport, root: str | Path = ".") -> str:
             for layer, items in group_by_layer(t.impact).items():
                 shown = [f for f in items if f.confidence != "possibly"][:5]
                 for f in shown:
-                    loc = f"{_rel(root_path, f.file_path)}:{f.line + 1}"
+                    loc = f"{_rel(root_path, f.file_path)}:{f.line}"
                     out.append(f"       {layer}/{f.confidence}  {loc}  {f.snippet}")
         else:
             out.append("     no remaining references found in the workspace")
@@ -402,7 +402,7 @@ def format_markdown(report: BlastRadiusReport, root: str | Path = ".") -> str:
             out.append("| --- | --- | --- | --- |")
             for layer, items in group_by_layer(t.impact).items():
                 for f in items[:10]:
-                    loc = f"{_rel(root_path, f.file_path)}:{f.line + 1}"
+                    loc = f"{_rel(root_path, f.file_path)}:{f.line}"
                     snippet = f.snippet.replace("|", "\\|")[:80]
                     out.append(
                         f"| {layer} | {f.confidence} | `{loc}` | `{snippet}` |"

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Impact JSON output now reports one-based source line numbers (#150).
+  Columns remain zero-based.
+
+
 ## [py-1.13.3] - 2026-10-14
 
 ### Fixed
