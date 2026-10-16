@@ -745,8 +745,8 @@ class MigrationRiskAnalyzer:
             "AddIndex",
             rule="add_index_locks_table",
             description=(
-                f"AddIndex on '{model}' takes an ACCESS EXCLUSIVE lock on "
-                f"Postgres for the duration of the build, blocking writes."
+                f"AddIndex on '{model}' takes a SHARE lock on Postgres for "
+                f"the duration of the build, blocking writes while reads continue."
             ),
             mitigation=(
                 "Use AddIndexConcurrently (Django 3.0+) inside a non-atomic "

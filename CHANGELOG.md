@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Migration-risk AddIndex finding overstated PostgreSQL's lock mode (#151).**
+  Plain `AddIndex` now correctly reports a SHARE lock: writes block while reads
+  continue. `AlterUniqueTogether` and table-rewriting column type changes
+  continue to report ACCESS EXCLUSIVE.
+
 ## [py-1.13.3] - 2026-10-14
 
 ### Fixed
