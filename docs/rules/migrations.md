@@ -78,7 +78,7 @@ Renames a model (and therefore its table). Old app instances during a rolling de
 
 **Operation:** `AddIndex` · **Severity:** warning · **Confidence:** medium · *populated tables only*
 
-A plain `AddIndex` takes an ACCESS EXCLUSIVE lock on Postgres for the duration of the index build, blocking writes to the table. (`AddIndexConcurrently` and `RemoveIndex` are recognized as the safe variants and never flagged.)
+A plain `AddIndex` takes a SHARE lock on Postgres for the index build and, in an atomic migration, until the enclosing transaction commits, blocking writes while reads continue. This rule applies only to `AddIndex`: a normal `RemoveIndex` can block all access, while `RemoveIndexConcurrently` is the concurrent alternative.
 
 **Mitigation:** Use `AddIndexConcurrently` (Django 3.0+) inside a non-atomic migration, or wrap `CREATE INDEX CONCURRENTLY` in `RunSQL` with `SET LOCAL lock_timeout` to bail early.
 
