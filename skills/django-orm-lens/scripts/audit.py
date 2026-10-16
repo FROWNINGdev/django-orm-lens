@@ -12,7 +12,9 @@ Usage:
     python audit.py --path . --changed-since origin/main   # PR scope
 
 Read-only: the analyzers parse source with the AST, never import the project
-and never touch a database. Exit code is 0 unless the CLI cannot be found.
+and never touch a database. Exit code: 0 when every analyzer ran (whatever
+the verdict), 1 when an analyzer failed (verdict "ERROR"), 2 when the CLI
+cannot be found.
 """
 
 from __future__ import annotations
@@ -53,15 +55,27 @@ def find_cli() -> list[str] | None:
 
 
 def run_json(cli: list[str], args: list[str]) -> object:
-    out = subprocess.run(
-        cli + args,
-        capture_output=True,
-        check=False,
-        text=True,
-        encoding="utf-8",
-        timeout=600,
-    )
+    """Run one analyzer. Every analyzer is called with --exit-zero, so a
+    nonzero exit means the analyzer itself failed, not that it found issues."""
+    try:
+        out = subprocess.run(
+            cli + args,
+            capture_output=True,
+            check=False,
+            text=True,
+            encoding="utf-8",
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        return {"error": "TIMEOUT", "command": " ".join(args[:1])}
     text = out.stdout.strip()
+    if out.returncode != 0:
+        return {
+            "error": "ANALYZER_FAILED",
+            "command": " ".join(args[:1]),
+            "exit_code": out.returncode,
+            "stderr": out.stderr.strip()[-2000:],
+        }
     if not text:
         return {"error": "NO_OUTPUT", "stderr": out.stderr.strip()[-2000:]}
     try:
@@ -71,26 +85,29 @@ def run_json(cli: list[str], args: list[str]) -> object:
         return {"message": text[-2000:]}
 
 
+def git(root: Path, *args: str) -> str:
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            cwd=root,
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        sys.exit(f"git {args[0]} failed: {exc}")
+    if out.returncode != 0:
+        sys.exit(f"git {args[0]} failed: {out.stderr.strip()}")
+    return out.stdout
+
+
 def changed_migrations(root: Path, base: str) -> list[str]:
     """Absolute paths of migration files changed since ``base`` (git)."""
-    out = subprocess.run(
-        ["git", "diff", "--name-only", "--diff-filter=AMR", f"{base}...HEAD"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if out.returncode != 0:
-        sys.exit(f"git diff failed: {out.stderr.strip()}")
-    top = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        cwd=root,
-        capture_output=True,
-        check=False,
-        text=True,
-    ).stdout.strip()
+    changed = git(root, "diff", "--name-only", "--diff-filter=AMR", f"{base}...HEAD")
+    top = git(root, "rev-parse", "--show-toplevel").strip()
     files = []
-    for rel in out.stdout.splitlines():
+    for rel in changed.splitlines():
         p = Path(rel)
         if "migrations" in p.parts and p.suffix == ".py" and p.name != "__init__.py":
             files.append(str((Path(top) / p).resolve()))
@@ -174,11 +191,22 @@ def main() -> int:
         else []
     )
     blocking = count("critical") + int(drift_summary.get("blocking", 0) or 0)
+    # An analyzer that failed found nothing, which must not read as "SHIP".
+    errors = [
+        doc
+        for doc in (nplusone, risk, drift, blast)
+        if isinstance(doc, dict) and "error" in doc
+    ]
+    if errors:
+        verdict = "ERROR"
+    elif blocking:
+        verdict = "BLOCK"
+    else:
+        verdict = "FIX BEFORE DEPLOY" if count("warning") else "SHIP"
 
     summary = {
-        "verdict": "BLOCK"
-        if blocking
-        else ("FIX BEFORE DEPLOY" if count("warning") else "SHIP"),
+        "verdict": verdict,
+        "errors": errors,
         "scope": scope,
         "nplusone": {
             "total": len(n1),
@@ -200,9 +228,16 @@ def main() -> int:
         },
         "note": "N+1 findings do not affect the verdict; the verdict is about deploy safety.",
     }
-    version = subprocess.run(
-        cli + ["--version"], capture_output=True, check=False, text=True
-    ).stdout.strip()
+    try:
+        version = subprocess.run(
+            cli + ["--version"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=120,
+        ).stdout.strip()
+    except subprocess.TimeoutExpired:
+        version = "unknown"
     print(
         json.dumps(
             {
@@ -217,7 +252,7 @@ def main() -> int:
             ensure_ascii=False,
         )
     )
-    return 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":

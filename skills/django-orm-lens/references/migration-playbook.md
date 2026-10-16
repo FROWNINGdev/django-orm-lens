@@ -20,7 +20,7 @@ Severity and confidence are what `migration-risk` / `blast_radius` report.
 | `conflicting_migration_leaves` | graph | critical | two leaf migrations in one app: `migrate` refuses to run |
 | `rename_field_rolling_deploy` | RenameField | warning | old app instances keep querying the old column during a rolling deploy |
 | `rename_model_rolling_deploy` | RenameModel | warning | same, for the table name |
-| `add_index_locks_table` | AddIndex | warning | Postgres ACCESS EXCLUSIVE lock for the whole index build — writes block |
+| `add_index_locks_table` | AddIndex | warning | plain `CREATE INDEX` holds a Postgres SHARE lock for the whole build — reads continue, every write to the table blocks |
 | `alter_field_char_length` | AlterField | warning | shrinking `max_length` truncates or fails on existing data; can rewrite the table |
 | `alter_field_int_type` | AlterField | warning | integer type change rewrites the table under lock; narrowing can overflow |
 | `runsql_no_reverse` | RunSQL | warning | no `reverse_sql`: the migration cannot be rolled back |
@@ -39,22 +39,22 @@ flagged.
 
 ```python
 # 0002: add as nullable
-migrations.AddField("product", "weight_grams",
-                    models.PositiveIntegerField(null=True))
+migrations.AddField("product", "weight_grams", models.PositiveIntegerField(null=True))
 
-# 0003: backfill in batches, reversible
+
+# 0003: backfill in batches
 def backfill(apps, schema_editor):
     Product = apps.get_model("catalog", "Product")
-    qs = Product.objects.filter(weight_grams__isnull=True).only("pk")
-    for start in range(0, qs.count(), 1000):
-        ids = list(qs.values_list("pk", flat=True)[:1000])
+    qs = Product.objects.filter(weight_grams__isnull=True)
+    while ids := list(qs.values_list("pk", flat=True)[:1000]):
         Product.objects.filter(pk__in=ids).update(weight_grams=0)
 
+
+# noop reverse: the migration can be unapplied, the backfilled values stay
 migrations.RunPython(backfill, migrations.RunPython.noop)
 
 # 0004 (next release): enforce
-migrations.AlterField("product", "weight_grams",
-                      models.PositiveIntegerField())
+migrations.AlterField("product", "weight_grams", models.PositiveIntegerField())
 ```
 
 If a constant default is genuinely correct, one step is fine:
@@ -66,13 +66,16 @@ column with a constant default does not rewrite the table.
 ```python
 from django.contrib.postgres.operations import AddIndexConcurrently
 
+
 class Migration(migrations.Migration):
     atomic = False  # CONCURRENTLY cannot run inside a transaction
     dependencies = [...]
     operations = [
         AddIndexConcurrently(
             "product",
-            models.Index(fields=["is_active", "price"], name="product_active_price_idx"),
+            models.Index(
+                fields=["is_active", "price"], name="product_active_price_idx"
+            ),
         ),
     ]
 ```
@@ -109,17 +112,31 @@ migrations.SeparateDatabaseAndState(
 
 ```python
 migrations.SeparateDatabaseAndState(
-    database_operations=[migrations.RunSQL(
-        "CREATE UNIQUE INDEX CONCURRENTLY order_ref_uniq ON orders_order (ref);",
-        reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS order_ref_uniq;",
-    )],
-    state_operations=[migrations.AddConstraint(
-        "order", models.UniqueConstraint(fields=["ref"], name="order_ref_uniq"),
-    )],
+    database_operations=[
+        migrations.RunSQL(
+            "CREATE UNIQUE INDEX CONCURRENTLY order_ref_uniq ON orders_order (ref);",
+            reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS order_ref_uniq;",
+        ),
+        # Promote the index to a real constraint (instant, reuses the index),
+        # so the database matches the AddConstraint Django records below.
+        migrations.RunSQL(
+            "ALTER TABLE orders_order ADD CONSTRAINT order_ref_uniq "
+            "UNIQUE USING INDEX order_ref_uniq;",
+            reverse_sql="ALTER TABLE orders_order DROP CONSTRAINT order_ref_uniq;",
+        ),
+    ],
+    state_operations=[
+        migrations.AddConstraint(
+            "order",
+            models.UniqueConstraint(fields=["ref"], name="order_ref_uniq"),
+        )
+    ],
 )
 ```
 
-(`atomic = False` on that migration.) Prefer `UniqueConstraint` over
+(`atomic = False` on that migration.) Without the second statement Django's
+state would record a constraint the database does not have, and a later
+`RemoveConstraint` would fail. Prefer `UniqueConstraint` over
 `unique_together`.
 
 ### Narrowing a column (char length, int type)
@@ -138,7 +155,11 @@ migrations.RunPython(forwards, migrations.RunPython.noop)
 migrations.RunSQL("UPDATE ...", reverse_sql=migrations.RunSQL.noop)
 ```
 
-A no-op reverse is an explicit statement; a missing one blocks rollback.
+A no-op reverse is an explicit statement; a missing one blocks rollback. Be
+clear about what it means: `noop` lets the migration graph roll back, but
+the data stays as the forward step left it. When a rollback must restore
+data (a destructive transform, a merge of rows), write a real reverse
+function instead.
 
 ### Conflicting leaves
 
