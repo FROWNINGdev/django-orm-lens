@@ -7,9 +7,9 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from orm_synapse.cli import main
-from orm_synapse.denormalize import analyze_models, limit_to_changes, parse_unified_diff
-from orm_synapse.parser import parse_models_file
+from db_synapse.cli import main
+from db_synapse.denormalize import analyze_models, limit_to_changes, parse_unified_diff
+from db_synapse.parser import parse_models_file
 
 
 def _models(source: str, path: str = "shop/models.py"):
@@ -107,7 +107,7 @@ class AnalyzeTest(unittest.TestCase):
             from django.db import models
 
             class Order(models.Model):
-                # orm-synapse-disable-next-line DOL018
+                # db-synapse-disable-next-line DOL018
                 job_ids = models.TextField(default="")
                 company = models.ForeignKey("Company", on_delete=models.CASCADE)
                 company_name = models.CharField(max_length=100)

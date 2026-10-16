@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ORM Synapse will be documented in this file.
+All notable changes to DB Synapse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Denormalization review (`DOL018`, `DOL019`, `DOL020`).** A text or JSON column ending in `_ids`, a repeated group such as `phone_1`/`phone_2`/`phone_3`, and a column like `company_name` beside a `company` foreign key are warnings. A scalar `company_id` without a foreign key is left alone. The GitHub Action annotates only a table or a column the pull request adds, in yellow, and does not fail the build. `orm-synapse denormalize` exits 0 unless `--strict` is set.
+- **Denormalization review (`DOL018`, `DOL019`, `DOL020`).** A text or JSON column ending in `_ids`, a repeated group such as `phone_1`/`phone_2`/`phone_3`, and a column like `company_name` beside a `company` foreign key are warnings. A scalar `company_id` without a foreign key is left alone. The GitHub Action annotates only a table or a column the pull request adds, in yellow, and does not fail the build. `db-synapse denormalize` exits 0 unless `--strict` is set.
 - **ER diagram entities show primary keys and relation fields first.** Other fields stay hidden until the entity is clicked, and a second click folds them away. The expanded list shows every remaining field. Each card is a compact schema row: key, name, and a short type.
 - **The class lens counts child relations.** Only relation fields on other models that point straight at this one are counted, plus self-relations. Fields this model holds toward its own parents are not.
 - **Open ER diagram on a model shows that model, every descendant, and the parents of those descendants.**
@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package `__init__.py` — and inherited fields come along. Only classes that a
   model actually inherits from are read from those files, and nothing outside
   the workspace root is opened. Same fix as py-1.13.2.
-- **`ormSynapse.excludeGlobs` wildcard patterns other than `**/dir/**`
+- **`dbSynapse.excludeGlobs` wildcard patterns other than `**/dir/**`
   were matched as plain substrings**, so `**/*_test.py` excluded nothing in
   the extension while the CLI's `fnmatch` excluded it. They now match the way
   the CLI matches them.
@@ -171,7 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **DOL007 no longer fires on attribute accesses that cost nothing.**
-  [#85](https://github.com/nam-tong/orm-synapse/issues/85) reported four
+  [#85](https://github.com/nam-tong/db-synapse/issues/85) reported four
   loops the extension flagged and the CLI left alone: a local column, a
   foreign key the same statement had already covered with `.select_related()`,
   a `@property` inherited from an abstract base, and a column on an annotated
@@ -219,7 +219,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **DOL008 — a lookup name that looks misspelled.** Point 4 of the original
-  [#3](https://github.com/nam-tong/orm-synapse/issues/3) sketch, and the
+  [#3](https://github.com/nam-tong/db-synapse/issues/3) sketch, and the
   last of it. `Post.objects.filter(titel="x")` is flagged with `title` as the
   suggestion, and a QuickFix replaces exactly that segment, so
   `author__emial` becomes `author__email` rather than losing its prefix.
@@ -282,9 +282,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **The TypeScript parser now resolves inheritance the way the Python CLI
-  already did** ([#84](https://github.com/nam-tong/orm-synapse/issues/84)).
+  already did** ([#84](https://github.com/nam-tong/db-synapse/issues/84)).
   v0.16.0 taught it that a subclass of a local model is a model, with a single
-  backward pass. Comparing the result against `cli/orm_synapse/parser.py`
+  backward pass. Comparing the result against `cli/db_synapse/parser.py`
   afterwards showed that side had solved the same problem years-of-commits
   earlier and solved more of it, so the two implementations disagreed. Five
   gaps, closed together:
@@ -400,7 +400,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Completion resolves a queryset bound to a name**
-  ([#83](https://github.com/nam-tong/orm-synapse/issues/83)). v0.13.0
+  ([#83](https://github.com/nam-tong/db-synapse/issues/83)). v0.13.0
   handled the literal `Post.objects.filter(` and nothing else, which meant the
   single most common real shape — anything that builds a queryset
   conditionally — offered nothing:
@@ -451,7 +451,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Field completion inside `Post.objects.filter(...)`** — the moat feature
-  from [#3](https://github.com/nam-tong/orm-synapse/issues/3), open
+  from [#3](https://github.com/nam-tong/db-synapse/issues/3), open
   since the project's second day. Typing inside `filter`, `exclude`, `get`,
   `annotate`, `order_by`, `values`, `only`, `defer` and their siblings offers
   the model's fields, and `author__` walks the ForeignKey to offer the *related*
@@ -482,7 +482,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which stops at the last `__` and would land `author__name` as
   `author__author__name`. Both have tests.
 
-  New setting `ormSynapse.completions.enabled` (default `true`), read per
+  New setting `dbSynapse.completions.enabled` (default `true`), read per
   request so toggling it needs no window reload.
 
 ## [py-1.13.0] - 2026-08-20
@@ -539,7 +539,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **The webview message guard has a test that runs without a browser.** The
-  guard reported in [#55](https://github.com/nam-tong/orm-synapse/issues/55)
+  guard reported in [#55](https://github.com/nam-tong/db-synapse/issues/55)
   — every `postMessage` from the extension host dropped, so an open ER panel
   never updated — was fixed on the day it was measured, in `f93e5fd`, and has
   shipped since v0.10.0. What did not ship was anything to stop it happening
@@ -563,7 +563,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **DOL007 reported an N+1 on loops that iterate model classes.** Reported in
-  [#72](https://github.com/nam-tong/orm-synapse/issues/72).
+  [#72](https://github.com/nam-tong/db-synapse/issues/72).
 
   The rule treated every `for x in <expr>:` head as a loop over a queryset, so
   a sweep like `for model in auditory_models():` was in scope and
@@ -711,7 +711,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parity test asserts model shape, never line numbers — but the fixture reads
   as genuine Django, and starts clean if that directory is ever linted.
   Contributed by [@RinZ27](https://github.com/RinZ27) in
-  [#64](https://github.com/nam-tong/orm-synapse/pull/64).
+  [#64](https://github.com/nam-tong/db-synapse/pull/64).
 
 ## [py-1.11.0] - 2026-07-31
 
@@ -726,8 +726,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changing one. Explicit `through=` overrides are honoured. Both parsers are
   updated, Python and TypeScript, so the CLI and the extension keep answering
   identically. Contributed by [@Guflly](https://github.com/Guflly) in
-  [#63](https://github.com/nam-tong/orm-synapse/pull/63), closing
-  [#50](https://github.com/nam-tong/orm-synapse/issues/50).
+  [#63](https://github.com/nam-tong/db-synapse/pull/63), closing
+  [#50](https://github.com/nam-tong/db-synapse/issues/50).
 
 ## [py-1.10.0] - 2026-07-31
 
@@ -792,8 +792,8 @@ confidently with something false.
   fixtures are parser *input* for byte-stable snapshots, so an edited copy
   would quietly rewrite what those snapshots assert. Contributed by
   [@JJordan0C](https://github.com/JJordan0C) in
-  [#62](https://github.com/nam-tong/orm-synapse/pull/62), closing
-  [#51](https://github.com/nam-tong/orm-synapse/issues/51).
+  [#62](https://github.com/nam-tong/db-synapse/pull/62), closing
+  [#51](https://github.com/nam-tong/db-synapse/issues/51).
 
 ## [0.10.1] - 2026-07-30
 
@@ -833,7 +833,7 @@ release of their own.
   The fields are exposed as `inherited_fields` / `all_fields()`, kept out of
   the tree and ER output so those keep showing what each class literally
   declares. Reported by [@sevdog](https://github.com/sevdog) in
-  [#58](https://github.com/nam-tong/orm-synapse/issues/58).
+  [#58](https://github.com/nam-tong/db-synapse/issues/58).
 
 - **`suggest-index` stops proposing indexes that already exist.** It read
   `Meta.indexes` and nothing else, so it recommended indexes for the primary
@@ -848,9 +848,9 @@ release of their own.
   to a bare `[`, which is why `constraints` and a list-per-line `indexes` were
   invisible. Both list and tuple spellings of `fields=` are read.
   Reported by [@sevdog](https://github.com/sevdog) in
-  [#60](https://github.com/nam-tong/orm-synapse/issues/60);
+  [#60](https://github.com/nam-tong/db-synapse/issues/60);
   [@RinZ27](https://github.com/RinZ27) independently diagnosed the same cause
-  in [#61](https://github.com/nam-tong/orm-synapse/pull/61).
+  in [#61](https://github.com/nam-tong/db-synapse/pull/61).
 
 ## [py-1.8.1] - 2026-07-29
 
@@ -864,7 +864,7 @@ release of their own.
   the two cannot fall out of step. No legend on a clean run — nothing is
   marked there. JSON is unchanged; it always carried `"blocking"` outright.
   Reported by [@sevdog](https://github.com/sevdog) in
-  [#57](https://github.com/nam-tong/orm-synapse/issues/57).
+  [#57](https://github.com/nam-tong/db-synapse/issues/57).
 
 ## [py-1.8.0] - 2026-07-29
 
@@ -884,11 +884,11 @@ release of their own.
 
 ### Fixed
 
-- **`pip install "orm-synapse[mcp]"` produced a server that would not
+- **`pip install "db-synapse[mcp]"` produced a server that would not
   start.** The extra asked for `mcp>=1.0`, so a fresh install resolved
   **mcp 2.0.0**, which removed `mcp.server.fastmcp` — the module the server
   bootstraps from. Every new MCP install since that release printed
-  *"orm-synapse MCP requires the 'mcp' package"* and exited, while the
+  *"db-synapse MCP requires the 'mcp' package"* and exited, while the
   package was in fact installed. Capped to `mcp>=1.0,<2`; adapting to the 2.x
   API is separate work. A regression test now pins the upper bound so it
   cannot be widened without the code changing too.
@@ -985,7 +985,7 @@ it in front of editor users.
 - **`blast-radius` as a real PR bot** — the Action gained `comment: true`,
   which posts the markdown report and then *updates that same comment* on
   every later push, so a twenty-push PR carries one report rather than
-  twenty. Matching is by the `<!-- orm-synapse: blast-radius -->` marker
+  twenty. Matching is by the `<!-- db-synapse: blast-radius -->` marker
   the renderer emits as its first line. `only-changed: true` narrows the
   report to migrations the PR actually touches and exits early when it
   touches none; the file list comes from the API rather than `git diff`,
@@ -1005,16 +1005,16 @@ it in front of editor users.
   render. Useful in particular for projects migrating from
   `django-extensions graph_models`, which emits the same format.
   Contributed by [@JJordan0C](https://github.com/JJordan0C) in
-  [#53](https://github.com/nam-tong/orm-synapse/pull/53) — the project's
+  [#53](https://github.com/nam-tong/db-synapse/pull/53) — the project's
   first outside contribution. Closes
-  [#48](https://github.com/nam-tong/orm-synapse/issues/48).
+  [#48](https://github.com/nam-tong/db-synapse/issues/48).
 - **Vietnamese rule reference** — `docs/i18n/rules/vi/` covers the queryset
   family `DOL001`–`DOL007`, the first translation of the rule pages into any
   language. Code samples, rule codes and suppression syntax stay identical to
   the English source so they remain copy-pasteable and greppable. Contributed
   by [@RinZ27](https://github.com/RinZ27) in
-  [#54](https://github.com/nam-tong/orm-synapse/pull/54), against
-  [#52](https://github.com/nam-tong/orm-synapse/issues/52).
+  [#54](https://github.com/nam-tong/db-synapse/pull/54), against
+  [#52](https://github.com/nam-tong/db-synapse/issues/52).
 
 ### Fixed
 
@@ -1067,9 +1067,9 @@ it in front of editor users.
 
 ### Fixed
 
-- `python -m orm_synapse` now works. The package shipped without a
+- `python -m db_synapse` now works. The package shipped without a
   `__main__.py`, so the module invocation failed with "No module named
-  orm_synapse.__main__" even though the `orm-synapse` console script
+  db_synapse.__main__" even though the `db-synapse` console script
   was fine. `python -m` is the invocation that does not depend on the scripts
   directory being on PATH, which is what CI images, tox environments and fresh
   venvs rely on. Two regression tests cover it.
@@ -1106,10 +1106,10 @@ exports, and a documentation page for every rule.
   four clearing forms including Django's serialized `set()`), and
   `alter_index_together_deprecated` (operation removed in Django 5.1).
 - **pre-commit hooks** — `.pre-commit-hooks.yaml` with
-  `orm-synapse-nplusone` and `orm-synapse-migration-risk`, plus a
+  `db-synapse-nplusone` and `db-synapse-migration-risk`, plus a
   root pyproject shim so pre-commit can install the repo directly.
 - **GitHub Action** — composite `action.yml`
-  (`uses: nam-tong/orm-synapse@<ref>`) wrapping the CLI with
+  (`uses: nam-tong/db-synapse@<ref>`) wrapping the CLI with
   annotation/SARIF-friendly defaults.
 - **docs/rules/** — 19 documentation pages: one per DOL rule (16), the
   migration-risk catalogue, the N+1 analyzer, and an index. Fixes the 16
@@ -1207,7 +1207,7 @@ the same class of silent-workspace-drop symptom.
   handler signature so FastMCP includes it in the ``inputSchema`` served to
   ``tools/list`` — agents now see it as a first-class parameter and its
   value reaches the resolution helper unchanged.
-- **New ``orm_synapse.workspace`` module.** Single home for resolution,
+- **New ``db_synapse.workspace`` module.** Single home for resolution,
   path hardening, and caching. Priority chain: explicit argument →
   ``$DJANGO_ORM_LENS_ROOT`` → current working directory. A failure at any
   chosen source is surfaced immediately instead of falling through — that
@@ -1264,7 +1264,7 @@ Schema-diff gets a first-class **partial UniqueConstraint** tracker. Inspired
 by django-extensions [#1813](https://github.com/django-extensions/django-extensions/issues/1813)
 (BoPeng, 2023) — `sqldiff` drops the `condition=` predicate from
 `UniqueConstraint` output, so migration reviewers never see what actually
-changed. ORM Synapse now surfaces these as typed events so PR diffs stop
+changed. DB Synapse now surfaces these as typed events so PR diffs stop
 lying.
 
 ### Added
@@ -1360,7 +1360,7 @@ Follow-up to the modern-Python audit that produced 0.7.3 — another shape of ty
 
 ## [0.7.3] + [py-1.2.3] - 2026-07-20
 
-Bugfix release for [#25](https://github.com/nam-tong/orm-synapse/issues/25) — thanks to [@jsabater](https://github.com/jsabater) for the reproducible report against a Django Ninja 1.6 codebase.
+Bugfix release for [#25](https://github.com/nam-tong/db-synapse/issues/25) — thanks to [@jsabater](https://github.com/jsabater) for the reproducible report against a Django Ninja 1.6 codebase.
 
 ### Fixed
 
@@ -1385,9 +1385,9 @@ CLI welcome UX — bidirectional discoverability between PyPI and the editor ext
 
 ### Changed
 
-- **`orm-synapse` welcome (no-arg run)** now prints a "prefer a visual sidebar + ER diagram in your editor?" block after the docs link, with copy-paste install commands for both marketplace paths:
-  - `code --install-extension frowningdev.orm-synapse` — VS Code / Cursor / Windsurf
-  - `codium --install-extension frowningdev.orm-synapse` — VSCodium / code-server / Gitpod / any OSS Code fork (via Open VSX)
+- **`db-synapse` welcome (no-arg run)** now prints a "prefer a visual sidebar + ER diagram in your editor?" block after the docs link, with copy-paste install commands for both marketplace paths:
+  - `code --install-extension frowningdev.db-synapse` — VS Code / Cursor / Windsurf
+  - `codium --install-extension frowningdev.db-synapse` — VSCodium / code-server / Gitpod / any OSS Code fork (via Open VSX)
 
   Rest of the welcome (commands table + star CTA) is unchanged.
 
@@ -1397,8 +1397,8 @@ Patch release — two crash bugs in the CLI wrapper that unit tests missed becau
 
 ### Fixed
 
-- **`orm-synapse nplusone` crashed with `NameError`** — `_cmd_nplusone` called `_build_schema_from_index` and `scan_for_nplusone` without importing either at module scope. `scan_for_nplusone` now imported at the top of `cli.py`; the intermediate schema flattening is dropped (the underlying function already accepts a `WorkspaceIndex` and normalises internally via `_normalise_schema`).
-- **`orm-synapse migration-risk` (text format) crashed with `AttributeError: 'MigrationRisk' object has no attribute 'filePath'`** — the print statement used camelCase attrs (`filePath` / `lineNumber`) but the dataclass fields are snake_case (`file_path` / `line_number`). The camelCase form only exists inside `to_dict()` (JSON path); text output now reads the snake_case fields directly.
+- **`db-synapse nplusone` crashed with `NameError`** — `_cmd_nplusone` called `_build_schema_from_index` and `scan_for_nplusone` without importing either at module scope. `scan_for_nplusone` now imported at the top of `cli.py`; the intermediate schema flattening is dropped (the underlying function already accepts a `WorkspaceIndex` and normalises internally via `_normalise_schema`).
+- **`db-synapse migration-risk` (text format) crashed with `AttributeError: 'MigrationRisk' object has no attribute 'filePath'`** — the print statement used camelCase attrs (`filePath` / `lineNumber`) but the dataclass fields are snake_case (`file_path` / `line_number`). The camelCase form only exists inside `to_dict()` (JSON path); text output now reads the snake_case fields directly.
 - **`analyze_migration_risks` was not imported at module scope** — same pattern as the nplusone bug, fixed at the same time to prevent a latent `NameError` on the next code path change.
 
 ### Added
@@ -1418,7 +1418,7 @@ Correctness release focused on `settings.AUTH_USER_MODEL` resolution across ever
 
 ### Added
 
-- **Shared Python helpers under `orm_synapse` package root:** `find_user_model`, `find_user_model_from_dict`, `resolve_related_tail`, `find_model`, `iter_workspace_py_files`, `BROAD_SKIP_DIRS`. Downstream tools that build on the parser can import these without duplicating the User-model detection heuristic or the walk-skip-list.
+- **Shared Python helpers under `db_synapse` package root:** `find_user_model`, `find_user_model_from_dict`, `resolve_related_tail`, `find_model`, `iter_workspace_py_files`, `BROAD_SKIP_DIRS`. Downstream tools that build on the parser can import these without duplicating the User-model detection heuristic or the walk-skip-list.
 - **Shared TypeScript helpers in `src/parser.ts`:** `findUserModel(index)`, `resolveRelatedTail(related, userName)`. Same shape as the Python side so the VS Code extension and the CLI stay in sync.
 - **`WorkspaceIndex.scanned_files: int`** — number of `models.py`-style files inspected during the scan. Surfaced in `to_dict()` as `scannedFiles`. Backward-compatible (default 0, extra JSON key).
 - **`WireIndex.userModelName?: string`** in `src/webview/types.ts` — resolved User model name shipped to the React webview so it can rewrite `settings.AUTH_USER_MODEL` edges to point at the right node.
@@ -1438,9 +1438,9 @@ Feature release — three new CLI subcommands (`nplusone`, `migration-risk`, `di
 
 - **CLI `nplusone` subcommand — static N+1 detector.** Walks `.py` files and flags queryset iteration where FK / M2M attributes are accessed inside the loop without a matching `.select_related(...)` / `.prefetch_related(...)`. Schema-backed high-confidence classification when a workspace index is available, heuristic medium-confidence fallback otherwise. Reports `file:line`, loop variable, queryset variable, accessed relations, and a suggested fix. Flags: `--path`, `--format text|json`, `--confidence high|medium|all`, `--exit-zero`. Exit code 1 on findings (CI-friendly). 18 tests.
 - **CLI `migration-risk` subcommand — production-safety linter for Django migrations.** Analyzes `<app>/migrations/*.py` files and flags seven classes of risky operations: `AddField(NOT NULL, no default)`, `RemoveField`/`DeleteModel` still referenced by live code, `RenameField`/`RenameModel` (breaks rolling deployments), `AddIndex` without `CONCURRENTLY`, lossy `AlterField` type changes, `RunSQL` without `reverse_sql`, and `AddField(unique=True)` without a row-unique default. Cross-references the current models schema. Per-finding severity (`critical` / `warning` / `info`) and confidence (`high` / `medium` / `low`). Flags: `--path`, `--format text|json`, `--severity critical|warning|info|all`, `--exit-zero`. 31 tests.
-- **CLI `diff` subcommand — compare two schema JSON dumps.** `orm-synapse list --format=json > before.json` on `main`, then again on a PR branch → `after.json`, then `orm-synapse diff before.json after.json` prints added / removed models, added / removed / changed fields, and added / removed / changed relations. Text and JSON output. Exit 1 on any delta (git-diff-like), `--exit-zero` for advisory CI stages. 21 tests.
+- **CLI `diff` subcommand — compare two schema JSON dumps.** `db-synapse list --format=json > before.json` on `main`, then again on a PR branch → `after.json`, then `db-synapse diff before.json after.json` prints added / removed models, added / removed / changed fields, and added / removed / changed relations. Text and JSON output. Exit 1 on any delta (git-diff-like), `--exit-zero` for advisory CI stages. 21 tests.
 - **Webview: color-code minimap dots by app.** ER-diagram minimap now tints nodes by their owning Django app using a deterministic FNV-1a-based hue, so large schemas can be visually grouped at a glance. Focused node retains the accent color.
-- **CLI `list` subcommand now supports `--format json`.** `orm-synapse list --format json` emits a pipe-friendly JSON array `[{"app": "...", "model": "..."}, ...]`. The default `text` output remains unchanged for backward compatibility.
+- **CLI `list` subcommand now supports `--format json`.** `db-synapse list --format json` emits a pipe-friendly JSON array `[{"app": "...", "model": "..."}, ...]`. The default `text` output remains unchanged for backward compatibility.
 - **`--verbose` / `-v` flag** on every scan-backed CLI subcommand (`scan`, `describe`, `hover`, `list`, `er`). Prints a one-line summary to stderr after the scan — `scanned 12 files in 34ms, found 8 apps / 47 models` — sourced from the actual file walk, a `time.perf_counter()` measurement around the scan, and the real app/model counts on the returned index. Stdout is untouched either way. (#14)
 - **CLI: friendlier hint when no `models.py` is found.** `scan`/`describe`/`hover`/`list`/`er` previously printed a silently-empty result. When zero models are found *and* no `models.py`/`models/*.py` file was walked at all, a `hint: no models.py found under <path>...` line is now printed to stderr (stdout stays clean, exit code stays `0`). New `--quiet`/`-q` flag suppresses the hint. (#12)
 
@@ -1474,7 +1474,7 @@ MCP tools for AI-agent Django expertise. Ships three flagship additions built on
 ### Added
 - `suggest_indexes(app_label, model_name)` MCP tool — static analysis of every filter/exclude/order_by/get/aggregate usage across the workspace, returns field-usage frequency and proposes `Meta.indexes` covering entries. Zero-runtime, no DB, no Django boot. Solves the top Django performance blind spot for AI coding agents.
 - `signal_graph()` MCP tool — parses every `@receiver()` decorator and `Signal()` definition in the workspace, returns the sender→signal→handler DAG plus custom-signal send-sites. Surfaces the invisible connections between models that cause the majority of enterprise Django bugs.
-- **Golden fixture suite** — parser now tested against real open-source Django projects: Zulip (Apache-2.0, 33 models across `zerver/models/`), Saleor (BSD-3, 19 models across product/order/discount/warehouse), Wagtail (BSD-3, 8 models from `wagtail/models/`), and django-CMS (BSD-3, 3 models from `cms/models/`). Pytest asserts every project scans without error, finds at least 1 model, and the aggregate scan of all vendored fixtures completes under 2 seconds (currently ~11 ms). Credibility: `orm-synapse` is proven against 63 total models parsed from real-world Django deployments, not synthetic examples. Fixtures live under `cli/tests/fixtures/golden/<project>/<original-path>/models.py` with attribution + fetch date in that directory's README.md.
+- **Golden fixture suite** — parser now tested against real open-source Django projects: Zulip (Apache-2.0, 33 models across `zerver/models/`), Saleor (BSD-3, 19 models across product/order/discount/warehouse), Wagtail (BSD-3, 8 models from `wagtail/models/`), and django-CMS (BSD-3, 3 models from `cms/models/`). Pytest asserts every project scans without error, finds at least 1 model, and the aggregate scan of all vendored fixtures completes under 2 seconds (currently ~11 ms). Credibility: `db-synapse` is proven against 63 total models parsed from real-world Django deployments, not synthetic examples. Fixtures live under `cli/tests/fixtures/golden/<project>/<original-path>/models.py` with attribution + fetch date in that directory's README.md.
 
 ## [0.4.2] - 2026-07-16
 
@@ -1545,14 +1545,14 @@ Combined release — migration-dependency debugger for AI agents, always-visible
 
 ## [0.3.5] + [py-1.0.11] - 2026-07-15
 
-Combined release — Django 5.2 support, cascade blast-radius preview for AI agents, and a reverse-references sidebar action. Feature-set derived from a competitive analysis of `meshy/django-schema-graph` (stale since 2023, Django ≤ 4.1) and MCP peers (`gts360/django-mcp-server`, `kitespark/django-mcp`) — all of which require a running Django process; orm-synapse keeps the zero-runtime moat.
+Combined release — Django 5.2 support, cascade blast-radius preview for AI agents, and a reverse-references sidebar action. Feature-set derived from a competitive analysis of `meshy/django-schema-graph` (stale since 2023, Django ≤ 4.1) and MCP peers (`gts360/django-mcp-server`, `kitespark/django-mcp`) — all of which require a running Django process; db-synapse keeps the zero-runtime moat.
 
 ### Added
 - **Django 5.2 support** — new `Framework :: Django :: 5.2` classifier and a CI matrix job (`python-cli`) that runs pytest against Python 3.10-3.12 × Django 4.2-5.2 in parallel with the existing Node/TS build.
 - **`cascade_preview` MCP tool** — new tool `cascade_preview(app_label, model_name)` returns inbound relations grouped by `on_delete` behavior into `cascade_kills` / `set_null` / `protected` buckets. Lets AI agents preview a delete's blast radius before acting, using only static parse (no DB, no boot).
 - **`on_delete` on inbound relations** — `find_relations` inbound entries now include the `on_delete` value (`CASCADE`, `SET_NULL`, `PROTECT`, `SET_DEFAULT`, `DO_NOTHING`, `RESTRICT`, or `SET` for callable form) extracted via the existing parser helper.
 - **VS Code: "Find Reverse References" context action** — right-click any model in the sidebar tree → `Find Reverse References` → QuickPick of every FK/OneToOne/M2M pointing at this model, using the in-memory workspace index (no re-parse).
-- **`[full]` optional-dependencies alias** — `pip install "orm-synapse[full]"` is now equivalent to `[mcp]`; documents the default install as zero-dependency in a pyproject header comment.
+- **`[full]` optional-dependencies alias** — `pip install "db-synapse[full]"` is now equivalent to `[mcp]`; documents the default install as zero-dependency in a pyproject header comment.
 
 ### Changed
 - **README hero** — added `Works offline. Works on a broken venv. Works on someone else's laptop. Works in CI.` positioning line under the problem section.
@@ -1591,21 +1591,21 @@ Combined release — the parser hardening ships identically in both the VS Code 
 Python package only. VS Code extension unchanged at 0.3.3.
 
 ### Added
-- **Subtle star ask in the welcome output** — `orm-synapse` (no args) now closes with a two-line invitation to star the repo if the tool saved a search. Rationale: 134 unique cloners on the 14-day traffic window converted to only 2 stars — infrastructure tools bleed stars silently because users never revisit the repo after `pip install`. A single sentence at the point of first-run gratitude is the smallest touch that closes the loop without becoming spam. No CLI behaviour change.
+- **Subtle star ask in the welcome output** — `db-synapse` (no args) now closes with a two-line invitation to star the repo if the tool saved a search. Rationale: 134 unique cloners on the 14-day traffic window converted to only 2 stars — infrastructure tools bleed stars silently because users never revisit the repo after `pip install`. A single sentence at the point of first-run gratitude is the smallest touch that closes the loop without becoming spam. No CLI behaviour change.
 
 ## [py-1.0.8] - 2026-07-13
 
 Python package only. VS Code extension unchanged at 0.3.3.
 
 ### Added
-- **Friendly welcome when `orm-synapse` runs without a subcommand** — previously bare invocation printed a cryptic `argparse: the following arguments are required: command` error, killing the pip-install-and-poke-around funnel. Now shows a compact commands table + docs link so a new user immediately sees what to try next.
+- **Friendly welcome when `db-synapse` runs without a subcommand** — previously bare invocation printed a cryptic `argparse: the following arguments are required: command` error, killing the pip-install-and-poke-around funnel. Now shows a compact commands table + docs link so a new user immediately sees what to try next.
 
 ## [py-1.0.7] - 2026-07-13
 
 Python package only. VS Code extension unchanged at 0.3.1.
 
 ### Added
-- **Mermaid ER edge labels — Python ↔ TypeScript parity** — `orm-synapse er` and the MCP `er_diagram` tool now emit the same `on_delete`, `through`, and `related_name` metadata as the VS Code diagram. Example: `Book }o--|| Author : "author [CASCADE, as books]"` and `Book }o--o{ Tag : "tags [through BookTag]"`. Previously the Python side stripped all metadata to just the field name.
+- **Mermaid ER edge labels — Python ↔ TypeScript parity** — `db-synapse er` and the MCP `er_diagram` tool now emit the same `on_delete`, `through`, and `related_name` metadata as the VS Code diagram. Example: `Book }o--|| Author : "author [CASCADE, as books]"` and `Book }o--o{ Tag : "tags [through BookTag]"`. Previously the Python side stripped all metadata to just the field name.
 - **MCP index cache (30s TTL)** — agents chaining multiple tool calls (`list_apps` → `describe_model` → `find_relations`) no longer re-walk the filesystem and re-parse every `models.py` per call. Cache keyed by workspace root; short TTL keeps manual edits visible.
 
 ## [py-1.0.6] - 2026-07-13
@@ -1628,8 +1628,8 @@ Hotfix release. Python package only. VS Code extension unchanged at 0.3.1.
 ## [0.3.1] - 2026-07-13
 
 ### Added
-- **`throughModel` on the M2M edge** — Mermaid ER diagrams now render `through=` on `ManyToManyField` relations, e.g. `authors [through Authorship]`. First-time external contribution by [@kingrubic](https://github.com/kingrubic) in [#5](https://github.com/nam-tong/orm-synapse/pull/5).
-- **Listed on [Glama.ai MCP directory](https://glama.ai/mcp/servers/nam-tong/orm-synapse)** — third discovery channel alongside VS Code Marketplace and the official MCP Registry.
+- **`throughModel` on the M2M edge** — Mermaid ER diagrams now render `through=` on `ManyToManyField` relations, e.g. `authors [through Authorship]`. First-time external contribution by [@kingrubic](https://github.com/kingrubic) in [#5](https://github.com/nam-tong/db-synapse/pull/5).
+- **Listed on [Glama.ai MCP directory](https://glama.ai/mcp/servers/nam-tong/db-synapse)** — third discovery channel alongside VS Code Marketplace and the official MCP Registry.
 
 ## [py-1.0.4] - 2026-07-13
 
@@ -1643,7 +1643,7 @@ Python package parity release. Extension bumped in parallel to 0.3.1.
 Python package only. VS Code extension unchanged at 0.3.0.
 
 ### Added
-- **Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/)** — the server is now discoverable through the canonical Model Context Protocol directory. MCP-compatible clients can find it by name (`io.github.nam-tong/orm-synapse`).
+- **Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/)** — the server is now discoverable through the canonical Model Context Protocol directory. MCP-compatible clients can find it by name (`io.github.nam-tong/db-synapse`).
 - `cli/server.json` — MCP Registry metadata (PyPI package, stdio transport, uvx runtime hint).
 - Ownership-verification marker in `cli/README.md` (hidden HTML comment) so the registry can prove the PyPI package is ours.
 
@@ -1655,10 +1655,10 @@ Python package only. VS Code extension unchanged at 0.3.0.
 Ships the terminal + AI-agent story and a batch of ER-diagram / editor polish.
 
 ### Added
-- **Python CLI + MCP server** — companion package `orm-synapse` on PyPI. Zero-dep CLI (`scan`, `describe`, `hover`, `list`, `er`) and an optional MCP stdio server exposing five read-only tools to Cursor, Aider, Continue.dev, Zed, and any MCP client. Install: `pip install "orm-synapse[mcp]"`.
-- **CodeLens above every model class** — shows field count, relation count, and an "Open ER diagram" action. Toggle with `ormSynapse.showCodeLens`.
+- **Python CLI + MCP server** — companion package `db-synapse` on PyPI. Zero-dep CLI (`scan`, `describe`, `hover`, `list`, `er`) and an optional MCP stdio server exposing five read-only tools to Cursor, Aider, Continue.dev, Zed, and any MCP client. Install: `pip install "db-synapse[mcp]"`.
+- **CodeLens above every model class** — shows field count, relation count, and an "Open ER diagram" action. Toggle with `dbSynapse.showCodeLens`.
 - **Edge labels on the ER diagram** — relation arrows now include `on_delete` (CASCADE / SET_NULL / PROTECT) and `related_name` when present, e.g. `author [CASCADE, as posts]`.
-- **Diagram theme picker** — `ormSynapse.diagramTheme` accepts `auto` (default, follows VS Code theme), `default`, `dark`, `forest`, and `neutral`.
+- **Diagram theme picker** — `dbSynapse.diagramTheme` accepts `auto` (default, follows VS Code theme), `default`, `dark`, `forest`, and `neutral`.
 
 ### Fixed
 - CI publish workflow was silently failing because of a YAML quoting bug — restored to green; adds a parallel PyPI publish job.
@@ -1678,14 +1678,14 @@ The polish release. Consolidates hover, filter, welcome, security hardening, and
 
 ### Security
 - **jumpToModel path scoping** — the jump command now rejects any target outside the current workspaceFolders. Prevents a crafted models.py from opening arbitrary local files.
-- **Hover markdown sanitization** — parser-derived strings are escaped and the trusted-command scope is narrowed to ormSynapse.jumpToModel only. Blocks command-URI injection through model or field names.
+- **Hover markdown sanitization** — parser-derived strings are escaped and the trusted-command scope is narrowed to dbSynapse.jumpToModel only. Blocks command-URI injection through model or field names.
 
 ### Docs
 
 ## [0.1.3] - 2026-07-14
 
 ### Added
-- **Filter tree** — new sidebar buttons and command palette actions (`ORM Synapse: Filter Models`, `Clear Filter`) let you type a substring and narrow the tree to matching apps, models, and fields in real time. Parent nodes stay visible when a descendant matches.
+- **Filter tree** — new sidebar buttons and command palette actions (`DB Synapse: Filter Models`, `Clear Filter`) let you type a substring and narrow the tree to matching apps, models, and fields in real time. Parent nodes stay visible when a descendant matches.
 
 ## [0.1.2] - 2026-07-14
 
@@ -1697,7 +1697,7 @@ The polish release. Consolidates hover, filter, welcome, security hardening, and
 ### Added
 - Support for split `models/` package directories (multi-file apps).
 - Support for bare field imports (`from django.db.models import CharField`).
-- Output channel "ORM Synapse" for surfaced scan errors.
+- Output channel "DB Synapse" for surfaced scan errors.
 
 ### Fixed
 - Parser now detects indentation width per class instead of assuming 4 spaces (2-space codebases were showing zero fields).

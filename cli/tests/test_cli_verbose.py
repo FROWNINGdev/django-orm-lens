@@ -21,7 +21,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.cli import main
+from db_synapse.cli import main
 
 MODELS_SOURCE = """from django.db import models
 

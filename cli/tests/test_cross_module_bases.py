@@ -20,7 +20,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from orm_synapse.parser import scan_workspace
+from db_synapse.parser import scan_workspace
 
 FIXTURE = Path(__file__).parent / "fixtures" / "cross_module"
 

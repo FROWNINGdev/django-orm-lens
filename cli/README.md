@@ -1,23 +1,23 @@
-# orm-synapse
+# db-synapse
 
-<!-- mcp-name: io.github.nam-tong/orm-synapse -->
+<!-- mcp-name: io.github.nam-tong/db-synapse -->
 
-[![PyPI](https://img.shields.io/pypi/v/orm-synapse?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/orm-synapse/)
-[![Python](https://img.shields.io/pypi/pyversions/orm-synapse?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/orm-synapse/)
-[![Downloads](https://img.shields.io/pepy/dt/orm-synapse?color=3775a9&label=downloads&logo=pypi&logoColor=white)](https://pepy.tech/project/orm-synapse)
-[![License](https://img.shields.io/github/license/nam-tong/orm-synapse?color=16a34a)](https://github.com/nam-tong/orm-synapse/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/db-synapse?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/db-synapse/)
+[![Python](https://img.shields.io/pypi/pyversions/db-synapse?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/db-synapse/)
+[![Downloads](https://img.shields.io/pepy/dt/db-synapse?color=3775a9&label=downloads&logo=pypi&logoColor=white)](https://pepy.tech/project/db-synapse)
+[![License](https://img.shields.io/github/license/nam-tong/db-synapse?color=16a34a)](https://github.com/nam-tong/db-synapse/blob/main/LICENSE)
 
 **Static analysis + MCP server for Django models.** Terminal- and AI-agent-friendly.
 
-Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.nam-tong/orm-synapse`.
+Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.nam-tong/db-synapse`.
 
 Ships with a zero-dependency parser, a JSON/Markdown/table CLI, and an optional
 MCP (Model Context Protocol) server so any AI coding agent — Cursor, Aider,
 Continue, and any other MCP client — can navigate your Django schema without
 importing Django or spinning up your app.
 
-Companion to the [ORM Synapse VS Code
-extension](https://marketplace.visualstudio.com/items?itemName=frowningdev.orm-synapse).
+Companion to the [DB Synapse VS Code
+extension](https://marketplace.visualstudio.com/items?itemName=frowningdev.db-synapse).
 
 ## Paid-tier capabilities, free and MIT
 
@@ -47,10 +47,10 @@ and no telemetry:
 
 ```bash
 # Core CLI (zero third-party deps)
-pip install orm-synapse
+pip install db-synapse
 
 # With the MCP server (adds the `mcp` package)
-pip install "orm-synapse[mcp]"
+pip install "db-synapse[mcp]"
 ```
 
 Requires Python **3.9+**. Works on Linux, macOS, and Windows.
@@ -61,36 +61,36 @@ Requires Python **3.9+**. Works on Linux, macOS, and Windows.
 
 ```bash
 # Scan a Django project for models (JSON, Markdown, or table)
-orm-synapse scan -f json
-orm-synapse scan -f markdown
-orm-synapse scan -f table
+db-synapse scan -f json
+db-synapse scan -f markdown
+db-synapse scan -f table
 
 # Describe one model
-orm-synapse describe blog.Post
-orm-synapse describe Post -f json
+db-synapse describe blog.Post
+db-synapse describe Post -f json
 
 # Compact hover card (great for pipeing into your editor)
-orm-synapse hover blog.Post
+db-synapse hover blog.Post
 
 # Flat list — pipes into fzf, grep, etc.
-orm-synapse list | fzf
+db-synapse list | fzf
 
 # ER diagram — Mermaid (default), DBML, D2, or PlantUML
-orm-synapse er > schema.mmd
-orm-synapse er -f dbml > schema.dbml     # paste into dbdiagram.io
-orm-synapse er -f d2 > schema.d2         # render: d2 schema.d2 schema.svg
-orm-synapse er -f plantuml > schema.puml
+db-synapse er > schema.mmd
+db-synapse er -f dbml > schema.dbml     # paste into dbdiagram.io
+db-synapse er -f d2 > schema.d2         # render: d2 schema.d2 schema.svg
+db-synapse er -f plantuml > schema.puml
 
 # Diff two schema dumps (exit 1 on changes — CI-friendly)
-orm-synapse diff before.json after.json
+db-synapse diff before.json after.json
 
 # Static analyzers — text, json, sarif, or github annotation output
-orm-synapse nplusone --format github     # N+1 findings as PR annotations
-orm-synapse migration-risk -f sarif      # SARIF for GitHub Code Scanning
-orm-synapse suggest-indexes blog.Post    # Meta.indexes proposals from usage
-orm-synapse signals                      # sender→signal→handler graph
-orm-synapse migration-deps blog -f mermaid   # per-app migration DAG
-orm-synapse cascade blog.Author          # delete blast radius by on_delete
+db-synapse nplusone --format github     # N+1 findings as PR annotations
+db-synapse migration-risk -f sarif      # SARIF for GitHub Code Scanning
+db-synapse suggest-indexes blog.Post    # Meta.indexes proposals from usage
+db-synapse signals                      # sender→signal→handler graph
+db-synapse migration-deps blog -f mermaid   # per-app migration DAG
+db-synapse cascade blog.Author          # delete blast radius by on_delete
 ```
 
 Every command accepts `--path <dir>` and repeatable `--exclude <glob>`. Defaults
@@ -119,9 +119,9 @@ call while it edits your Django project:
 ### Start the server manually
 
 ```bash
-orm-synapse-mcp     # dedicated entry point
+db-synapse-mcp     # dedicated entry point
 # or
-orm-synapse mcp     # subcommand
+db-synapse mcp     # subcommand
 ```
 
 **Workspace resolution (py-1.3.0+).** Priority: explicit `workspace_root`
@@ -142,8 +142,8 @@ outside them is rejected with `WORKSPACE_NOT_ALLOWED`.
 ```json
 {
   "mcpServers": {
-    "orm-synapse": {
-      "command": "orm-synapse-mcp",
+    "db-synapse": {
+      "command": "db-synapse-mcp",
       "env": { "DJANGO_ORM_LENS_ROOT": "/abs/path/to/your/project" }
     }
   }
@@ -151,7 +151,7 @@ outside them is rejected with `WORKSPACE_NOT_ALLOWED`.
 ```
 
 **Any MCP client** — same shape, generic tool. Point `command` at the
-installed `orm-synapse-mcp` binary. Two ways to tell it which Django
+installed `db-synapse-mcp` binary. Two ways to tell it which Django
 project to scan:
 
 1. **Set `DJANGO_ORM_LENS_ROOT` in `env`** — the whole session uses one
@@ -176,15 +176,15 @@ pre-commit users get two ready-made hooks:
 
 ```yaml
 repos:
-  - repo: https://github.com/nam-tong/orm-synapse
+  - repo: https://github.com/nam-tong/db-synapse
     rev: py-v1.13.3
     hooks:
-      - id: orm-synapse-nplusone
-      - id: orm-synapse-migration-risk
+      - id: db-synapse-nplusone
+      - id: db-synapse-migration-risk
 ```
 
 GitHub Actions users get a composite action:
-`uses: nam-tong/orm-synapse@action-v1` with `command:` / `format:` inputs.
+`uses: nam-tong/db-synapse@action-v1` with `command:` / `format:` inputs.
 
 ---
 
@@ -198,7 +198,7 @@ Django's ORM is Python, and Python is dynamic. AI agents that only see
 * what `Meta.ordering`, `unique_together`, and `constraints` actually contain;
 * which app owns which model when the project uses split `models/` packages.
 
-`orm-synapse` gives them a **static, deterministic, JSON view** of the
+`db-synapse` gives them a **static, deterministic, JSON view** of the
 schema — no Django boot, no database, no side effects. And you get a nice CLI
 for humans too.
 
@@ -207,7 +207,7 @@ for humans too.
 ## Programmatic API
 
 ```python
-from orm_synapse import scan_workspace
+from db_synapse import scan_workspace
 
 index = scan_workspace(".")
 for app in index.apps:
@@ -224,9 +224,9 @@ json.dumps(index.to_dict(), indent=2)
 
 ## Links
 
-* Repo: <https://github.com/nam-tong/orm-synapse>
-* Issues: <https://github.com/nam-tong/orm-synapse/issues>
-* Changelog: <https://github.com/nam-tong/orm-synapse/blob/main/CHANGELOG.md>
-* VS Code extension: <https://marketplace.visualstudio.com/items?itemName=frowningdev.orm-synapse>
+* Repo: <https://github.com/nam-tong/db-synapse>
+* Issues: <https://github.com/nam-tong/db-synapse/issues>
+* Changelog: <https://github.com/nam-tong/db-synapse/blob/main/CHANGELOG.md>
+* VS Code extension: <https://marketplace.visualstudio.com/items?itemName=frowningdev.db-synapse>
 
 MIT licensed.

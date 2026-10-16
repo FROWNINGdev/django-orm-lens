@@ -14,7 +14,7 @@ import { Finding, Rule, RuleContext } from './types';
  */
 
 const DOCS_BASE =
-  'https://github.com/nam-tong/orm-synapse/blob/main/docs/rules';
+  'https://github.com/nam-tong/db-synapse/blob/main/docs/rules';
 
 /** `models.CharField(...)` or `models.TextField(...)` — string-based fields. */
 const RE_STRING_FIELD_LINE =

@@ -1,6 +1,6 @@
 {
-  "name": "orm-synapse",
-  "displayName": "ORM Synapse",
+  "name": "db-synapse",
+  "displayName": "DB Synapse",
   "description": "Autocomplete Django model fields and lookups inside .filter(), and see your entire schema in your editor. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
   "version": "0.19.4",
   "preview": false,
@@ -17,12 +17,12 @@
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nam-tong/orm-synapse.git"
+    "url": "https://github.com/nam-tong/db-synapse.git"
   },
   "bugs": {
-    "url": "https://github.com/nam-tong/orm-synapse/issues"
+    "url": "https://github.com/nam-tong/db-synapse/issues"
   },
-  "homepage": "https://github.com/nam-tong/orm-synapse#readme",
+  "homepage": "https://github.com/nam-tong/db-synapse#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -86,16 +86,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ormSynapse",
-          "title": "ORM Synapse",
+          "id": "dbSynapse",
+          "title": "DB Synapse",
           "icon": "media/activitybar.svg"
         }
       ]
     },
     "views": {
-      "ormSynapse": [
+      "dbSynapse": [
         {
-          "id": "ormSynapse.models",
+          "id": "dbSynapse.models",
           "name": "Models",
           "icon": "media/activitybar.svg",
           "contextualTitle": "Django Models"
@@ -104,132 +104,132 @@
     },
     "viewsWelcome": [
       {
-        "view": "ormSynapse.models",
+        "view": "dbSynapse.models",
         "when": "workbenchState == empty",
-        "contents": "**Open a folder to get started.**\n\nORM Synapse indexes every `models.py` in your project and gives you a live schema tree, an ER diagram, hover cards, and inline QuickFixes for common ORM anti-patterns.\n\n[Open Folder](command:vscode.openFolder)\n\n[Documentation](https://github.com/nam-tong/orm-synapse#readme)"
+        "contents": "**Open a folder to get started.**\n\nDB Synapse indexes every `models.py` in your project and gives you a live schema tree, an ER diagram, hover cards, and inline QuickFixes for common ORM anti-patterns.\n\n[Open Folder](command:vscode.openFolder)\n\n[Documentation](https://github.com/nam-tong/db-synapse#readme)"
       },
       {
-        "view": "ormSynapse.models",
-        "when": "workbenchState != empty && !ormSynapse.scanCompleted",
-        "contents": "**Scanning your workspace…**\n\nORM Synapse is walking your project for `models.py` files. This usually takes under a second.\n\nIf the scan doesn't finish, click Refresh below.\n\n[Refresh scan](command:ormSynapse.refresh)"
+        "view": "dbSynapse.models",
+        "when": "workbenchState != empty && !dbSynapse.scanCompleted",
+        "contents": "**Scanning your workspace…**\n\nDB Synapse is walking your project for `models.py` files. This usually takes under a second.\n\nIf the scan doesn't finish, click Refresh below.\n\n[Refresh scan](command:dbSynapse.refresh)"
       },
       {
-        "view": "ormSynapse.models",
-        "when": "workbenchState != empty && ormSynapse.scanCompleted",
-        "contents": "**No Django models found in this workspace.**\n\nORM Synapse scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:ormSynapse.refresh)\n\n[Adjust excluded paths](command:workbench.action.openSettings?%22ormSynapse.excludeGlobs%22)\n\n[Documentation](https://github.com/nam-tong/orm-synapse#readme)"
+        "view": "dbSynapse.models",
+        "when": "workbenchState != empty && dbSynapse.scanCompleted",
+        "contents": "**No Django models found in this workspace.**\n\nDB Synapse scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:dbSynapse.refresh)\n\n[Adjust excluded paths](command:workbench.action.openSettings?%22dbSynapse.excludeGlobs%22)\n\n[Documentation](https://github.com/nam-tong/db-synapse#readme)"
       }
     ],
     "commands": [
       {
-        "command": "ormSynapse.refresh",
-        "title": "ORM Synapse: Refresh",
+        "command": "dbSynapse.refresh",
+        "title": "DB Synapse: Refresh",
         "icon": "$(refresh)"
       },
       {
-        "command": "ormSynapse.showGraph",
-        "title": "ORM Synapse: Show ER Diagram",
+        "command": "dbSynapse.showGraph",
+        "title": "DB Synapse: Show ER Diagram",
         "icon": "$(type-hierarchy)"
       },
       {
-        "command": "ormSynapse.jumpToModel",
-        "title": "ORM Synapse: Jump to Model"
+        "command": "dbSynapse.jumpToModel",
+        "title": "DB Synapse: Jump to Model"
       },
       {
-        "command": "ormSynapse.filter",
-        "title": "ORM Synapse: Filter Models",
+        "command": "dbSynapse.filter",
+        "title": "DB Synapse: Filter Models",
         "icon": "$(filter)"
       },
       {
-        "command": "ormSynapse.clearFilter",
-        "title": "ORM Synapse: Clear Filter",
+        "command": "dbSynapse.clearFilter",
+        "title": "DB Synapse: Clear Filter",
         "icon": "$(clear-all)"
       },
       {
-        "command": "ormSynapse.findReverseRefs",
-        "title": "ORM Synapse: Find Reverse References",
+        "command": "dbSynapse.findReverseRefs",
+        "title": "DB Synapse: Find Reverse References",
         "icon": "$(references)"
       },
       {
-        "command": "ormSynapse.generateFactory",
-        "title": "ORM Synapse: Generate factory_boy Factory",
+        "command": "dbSynapse.generateFactory",
+        "title": "DB Synapse: Generate factory_boy Factory",
         "icon": "$(beaker)"
       },
       {
-        "command": "ormSynapse.showDiff",
-        "title": "ORM Synapse: Schema Diff (Time-Travel)",
+        "command": "dbSynapse.showDiff",
+        "title": "DB Synapse: Schema Diff (Time-Travel)",
         "icon": "$(diff)"
       },
       {
-        "command": "ormSynapse.findImpact",
-        "title": "ORM Synapse: Find Impact (What Uses This?)",
+        "command": "dbSynapse.findImpact",
+        "title": "DB Synapse: Find Impact (What Uses This?)",
         "icon": "$(search)"
       },
       {
-        "command": "ormSynapse.buildQuery",
-        "title": "ORM Synapse: Build Query (Insert Snippet)",
+        "command": "dbSynapse.buildQuery",
+        "title": "DB Synapse: Build Query (Insert Snippet)",
         "icon": "$(zap)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "ormSynapse.filter",
-          "when": "view == ormSynapse.models",
+          "command": "dbSynapse.filter",
+          "when": "view == dbSynapse.models",
           "group": "navigation@1"
         },
         {
-          "command": "ormSynapse.clearFilter",
-          "when": "view == ormSynapse.models",
+          "command": "dbSynapse.clearFilter",
+          "when": "view == dbSynapse.models",
           "group": "navigation@2"
         },
         {
-          "command": "ormSynapse.refresh",
-          "when": "view == ormSynapse.models",
+          "command": "dbSynapse.refresh",
+          "when": "view == dbSynapse.models",
           "group": "navigation@3"
         },
         {
-          "command": "ormSynapse.showGraph",
-          "when": "view == ormSynapse.models",
+          "command": "dbSynapse.showGraph",
+          "when": "view == dbSynapse.models",
           "group": "navigation@4"
         }
       ],
       "view/item/context": [
         {
-          "command": "ormSynapse.findReverseRefs",
-          "when": "view == ormSynapse.models && viewItem == ormSynapseModel",
+          "command": "dbSynapse.findReverseRefs",
+          "when": "view == dbSynapse.models && viewItem == dbSynapseModel",
           "group": "navigation@1"
         },
         {
-          "command": "ormSynapse.generateFactory",
-          "when": "view == ormSynapse.models && viewItem == ormSynapseModel",
+          "command": "dbSynapse.generateFactory",
+          "when": "view == dbSynapse.models && viewItem == dbSynapseModel",
           "group": "navigation@2"
         },
         {
-          "command": "ormSynapse.findImpact",
-          "when": "view == ormSynapse.models && viewItem == ormSynapseModel",
+          "command": "dbSynapse.findImpact",
+          "when": "view == dbSynapse.models && viewItem == dbSynapseModel",
           "group": "navigation@3"
         },
         {
-          "command": "ormSynapse.findImpact",
-          "when": "view == ormSynapse.models && viewItem =~ /^field/",
+          "command": "dbSynapse.findImpact",
+          "when": "view == dbSynapse.models && viewItem =~ /^field/",
           "group": "navigation@1"
         },
         {
-          "command": "ormSynapse.buildQuery",
-          "when": "view == ormSynapse.models && viewItem == ormSynapseModel",
+          "command": "dbSynapse.buildQuery",
+          "when": "view == dbSynapse.models && viewItem == dbSynapseModel",
           "group": "navigation@4"
         },
         {
-          "command": "ormSynapse.buildQuery",
-          "when": "view == ormSynapse.models && viewItem =~ /^field/",
+          "command": "dbSynapse.buildQuery",
+          "when": "view == dbSynapse.models && viewItem =~ /^field/",
           "group": "navigation@2"
         }
       ]
     },
     "configuration": {
-      "title": "ORM Synapse",
+      "title": "DB Synapse",
       "properties": {
-        "ormSynapse.excludeGlobs": {
+        "dbSynapse.excludeGlobs": {
           "type": "array",
           "default": [
             "**/migrations/**",
@@ -240,12 +240,12 @@
           ],
           "description": "Glob patterns to exclude when scanning for models.py"
         },
-        "ormSynapse.autoRefresh": {
+        "dbSynapse.autoRefresh": {
           "type": "boolean",
           "default": true,
           "description": "Automatically refresh when models.py files change"
         },
-        "ormSynapse.diagramTheme": {
+        "dbSynapse.diagramTheme": {
           "type": "string",
           "default": "auto",
           "enum": [
@@ -264,22 +264,22 @@
           ],
           "description": "Color theme for the ER diagram webview"
         },
-        "ormSynapse.showCodeLens": {
+        "dbSynapse.showCodeLens": {
           "type": "boolean",
           "default": true,
           "description": "Show a CodeLens above each Django model class with field/relation counts and an 'Open ER diagram' action"
         },
-        "ormSynapse.codeFixes.enabled": {
+        "dbSynapse.codeFixes.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Show inline QuickFix diagnostics for Django ORM anti-patterns (DOL001-DOL032). Disable to silence the whole rule set."
         },
-        "ormSynapse.completions.enabled": {
+        "dbSynapse.completions.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Complete model field names and lookups inside Post.objects.filter(...) and its siblings, traversing ForeignKey edges for author__name paths. Disable if another extension already owns Python completion here."
         },
-        "ormSynapse.dbEngine": {
+        "dbSynapse.dbEngine": {
           "type": "string",
           "default": "auto",
           "enum": [
@@ -296,7 +296,7 @@
           ],
           "description": "Database engine the project targets. Rules that only make sense on one engine (DOL017, the MySQL index naming convention) are skipped when this names another."
         },
-        "ormSynapse.rules": {
+        "dbSynapse.rules": {
           "type": "object",
           "default": {},
           "description": "Per-rule severity override. Keys are rule codes (DOL001, DOL011, ...), values are 'off' | 'hint' | 'info' | 'warning' | 'error'. Rules not listed use their default severity.",
@@ -314,7 +314,7 @@
           },
           "additionalProperties": false
         },
-        "ormSynapse.rulesSelect": {
+        "dbSynapse.rulesSelect": {
           "type": "array",
           "default": [],
           "items": {
@@ -322,7 +322,7 @@
           },
           "description": "Ruff-style select. If non-empty, only rules matching one of these codes/prefixes run. Example: ['DOL0'] to run only queryset+model rules."
         },
-        "ormSynapse.rulesIgnore": {
+        "dbSynapse.rulesIgnore": {
           "type": "array",
           "default": [],
           "items": {

@@ -26,7 +26,7 @@ import * as vscode from 'vscode';
  * by layer, then confidence, then file path.
  *
  * Callers:
- *   - `src/extension.ts` — `ormSynapse.findImpact` command handler
+ *   - `src/extension.ts` — `dbSynapse.findImpact` command handler
  *   - `test/impact-analysis.test.js` — pure classifier tests
  */
 
@@ -104,7 +104,7 @@ export function detectLayer(filePath: string): Layer {
  * root is the developer's machine layout, not the project's, so callers pass
  * the workspace-relative path here instead.
  *
- * Mirrors `layer_of()` in cli/orm_synapse/impact.py. Change both together.
+ * Mirrors `layer_of()` in cli/db_synapse/impact.py. Change both together.
  */
 export function layerOf(relativePath: string): Layer {
   const rel = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
@@ -289,7 +289,7 @@ export async function scanImpact(
   needle: string,
   options: ScanOptions = {},
 ): Promise<Finding[]> {
-  const cfg = vscode.workspace.getConfiguration('ormSynapse');
+  const cfg = vscode.workspace.getConfiguration('dbSynapse');
   const baseExcludes = cfg.get<string[]>('excludeGlobs', [
     '**/migrations/**',
     '**/node_modules/**',

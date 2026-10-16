@@ -3,7 +3,7 @@ import { ParsedApp, ParsedField, ParsedModel, RelationKind, WorkspaceIndex } fro
 
 // fields — same `to`, same `on_delete`, same `related_name`. Mapping the name
 // to its Django counterpart is the whole fix: every extractor below keeps
-// working unchanged. Mirrors TREE_FIELD_ALIASES in cli/orm_synapse/parser.py;
+// working unchanged. Mirrors TREE_FIELD_ALIASES in cli/db_synapse/parser.py;
 // the two must stay in step or the sidebar and the CLI disagree about a schema.
 const TREE_FIELD_ALIASES: Record<string, RelationKind> = {
   TreeForeignKey: 'ForeignKey',
@@ -16,7 +16,7 @@ const TREE_FIELD_ALIASES: Record<string, RelationKind> = {
  * This is only the seed. `resolveAndFilter` grows the set transitively, so a
  * project-local base under any other name — `TimeStamped`, `BaseModel`,
  * `Auditable` — still makes its subclasses models once the base itself is
- * recognised. Mirrors `_looks_like_model` in cli/orm_synapse/parser.py.
+ * recognised. Mirrors `_looks_like_model` in cli/db_synapse/parser.py.
  */
 const NON_MODEL_TAIL =
   /^(ModelAdmin|ModelForm|ModelSerializer|ModelChoiceField|ModelMultipleChoiceField|Serializer|Form|Admin|View|ViewSet|Manager|QuerySet|Config|AppConfig|Response|Handler|Middleware|Backend|Command)$/;
@@ -98,7 +98,7 @@ const BARE_FIELD_PATTERN = `(?!GenericForeignKey\\b)(?:${BARE_FIELD_TYPES})`;
 /**
  * Relation kind for a field class name. Subclasses keep Django's suffix
  * (`BaseForeignKey`, `BaseOneToOneField`), so the suffix decides.
- * Mirrors `_relation_kind` in cli/orm_synapse/parser.py.
+ * Mirrors `_relation_kind` in cli/db_synapse/parser.py.
  */
 function relationKindOf(fieldType: string): RelationKind | undefined {
   if (fieldType === 'TaggableManager') return 'ManyToManyField';
@@ -246,7 +246,7 @@ function readBalancedArgs(lines: string[], startIdx: number): {
  * No model recognition, no abstract filtering, no inheritance. Callers combine
  * the result with definitions from other files before calling
  * `resolveAndFilter`, so a base declared in another module is still found.
- * Mirrors `_collect_defs` in cli/orm_synapse/parser.py.
+ * Mirrors `_collect_defs` in cli/db_synapse/parser.py.
  */
 export function collectDefs(filePath: string, content: string): ParsedModel[] {
   // Strip leading BOM (U+FEFF) — Windows editors (Notepad, VS Code with
@@ -398,7 +398,7 @@ function isAbstract(model: ParsedModel): boolean {
  * inheritance chains this actually matters for. `stack` breaks cycles in
  * malformed source instead of recursing forever.
  *
- * Mirrors `_abstract_bases_fields` in cli/orm_synapse/parser.py.
+ * Mirrors `_abstract_bases_fields` in cli/db_synapse/parser.py.
  */
 function abstractBasesFields(
   model: ParsedModel,
@@ -460,7 +460,7 @@ function attachInheritedFields(allDefs: ParsedModel[]): void {
  * The loop runs to a **fixed point** rather than in source order. Order-
  * dependent recognition misses `class Post(TimeStamped)` written above its
  * base, which is ordinary once the base is imported rather than declared
- * locally. Mirrors `_resolve_and_filter` in cli/orm_synapse/parser.py; the
+ * locally. Mirrors `_resolve_and_filter` in cli/db_synapse/parser.py; the
  * two must stay in step or the sidebar and the CLI disagree about a schema.
  */
 export function resolveAndFilter(allDefs: ParsedModel[]): ParsedModel[] {

@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.nam-tong/orm-synapse",
-  "title": "ORM Synapse",
+  "name": "io.github.nam-tong/db-synapse",
+  "title": "DB Synapse",
   "description": "Django ORM static analysis MCP. Models, relations, migrations, indexes, signals, N+1.",
   "version": "1.13.3",
   "repository": {
-    "url": "https://github.com/nam-tong/orm-synapse",
+    "url": "https://github.com/nam-tong/db-synapse",
     "source": "github"
   },
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "orm-synapse",
+      "identifier": "db-synapse",
       "version": "1.13.3",
       "transport": {
         "type": "stdio"
@@ -20,13 +20,13 @@
       "runtimeArguments": [
         {
           "type": "positional",
-          "value": "orm-synapse[mcp]"
+          "value": "db-synapse[mcp]"
         }
       ],
       "packageArguments": [
         {
           "type": "positional",
-          "value": "orm-synapse-mcp"
+          "value": "db-synapse-mcp"
         }
       ]
     }

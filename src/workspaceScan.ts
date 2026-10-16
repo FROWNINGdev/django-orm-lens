@@ -12,7 +12,7 @@ import { ParsedApp, ParsedField, ParsedModel, RelationKind, WorkspaceIndex } fro
  * parent, so `shop/models/builders/flow.py` is still the shop app — not
  * `builders`. `root` is the workspace folder so a directory named `models`
  * above the project is not treated as a Django models package.
- * Mirrors `_app_dir_for` in cli/orm_synapse/parser.py.
+ * Mirrors `_app_dir_for` in cli/db_synapse/parser.py.
  */
 export function appDirFor(fsPath: string, root?: string): { dir: string; name: string } {
   const directory = path.dirname(fsPath);
@@ -94,7 +94,7 @@ function fnmatchRegex(pattern: string): RegExp {
  * subclasses — django-oscar does this in all 14 of its apps. Without reading
  * these, oscar's models parse as classes with no fields between them: found,
  * but empty, which reads as a schema that lost its columns. Mirrors
- * MODEL_SOURCE_FILES in cli/orm_synapse/parser.py.
+ * MODEL_SOURCE_FILES in cli/db_synapse/parser.py.
  */
 const MODEL_SOURCE_FILES = new Set(['models.py', 'abstract_models.py']);
 
@@ -105,7 +105,7 @@ const MODEL_SOURCE_FILES = new Set(['models.py', 'abstract_models.py']);
  * `models/` package, including nested modules (`models/builders/flow.py`)
  * and package `__init__.py` files, which can define models themselves
  * (`models/lead/__init__.py`). Mirrors `_is_model_source` in
- * cli/orm_synapse/parser.py.
+ * cli/db_synapse/parser.py.
  */
 export function isModelSourceRelPath(relPosix: string): boolean {
   const norm = relPosix.replace(/\\/g, '/').replace(/^\.\//, '');
@@ -169,7 +169,7 @@ type ImportTarget = { module: string; name: string | null };
 
 /**
  * Map each name a module binds by import to the module (and name) it came
- * from. Mirrors `_parse_imports` in cli/orm_synapse/parser.py.
+ * from. Mirrors `_parse_imports` in cli/db_synapse/parser.py.
  */
 export function parseImports(content: string): Map<string, ImportTarget> {
   const out = new Map<string, ImportTarget>();
@@ -245,7 +245,7 @@ function moduleFiles(module: string, fromFile: string, root: string): string[] {
  * defining each unknown base — through re-exports and relative imports — and
  * returns those classes so `resolveAndFilter` sees the whole chain. Only
  * classes something inherits from are pulled. Mirrors `_pull_imported_bases`
- * in cli/orm_synapse/parser.py.
+ * in cli/db_synapse/parser.py.
  */
 export function pullImportedBases(
   allDefs: ParsedModel[],
@@ -409,7 +409,7 @@ export async function scanWorkspace(
     try {
       allDefs.push(...collectDefs(uri.fsPath, content));
     } catch (err) {
-      console.error(`orm-synapse: parser error in ${uri.fsPath}`, err);
+      console.error(`db-synapse: parser error in ${uri.fsPath}`, err);
     }
   }
   allDefs.push(

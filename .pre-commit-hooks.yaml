@@ -1,35 +1,35 @@
-# pre-commit hook definitions for orm-synapse.
+# pre-commit hook definitions for db-synapse.
 #
 # Usage in a Django project's .pre-commit-config.yaml:
 #
 #   repos:
-#     - repo: https://github.com/nam-tong/orm-synapse
+#     - repo: https://github.com/nam-tong/db-synapse
 #       rev: py-v1.8.1
 #       hooks:
-#         - id: orm-synapse-nplusone
-#         - id: orm-synapse-migration-risk
+#         - id: db-synapse-nplusone
+#         - id: db-synapse-migration-risk
 #
 # The hook environment installs the published PyPI package (see the root
 # pyproject.toml shim). Pin the analyzer itself with:
-#   additional_dependencies: ["orm-synapse==1.4.0"]
+#   additional_dependencies: ["db-synapse==1.4.0"]
 
-- id: orm-synapse-nplusone
-  name: orm-synapse · static N+1 check
+- id: db-synapse-nplusone
+  name: db-synapse · static N+1 check
   description: >-
     Flag FK/M2M access inside loops without select_related/prefetch_related.
     Static analysis — no DB, no Django boot. Exits non-zero on findings.
-  entry: orm-synapse nplusone --confidence high
+  entry: db-synapse nplusone --confidence high
   language: python
   pass_filenames: false
   types: [python]
 
-- id: orm-synapse-migration-risk
-  name: orm-synapse · migration risk check
+- id: db-synapse-migration-risk
+  name: db-synapse · migration risk check
   description: >-
     Flag migration operations that are dangerous on a production database
     (NOT NULL without default, table-locking index builds, irreversible
     data migrations, ...). Exits non-zero on critical findings.
-  entry: orm-synapse migration-risk
+  entry: db-synapse migration-risk
   language: python
   pass_filenames: false
   types: [python]

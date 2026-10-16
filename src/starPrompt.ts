@@ -27,11 +27,11 @@
 
 import * as vscode from 'vscode';
 
-export const REPO_URL = 'https://github.com/nam-tong/orm-synapse';
+export const REPO_URL = 'https://github.com/nam-tong/db-synapse';
 
-const KEY_OPENS = 'ormSynapse.star.opens';
-const KEY_DISMISSED_AT = 'ormSynapse.star.dismissedAt';
-const KEY_SILENCED = 'ormSynapse.star.silenced';
+const KEY_OPENS = 'dbSynapse.star.opens';
+const KEY_DISMISSED_AT = 'dbSynapse.star.dismissedAt';
+const KEY_SILENCED = 'dbSynapse.star.silenced';
 
 /** First ask: the third time the user opens the diagram. */
 export const FIRST_PROMPT_AT = 3;
@@ -97,7 +97,7 @@ export async function maybeAskForStar(
     const later = 'Later';
     const never = "Don't ask again";
     const choice = await vscode.window.showInformationMessage(
-      'ORM Synapse is free and MIT-licensed. If it saved you time, a star helps another Django developer find it.',
+      'DB Synapse is free and MIT-licensed. If it saved you time, a star helps another Django developer find it.',
       star,
       later,
       never

@@ -344,7 +344,7 @@ def format_text(report: BlastRadiusReport, root: str | Path = ".") -> str:
     return "\n".join(out)
 
 
-COMMENT_MARKER = "<!-- orm-synapse: blast-radius -->"
+COMMENT_MARKER = "<!-- db-synapse: blast-radius -->"
 """Hidden anchor so CI can update its previous comment instead of posting a
 new one on every push. Must be the first line of the rendered markdown —
 the Action greps for it verbatim."""
@@ -356,14 +356,14 @@ def format_markdown(report: BlastRadiusReport, root: str | Path = ".") -> str:
     if not report.targets and not report.unscanned_risks:
         return (
             f"{COMMENT_MARKER}\n"
-            "### ORM Synapse — blast radius\n\n"
+            "### DB Synapse — blast radius\n\n"
             "No schema-changing operations found. Nothing to review here."
         )
 
     s = report.to_dict()["summary"]
     out: list[str] = [
         COMMENT_MARKER,
-        "### ORM Synapse — blast radius",
+        "### DB Synapse — blast radius",
         "",
         f"**{s['targets']}** target(s) · **{s['criticalRisks']}** critical risk(s) · "
         f"**{s['certainReferences']}** certain reference(s) still in code",

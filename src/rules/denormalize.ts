@@ -4,11 +4,11 @@ import { ParsedField, ParsedModel } from '../types';
 /**
  * Denormalization smells. Review hints, not a 2NF/3NF proof.
  *
- * Mirrors cli/orm_synapse/denormalize.py. A scalar `company_id` with no
+ * Mirrors cli/db_synapse/denormalize.py. A scalar `company_id` with no
  * ForeignKey is a convention, not a copied column, and stays quiet.
  */
 
-const DOCS_BASE = 'https://github.com/nam-tong/orm-synapse/blob/main/docs/rules';
+const DOCS_BASE = 'https://github.com/nam-tong/db-synapse/blob/main/docs/rules';
 
 const COPIED_SUFFIXES = new Set([
   'name',

@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.cli import main
+from db_synapse.cli import main
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
 MINIAPP = FIXTURE_ROOT / "miniapp"
@@ -269,7 +269,7 @@ class CiFormatSmokeTest(unittest.TestCase):
         doc = json.loads(out)
         self.assertEqual(doc["version"], "2.1.0")
         run = doc["runs"][0]
-        self.assertEqual(run["tool"]["driver"]["name"], "orm-synapse")
+        self.assertEqual(run["tool"]["driver"]["name"], "db-synapse")
         self.assertEqual(run["results"], [])
 
     def test_nplusone_sarif_with_finding_exits_1(self) -> None:
@@ -325,7 +325,7 @@ class CiFormatSmokeTest(unittest.TestCase):
         self.assertIn("migrations/0002_add_status.py", line)
         self.assertIn(",line=", line)
         self.assertIn(
-            "title=orm-synapse%3A add_field_not_null_no_default", line
+            "title=db-synapse%3A add_field_not_null_no_default", line
         )
 
     def test_migration_risk_github_silent_and_green_on_safe_fixture(self) -> None:
@@ -365,25 +365,25 @@ if __name__ == "__main__":
 
 
 class ModuleEntryPointTests(unittest.TestCase):
-    """`python -m orm_synapse` must work wherever the console script does.
+    """`python -m db_synapse` must work wherever the console script does.
 
     Regression guard: the package shipped without a __main__.py through
-    1.5.0, so `python -m orm_synapse` failed with "No module named
-    orm_synapse.__main__" even though the CLI itself was fine.
+    1.5.0, so `python -m db_synapse` failed with "No module named
+    db_synapse.__main__" even though the CLI itself was fine.
     """
 
     def test_module_invocation_reports_version(self) -> None:
         proc = subprocess.run(
-            [sys.executable, "-m", "orm_synapse", "--version"],
+            [sys.executable, "-m", "db_synapse", "--version"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=60,
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("orm-synapse", proc.stdout)
+        self.assertIn("db-synapse", proc.stdout)
 
     def test_module_invocation_matches_console_script_help(self) -> None:
         proc = subprocess.run(
-            [sys.executable, "-m", "orm_synapse", "--help"],
+            [sys.executable, "-m", "db_synapse", "--help"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=60,
         )

@@ -30,13 +30,13 @@ COPIED_SUFFIXES = frozenset(
 )
 _REPEATED = re.compile(r"^([A-Za-z][A-Za-z0-9]*)_(\d+)$")
 _DISABLE_NEXT = re.compile(
-    r"#\s*orm-synapse-disable-next-line(?:\s+([A-Z0-9,\s]+))?", re.IGNORECASE
+    r"#\s*db-synapse-disable-next-line(?:\s+([A-Z0-9,\s]+))?", re.IGNORECASE
 )
 _DISABLE_LINE = re.compile(
-    r"#\s*orm-synapse-disable-line(?:\s+([A-Z0-9,\s]+))?", re.IGNORECASE
+    r"#\s*db-synapse-disable-line(?:\s+([A-Z0-9,\s]+))?", re.IGNORECASE
 )
 _DISABLE_FILE = re.compile(
-    r"#\s*orm-synapse-disable(?:\s+([A-Z0-9,\s]+))?", re.IGNORECASE
+    r"#\s*db-synapse-disable(?:\s+([A-Z0-9,\s]+))?", re.IGNORECASE
 )
 
 
@@ -385,7 +385,7 @@ def format_github(findings: list[DenormFinding], root: str | None = None) -> str
                 path = item.file_path
         message = item.message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
         prop = path.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A").replace(":", "%3A").replace(",", "%2C")
-        title = f"orm-synapse: {item.code}".replace("%", "%25").replace(":", "%3A").replace(",", "%2C")
+        title = f"db-synapse: {item.code}".replace("%", "%25").replace(":", "%3A").replace(",", "%2C")
         lines.append(
             f"::warning file={prop},line={item.line_number + 1},title={title}::{message}"
         )

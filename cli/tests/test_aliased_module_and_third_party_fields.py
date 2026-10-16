@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import unittest
 
-from orm_synapse.parser import parse_models_file
+from db_synapse.parser import parse_models_file
 
 
 class AliasedModelsModuleTest(unittest.TestCase):

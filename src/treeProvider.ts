@@ -10,7 +10,7 @@ import {
 } from './decorations';
 
 /**
- * ORM Synapse — sidebar tree.
+ * DB Synapse — sidebar tree.
  *
  * v0.8 UX overhaul distilled from the top-tier extensions (GitLens,
  * Todo Tree, Docker, GitHub PRs) and community forum feedback:
@@ -30,14 +30,14 @@ import {
  * WorkspaceIndex → TreeNode[] → vscode.TreeItem.
  */
 
-const FILTER_STATE_KEY = 'ormSynapse.filter';
+const FILTER_STATE_KEY = 'dbSynapse.filter';
 /**
  * Ids the user has unchecked in the tree. Stored rather than the inverse so a
  * newly added app or model is visible by default — a project that grows should
  * not silently hide its new models because they were absent when the set was
  * written.
  */
-const HIDDEN_STATE_KEY = 'ormSynapse.hidden';
+const HIDDEN_STATE_KEY = 'dbSynapse.hidden';
 
 /* -----------------------------  helpers  ----------------------------- */
 
@@ -163,9 +163,9 @@ function markdownForModel(app: string, model: ParsedModel): string {
   }
   parts.push(
     '',
-    `[$(go-to-file) Open definition](command:ormSynapse.jumpToModel?${jumpArg})`,
+    `[$(go-to-file) Open definition](command:dbSynapse.jumpToModel?${jumpArg})`,
     ' · ',
-    '[$(type-hierarchy) Show ER diagram](command:ormSynapse.showGraph)',
+    '[$(type-hierarchy) Show ER diagram](command:dbSynapse.showGraph)',
   );
   return parts.join('\n');
 }
@@ -449,7 +449,7 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       // — and the tooltip text is built from Django model/field names read
       // from the workspace, which could be adversarial in a supply-chain
       // scenario. Match the hover provider's whitelist.
-      md.isTrusted = { enabledCommands: ['ormSynapse.jumpToModel', 'ormSynapse.showGraph'] };
+      md.isTrusted = { enabledCommands: ['dbSynapse.jumpToModel', 'dbSynapse.showGraph'] };
       md.supportThemeIcons = true;
       item.tooltip = md;
     } else {
@@ -458,7 +458,7 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     if (element.iconId) item.iconPath = new vscode.ThemeIcon(element.iconId);
     // Legacy value kept for backwards-compat with existing menu registrations.
     if (element.kind === 'model') {
-      item.contextValue = 'ormSynapseModel';
+      item.contextValue = 'dbSynapseModel';
     } else if (element.contextValue) {
       item.contextValue = element.contextValue;
     }
@@ -469,7 +469,7 @@ export class DjangoTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     }
     if (element.filePath && typeof element.lineNumber === 'number') {
       item.command = {
-        command: 'ormSynapse.jumpToModel',
+        command: 'dbSynapse.jumpToModel',
         title: 'Jump to definition',
         arguments: [element.filePath, element.lineNumber],
       };

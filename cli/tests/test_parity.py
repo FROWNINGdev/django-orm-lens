@@ -12,7 +12,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from orm_synapse.parser import _extract_on_delete, parse_models_file
+from db_synapse.parser import _extract_on_delete, parse_models_file
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_PATH = REPO_ROOT / "test" / "fixtures" / "parity_input.py"
@@ -110,18 +110,18 @@ class ParserGuardsTest(unittest.TestCase):
 
     def test_read_balanced_args_no_open_paren_returns_empty(self) -> None:
         """A field-shaped line without ( must not raise ValueError."""
-        from orm_synapse.parser import _read_balanced_args
+        from db_synapse.parser import _read_balanced_args
         self.assertEqual(_read_balanced_args(["    name = CharField"], 0), ("", 0))
 
     def test_detect_class_indent_clamps_at_32(self) -> None:
         """A crafted deep-indent input must not exceed the ReDoS clamp."""
-        from orm_synapse.parser import _detect_class_indent
+        from db_synapse.parser import _detect_class_indent
         deep = " " * 200 + "x = 1"
         self.assertEqual(_detect_class_indent(["class Foo(Model):", deep], 0), 32)
 
     def test_detect_class_indent_expands_tabs_to_four(self) -> None:
         """A tab-indented body reports width 4, not raw byte length 1."""
-        from orm_synapse.parser import _detect_class_indent
+        from db_synapse.parser import _detect_class_indent
         self.assertEqual(_detect_class_indent(["class Foo(Model):", "	x = 1"], 0), 4)
 
 

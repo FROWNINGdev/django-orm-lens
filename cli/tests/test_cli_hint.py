@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.cli import main
+from db_synapse.cli import main
 
 
 def _run(argv):

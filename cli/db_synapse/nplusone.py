@@ -699,8 +699,8 @@ def scan_for_nplusone(
 
     ``models_schema`` accepts either the flat ``{ModelName: {attr: kind}}``
     dict this module uses internally, OR the ``WorkspaceIndex.to_dict()``
-    shape emitted by :func:`orm_synapse.parser.scan_workspace`, OR a
-    :class:`~orm_synapse.models.WorkspaceIndex` instance. When
+    shape emitted by :func:`db_synapse.parser.scan_workspace`, OR a
+    :class:`~db_synapse.models.WorkspaceIndex` instance. When
     ``None``, the scanner runs in schema-less heuristic mode.
     """
     root = Path(project_root).resolve()

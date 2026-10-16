@@ -1,4 +1,4 @@
-"""MCP (Model Context Protocol) stdio server for ORM Synapse.
+"""MCP (Model Context Protocol) stdio server for DB Synapse.
 
 Exposes thirteen read-only tools that any MCP-compatible AI agent can call:
 
@@ -13,14 +13,14 @@ Exposes thirteen read-only tools that any MCP-compatible AI agent can call:
 * ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` decorators
 * ``nplusone_scan``  — static N+1 findings for the whole workspace
 
-The ``mcp`` runtime package is loaded lazily so ``pip install orm-synapse``
-stays zero-dep. Install with the extras: ``pip install 'orm-synapse[mcp]'``.
+The ``mcp`` runtime package is loaded lazily so ``pip install db-synapse``
+stays zero-dep. Install with the extras: ``pip install 'db-synapse[mcp]'``.
 
 Workspace discovery (py-1.3.0+)
 -------------------------------
 Every tool accepts an optional ``workspace_root`` argument. Resolution
 priority — explicit arg, then ``$DJANGO_ORM_LENS_ROOT`` env var, then ``cwd``
-— is implemented once in :mod:`orm_synapse.workspace`. Before py-1.3.0
+— is implemented once in :mod:`db_synapse.workspace`. Before py-1.3.0
 the argument was silently dropped by FastMCP because the tool signatures did
 not declare it; the fix is to declare the argument on every tool and delegate
 resolution to a single hardened helper. On failure the tool returns a JSON
@@ -236,7 +236,7 @@ def _tool_describe_migration_dependency(args: dict[str, Any]) -> str:
     """Return migration DAG for one Django app.
 
     Static AST parse of ``<app>/migrations/*.py`` — no Django boot, no DB.
-    Unique to orm-synapse across the MCP + Django-graph tool ecosystem
+    Unique to db-synapse across the MCP + Django-graph tool ecosystem
     (competitors require a running Django process).
     """
     ws = _resolve(args)
@@ -590,8 +590,8 @@ def main() -> int:
     loaded = _load_server_class()
     if loaded is None:
         print(
-            "orm-synapse MCP requires the 'mcp' package.\n"
-            "install with: pip install 'orm-synapse[mcp]'",
+            "db-synapse MCP requires the 'mcp' package.\n"
+            "install with: pip install 'db-synapse[mcp]'",
             file=sys.stderr,
         )
         return 3
@@ -601,9 +601,9 @@ def main() -> int:
     # below exists to fake on 1.x. Passing it here is not merely tidier: it is
     # supported API, so it keeps working if the private handle ever moves.
     server = (
-        server_class("orm-synapse", version=__version__)
+        server_class("db-synapse", version=__version__)
         if takes_version
-        else server_class("orm-synapse")
+        else server_class("db-synapse")
     )
     # Still called on both. On 1.x it is the only thing that sets the version;
     # on 2.x it writes the same value the constructor already stored, and
@@ -615,9 +615,9 @@ def main() -> int:
     # surface server stderr (Cursor, Aider, mcp-inspector) show this once
     # per session; silent clients ignore it. Zero effect on tool protocol.
     print(
-        "orm-synapse MCP ready - "
+        "db-synapse MCP ready - "
         "if it saves your agent time, a star helps: "
-        "https://github.com/nam-tong/orm-synapse",
+        "https://github.com/nam-tong/db-synapse",
         file=sys.stderr,
     )
 
@@ -628,7 +628,7 @@ def main() -> int:
         signature so FastMCP includes it in the ``inputSchema`` served to
         ``tools/list``. Agents that pass the argument reach the handler with
         the value; agents that omit it fall through to env var / cwd via the
-        resolution chain in :mod:`orm_synapse.workspace`.
+        resolution chain in :mod:`db_synapse.workspace`.
         """
         if name == "list_apps":
             @server.tool(name=name, description=description)

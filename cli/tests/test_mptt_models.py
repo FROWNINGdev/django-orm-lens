@@ -24,7 +24,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from orm_synapse.parser import parse_models_file, scan_workspace
+from db_synapse.parser import parse_models_file, scan_workspace
 
 FIXTURE = Path(__file__).parent / "fixtures" / "mptt"
 FIXTURE_MODELS = FIXTURE / "catalog" / "models.py"

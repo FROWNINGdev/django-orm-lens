@@ -18,7 +18,7 @@ import { Finding, Rule, RuleContext } from './types';
  */
 
 const DOCS_BASE =
-  'https://github.com/nam-tong/orm-synapse/blob/main/docs/rules';
+  'https://github.com/nam-tong/db-synapse/blob/main/docs/rules';
 
 /** Detect `datetime.now()` (bare-module reference). Excludes attribute access. */
 const RE_DATETIME_NOW = /(?<![\w.])datetime\.now\s*\(\s*\)/g;

@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.migrations_parser import (
+from db_synapse.migrations_parser import (
     MigrationRisk,
     MigrationRiskAnalyzer,
     analyze_migration_risks,

@@ -16,9 +16,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from orm_synapse.cli import _build_mermaid, main
-from orm_synapse.er_formats import build_d2, build_dbml, build_dot, build_plantuml
-from orm_synapse.parser import DEFAULT_EXCLUDES, scan_workspace
+from db_synapse.cli import _build_mermaid, main
+from db_synapse.er_formats import build_d2, build_dbml, build_dot, build_plantuml
+from db_synapse.parser import DEFAULT_EXCLUDES, scan_workspace
 
 FIXTURES = Path(__file__).parent / "fixtures"
 MINIAPP = FIXTURES / "miniapp"
@@ -69,7 +69,7 @@ class MiniappAllFormatsTest(unittest.TestCase):
 
     def test_dot_clusters_tables_and_edges(self) -> None:
         dot = build_dot(self.index)
-        self.assertTrue(dot.startswith("digraph orm_synapse {"))
+        self.assertTrue(dot.startswith("digraph db_synapse {"))
         self.assertIn('subgraph "cluster_orders" {', dot)
         self.assertIn('"orders.Order" [label=<<TABLE', dot)
         self.assertIn(
@@ -233,7 +233,7 @@ class CliWiringTest(unittest.TestCase):
             ("dbml", "Table orders.Order {"),
             ("d2", "shape: sql_table"),
             ("plantuml", "@startuml"),
-            ("dot", "digraph orm_synapse"),
+            ("dot", "digraph db_synapse"),
         ):
             code, out, _ = _run(["er", "--path", str(MINIAPP), "--format", fmt])
             self.assertEqual(code, 0, f"{fmt} exited {code}")

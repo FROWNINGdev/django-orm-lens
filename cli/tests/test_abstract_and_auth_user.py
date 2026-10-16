@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import unittest
 
-from orm_synapse.mcp_server import (
+from db_synapse.mcp_server import (
     _rel_matches_target,
     _workspace_user_model,
 )
-from orm_synapse.parser import parse_models_file
+from db_synapse.parser import parse_models_file
 
 SAMPLE = '''
 from django.db import models

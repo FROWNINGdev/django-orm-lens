@@ -17,20 +17,20 @@ from __future__ import annotations
 
 import unittest
 
-from orm_synapse.models import (
+from db_synapse.models import (
     find_user_model,
     find_user_model_from_dict,
     resolve_related_tail,
 )
-from orm_synapse.parser import (
+from db_synapse.parser import (
     _extract_on_delete,
     _extract_related,
     _extract_related_name,
     _extract_through_model,
     parse_models_file,
 )
-from orm_synapse.query_analyzer import _build_schema_from_index
-from orm_synapse.signals_parser import _resolve_sender
+from db_synapse.query_analyzer import _build_schema_from_index
+from db_synapse.signals_parser import _resolve_sender
 
 # ---------------------------------------------------------------------------
 # Fix #1 — AST-based extractors are kwarg-order-independent

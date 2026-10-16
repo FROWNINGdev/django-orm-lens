@@ -26,11 +26,11 @@ Lệnh `migration-risk` chấm điểm mọi file migration trong dự án của
 ## Cách dùng
 
 ```bash
-orm-synapse migration-risk --path .              # toàn bộ dự án
-orm-synapse migration-risk --path apps/blog/migrations
-orm-synapse migration-risk --format json         # định dạng máy đọc được
-orm-synapse migration-risk --format github       # GitHub PR annotations
-orm-synapse migration-risk --severity error      # chỉ các lỗi
+db-synapse migration-risk --path .              # toàn bộ dự án
+db-synapse migration-risk --path apps/blog/migrations
+db-synapse migration-risk --format json         # định dạng máy đọc được
+db-synapse migration-risk --format github       # GitHub PR annotations
+db-synapse migration-risk --severity error      # chỉ các lỗi
 ```
 
 - **`--path PATH`** — thư mục gốc để quét (mặc định: thư mục hiện tại).
@@ -43,7 +43,7 @@ orm-synapse migration-risk --severity error      # chỉ các lỗi
 ## Trong CI
 
 ```yaml
-- uses: nam-tong/orm-synapse@action-v1
+- uses: nam-tong/db-synapse@action-v1
   with:
     command: migration-risk
     format: github
