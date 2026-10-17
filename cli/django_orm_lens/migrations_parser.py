@@ -277,6 +277,9 @@ class MigrationRisk:
     mitigation: str
     confidence: Confidence
     severity: Severity
+    old_name: str | None = None
+    """For RenameField / RenameModel: the name before the rename, which is
+    what code that has not been updated still uses."""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -487,6 +490,7 @@ class MigrationRiskAnalyzer:
         severity: Severity,
         model: str | None = None,
         field: str | None = None,
+        old_name: str | None = None,
     ) -> None:
         self.findings.append(
             MigrationRisk(
@@ -502,6 +506,7 @@ class MigrationRiskAnalyzer:
                 mitigation=mitigation,
                 confidence=confidence,
                 severity=severity,
+                old_name=old_name,
             )
         )
 
@@ -711,6 +716,7 @@ class MigrationRiskAnalyzer:
             severity="warning",
             model=model,
             field=new or old,
+            old_name=old,
         )
 
     def _check_RenameModel(self, call: ast.Call) -> None:
@@ -731,6 +737,7 @@ class MigrationRiskAnalyzer:
             confidence="medium",
             severity="warning",
             model=new or old,
+            old_name=old,
         )
 
     # ------------------------------------------------------------------
