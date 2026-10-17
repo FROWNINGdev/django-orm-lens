@@ -222,6 +222,8 @@ def analyze_blast_radius(
             only.add(p)
             with contextlib.suppress(OSError):
                 only.add(str(Path(p).resolve()))
+                if not Path(p).is_absolute():
+                    only.add(str((root_path / p).resolve()))
 
     report = BlastRadiusReport()
     by_key: dict[tuple[str, str | None, str | None], Target] = {}

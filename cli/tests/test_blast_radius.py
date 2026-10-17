@@ -10,6 +10,7 @@ Run: python -m unittest discover cli/tests -v
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -72,6 +73,19 @@ class BlastRadiusTest(unittest.TestCase):
         target_file = str(FIXTURE / "blog" / "migrations" / "0002_drop_author.py")
         narrowed = analyze_blast_radius(FIXTURE, only_migrations=[target_file])
         self.assertEqual(len(narrowed.targets), 1)
+
+    def test_only_migrations_matches_project_and_cwd_relative_paths(self) -> None:
+        previous_cwd = Path.cwd()
+        try:
+            os.chdir(FIXTURE.parent)
+            for path in (
+                "blog/migrations/0002_drop_author.py",
+                "blast_radius/blog/migrations/0002_drop_author.py",
+            ):
+                report = analyze_blast_radius(FIXTURE, only_migrations=[path])
+                self.assertEqual(len(report.targets), 1, path)
+        finally:
+            os.chdir(previous_cwd)
 
     def test_cascade_is_absent_without_an_index(self) -> None:
         self.assertIsNone(self.report.targets[0].cascade)
