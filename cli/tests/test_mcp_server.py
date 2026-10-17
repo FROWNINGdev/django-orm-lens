@@ -50,6 +50,7 @@ from django_orm_lens.mcp_server import (
     _load_server_class,
     _lowlevel_handle,
     _resolve,
+    _tool_blast_radius,
     _tool_cascade_preview,
     _tool_describe_migration_dependency,
     _tool_describe_model,
@@ -272,6 +273,25 @@ class HappyPathTest(unittest.TestCase):
         self.assertEqual(len(payload), 1)
         self.assertEqual(payload[0]["name"], "myapp")
         self.assertEqual(payload[0]["models"], 2)
+
+    def test_blast_radius_rejects_an_unknown_severity(self) -> None:
+        # "high" used to fall back to critical silently (#140).
+        payload = json.loads(
+            _tool_blast_radius({"workspace_root": str(self.tmp), "severity": "high"})
+        )
+        self.assertEqual(payload["error"], "INVALID_SEVERITY")
+        self.assertIn("critical", payload["hint"])
+        self.assertNotIn("targets", payload)
+
+    def test_blast_radius_accepts_every_documented_severity(self) -> None:
+        for severity in ("critical", "warning", "info", "all"):
+            with self.subTest(severity=severity):
+                payload = json.loads(
+                    _tool_blast_radius(
+                        {"workspace_root": str(self.tmp), "severity": severity}
+                    )
+                )
+                self.assertNotIn("error", payload)
 
     def test_list_models_returns_dotted_names(self) -> None:
         raw = _tool_list_models({"workspace_root": str(self.tmp)})

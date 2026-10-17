@@ -26,6 +26,7 @@ Severity and confidence are what `migration-risk` / `blast_radius` report.
 | `runsql_no_reverse` | RunSQL | warning | no `reverse_sql`: the migration cannot be rolled back |
 | `runpython_no_reverse` | RunPython | warning | no `reverse_code`: cannot roll back |
 | `alter_unique_together_lock` | AlterUniqueTogether | warning | builds a unique index under lock, fails on existing duplicates |
+| `remove_field` | RemoveField | info | field already gone from models.py — `blast-radius --severity info` lists code still reading it |
 | `remove_field_unverified` | RemoveField | info | schema could not be cross-checked — confirm nothing still reads the field |
 | `delete_model_unverified` | DeleteModel | info | same, for a model |
 | `alter_index_together_deprecated` | AlterIndexTogether | info | `index_together` is deprecated; use `Meta.indexes` |

@@ -213,12 +213,18 @@ class RemoveFieldAndDeleteModelTest(unittest.TestCase):
                 "    operations = [migrations.RemoveField(model_name='order',\n"
                 "        name='status')]\n",
             )
-            # `status` NOT in schema → safe.
+            # `status` NOT in schema → no critical, but still an info flag
+            # so reviewers (and blast_radius) see the dropped column (#140).
             schema = {"orders": {"order": {"id"}}}
             findings = analyze_migration_risks(tmp, current_schema=schema)
-            self.assertNotIn(
-                "remove_field_still_referenced", _by_rule(findings)
-            )
+            rules = _by_rule(findings)
+            self.assertNotIn("remove_field_still_referenced", rules)
+            self.assertNotIn("remove_field_unverified", rules)
+            self.assertIn("remove_field", rules)
+            f = rules["remove_field"][0]
+            self.assertEqual(f.severity, "info")
+            self.assertEqual(f.field, "status")
+            self.assertEqual(f.model, "order")
 
     def test_positive_delete_model_still_referenced(self) -> None:
         with TemporaryDirectory() as tmp:

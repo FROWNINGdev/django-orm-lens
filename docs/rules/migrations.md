@@ -42,6 +42,14 @@ Removes a field, but the analyzer could not cross-reference the current `models.
 
 **Mitigation:** Manually confirm no code paths still access the removed field.
 
+## remove_field
+
+**Operation:** `RemoveField` · **Severity:** info · **Confidence:** high
+
+Removes a field that is already gone from the current `models.py`, the normal state after `makemigrations`. The model code is consistent, but queries, serializers or templates can still name the column. `blast-radius --severity info` scans for them.
+
+**Mitigation:** Confirm no queries, serializers or templates still reference the removed field.
+
 ## delete_model_still_referenced
 
 **Operation:** `DeleteModel` · **Severity:** critical · **Confidence:** high
