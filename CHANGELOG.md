@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`blast-radius --only` now accepts project-root-relative migration paths when
+  invoked from another directory (#149).** Paths relative to the current working
+  directory and absolute paths continue to work.
+
 - **`impact --format json` and the MCP `impact` tool reported 0-based line
   numbers while the text output printed the same finding 1-based (#150).** A
   reference on line 21 came back as `"line": 20`, so agents citing `file:line`
