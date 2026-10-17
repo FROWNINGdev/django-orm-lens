@@ -562,15 +562,18 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
     if kills:
         print(f"  CASCADE-deletes rows in ({len(kills)}):")
         for e in kills:
-            print(f"    - {e['model']}  via {e['via_field']}")
+            suffix = " (self)" if e.get("self") else ""
+            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
     if nulls:
         print(f"  sets FK to NULL/default in ({len(nulls)}):")
         for e in nulls:
-            print(f"    - {e['model']}  via {e['via_field']}")
+            suffix = " (self)" if e.get("self") else ""
+            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
     if prot:
         print(f"  BLOCKED by PROTECT/RESTRICT from ({len(prot)}):")
         for e in prot:
-            print(f"    - {e['model']}  via {e['via_field']}")
+            suffix = " (self)" if e.get("self") else ""
+            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
     if not (kills or nulls or prot):
         print("  no inbound relations — the delete is isolated.")
     return 0
