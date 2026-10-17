@@ -170,7 +170,10 @@ def build_dbml(index: WorkspaceIndex) -> str:
                 if f.is_relation:
                     lines.append(f"  {f.name} {f.relation_kind or 'ForeignKey'}")
             src = _short_source(app.path, app.name, model).replace("'", "\\'")
-            lines.append(f"  Note: 'line {model.line_number} of {src}'")
+            # ParsedModel.line_number is zero-based; DBML notes are shown to
+            # users, so keep them consistent with the other human-facing
+            # formatters and report the conventional one-based line number.
+            lines.append(f"  Note: 'line {model.line_number + 1} of {src}'")
             lines.append("}")
             lines.append("")
 

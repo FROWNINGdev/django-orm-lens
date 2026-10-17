@@ -53,6 +53,11 @@ class MiniappAllFormatsTest(unittest.TestCase):
         self.assertNotIn("C:\\", dbml)
         self.assertIn("orders/models.py", dbml)
 
+    def test_dbml_notes_use_one_based_source_lines(self) -> None:
+        dbml = build_dbml(self.index)
+        self.assertIn("Note: 'line 4 of orders/models.py'", dbml)
+        self.assertIn("Note: 'line 13 of orders/models.py'", dbml)
+
     def test_d2_sql_tables_and_edges(self) -> None:
         d2 = build_d2(self.index)
         self.assertIn("orders.Order: {", d2)
