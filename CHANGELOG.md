@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   continue. `AlterUniqueTogether` and table-rewriting column type changes
   continue to report ACCESS EXCLUSIVE.
 
+- **`blast-radius` scanned the new name for `RenameField` / `RenameModel`
+  (#148).** The code that breaks after a rename is the code still using the
+  old name, but the reference scan looked for the new one, so it missed those
+  references and listed unrelated lookalikes of the new name instead. Rename
+  targets now scan for the old name; the target label still shows the new
+  name.
+
 ## [py-1.13.3] - 2026-10-14
 
 ### Fixed

@@ -44,6 +44,10 @@ DESTRUCTIVE_OPERATIONS: frozenset[str] = frozenset(
 # a cascade preview, since cascade is a per-model question.
 MODEL_LEVEL_OPERATIONS: frozenset[str] = frozenset({"DeleteModel", "RenameModel"})
 
+# Renames break the code that still uses the old name, so their targets are
+# scanned for the old name rather than the new one.
+RENAME_OPERATIONS: frozenset[str] = frozenset({"RenameField", "RenameModel"})
+
 SEVERITY_ORDER: tuple[str, ...] = ("critical", "warning", "info")
 _SEVERITY_RANK = {name: i for i, name in enumerate(SEVERITY_ORDER)}
 
@@ -64,6 +68,9 @@ class Target:
     table_stats: TableStats | None = None
     """Only set when the caller supplied a --stats file *and* the table
     appeared in it. Absent means unknown, never zero."""
+    renamed_from: str | None = None
+    """For RenameField / RenameModel: the old name. Code still using it is
+    what breaks, so it is the name scanned for."""
 
     @property
     def label(self) -> str:
@@ -78,7 +85,7 @@ class Target:
     @property
     def needle(self) -> str | None:
         """The identifier to search the codebase for."""
-        return self.field or self.model
+        return self.renamed_from or self.field or self.model
 
     @property
     def worst_severity(self) -> str:
@@ -242,6 +249,8 @@ def analyze_blast_radius(
             by_key[key] = target
         target.operations.add(risk.operation)
         target.risks.append(risk)
+        if risk.operation in RENAME_OPERATIONS and risk.old_name:
+            target.renamed_from = risk.old_name
 
     # One workspace walk per distinct identifier, not per risk — several risks
     # on the same field share a single scan.
