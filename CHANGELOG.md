@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.13.4] - 2026-10-18
+
 ### Fixed
+
+- **`cascade` skipped self-referential foreign keys (#147).** A
+  `ForeignKey("self")` on the deleted model (a category tree, a reply chain)
+  was left out of every bucket, so deleting a parent looked isolated while
+  Django would cascade through its children. Self-references now land in
+  CASCADE / SET_NULL / PROTECT like any other inbound relation, are marked
+  `"self": true` in JSON and `(self)` in the text output.
 
 - **`blast-radius --only` now accepts project-root-relative migration paths when
   invoked from another directory (#149).** Paths relative to the current working
