@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.13.5] - 2026-10-19
+
 ### Fixed
 
 - **`blast-radius` had no target for a `RemoveField` once the field was gone
