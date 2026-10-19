@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`blast-radius` had no target for a `RemoveField` once the field was gone
+  from `models.py` (#140).** That is the normal state after `makemigrations`,
+  and exactly when code still reading the column breaks, but `migration-risk`
+  emitted nothing for it, so `blast-radius` never scanned. It now emits an
+  `info` risk, `remove_field`, which `blast-radius --severity info` (or `all`)
+  turns into a target listing the remaining references. `migration-risk
+  --severity info` shows one more line per dropped column. The MCP
+  `blast_radius` tool also rejects an unknown `severity` with an
+  `INVALID_SEVERITY` error instead of silently treating it as `critical`.
+
+- **DBML ER export noted model line numbers 0-based (#139).** The
+  `Note: 'line N of app/models.py'` in `er --format dbml` pointed one line
+  above the class, while every other formatter prints 1-based lines. The
+  note now uses the same 1-based number.
+
 ## [py-1.13.4] - 2026-10-18
 
 ### Fixed
@@ -43,16 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references and listed unrelated lookalikes of the new name instead. Rename
   targets now scan for the old name; the target label still shows the new
   name.
-
-- **`blast-radius` had no target for a `RemoveField` once the field was gone
-  from `models.py` (#140).** That is the normal state after `makemigrations`,
-  and exactly when code still reading the column breaks, but `migration-risk`
-  emitted nothing for it, so `blast-radius` never scanned. It now emits an
-  `info` risk, `remove_field`, which `blast-radius --severity info` (or `all`)
-  turns into a target listing the remaining references. `migration-risk
-  --severity info` shows one more line per dropped column. The MCP
-  `blast_radius` tool also rejects an unknown `severity` with an
-  `INVALID_SEVERITY` error instead of silently treating it as `critical`.
 
 ## [py-1.13.3] - 2026-10-14
 
