@@ -321,10 +321,18 @@ def _tool_blast_radius(args: dict[str, Any]) -> str:
     from .migrations_parser import analyze_migration_risks
 
     severity = str(args.get("severity") or "critical")
+    rank = {"critical": 0, "warning": 1, "info": 2}
+    if severity != "all" and severity not in rank:
+        return json.dumps(
+            {
+                "error": "INVALID_SEVERITY",
+                "hint": "severity must be one of critical | warning | info | all",
+            },
+            indent=2,
+        )
     risks = analyze_migration_risks(str(ws))
     if severity != "all":
-        rank = {"critical": 0, "warning": 1, "info": 2}
-        threshold = rank.get(severity, 0)
+        threshold = rank[severity]
         risks = [r for r in risks if rank.get(r.severity, 99) <= threshold]
     report = analyze_blast_radius(str(ws), index=get_index(ws), risks=risks)
     return json.dumps(report.to_dict(), indent=2, ensure_ascii=False)
@@ -465,7 +473,9 @@ TOOLS: dict[str, dict[str, Any]] = {
             "dropped thing grouped by Django layer with a certain/likely/"
             "possibly tag, and the cascade fallout for whole-model "
             "operations. Optional 'severity' (critical|warning|info|all, "
-            "default critical)." + _WORKSPACE_HINT
+            "default critical; any other value returns INVALID_SEVERITY). "
+            "A RemoveField whose field is already gone from models.py is an "
+            "info risk, so pass 'info' or 'all' to see it." + _WORKSPACE_HINT
         ),
     },
     "drift": {

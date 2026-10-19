@@ -649,6 +649,27 @@ class MigrationRiskAnalyzer:
                     model=model,
                     field=name,
                 )
+            else:
+                # The normal post-``makemigrations`` state. Emitting a risk
+                # here is also what makes blast_radius scan for code that
+                # still reads the dropped column.
+                self._add(
+                    call,
+                    "RemoveField",
+                    rule="remove_field",
+                    description=(
+                        f"Removes field '{name}' from '{model}'; it is no "
+                        f"longer in the current models.py."
+                    ),
+                    mitigation=(
+                        "Confirm no queries, serializers or templates still "
+                        f"reference '{model}.{name}'."
+                    ),
+                    confidence="high",
+                    severity="info",
+                    model=model,
+                    field=name,
+                )
 
     # ------------------------------------------------------------------
     # Rule 2b: DeleteModel still referenced
