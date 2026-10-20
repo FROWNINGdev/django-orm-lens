@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`nplusone` skipped loops over sliced QuerySets (#145).** Iterating
+  `Post.objects.filter(...)[:50]` is still lazy and can cause one related
+  lookup per row; it now produces the same finding and eager-loading
+  suggestion as an unsliced QuerySet.
+
 ## [py-1.13.5] - 2026-10-19
 
 ### Fixed

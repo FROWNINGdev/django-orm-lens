@@ -1069,6 +1069,16 @@ class NPlusOneScanner(ast.NodeVisitor):
             return
         loop_var = target.id
 
+        # A QuerySet slice is still lazily evaluated and iterable, but the
+        # AST wraps its source in ``Subscript`` (``qs[:50]``) rather than the
+        # ``Name`` / ``Call`` shapes handled below.  Indexed QuerySets are
+        # deliberately excluded: they resolve to one model instance, not an
+        # iterable QuerySet.
+        if isinstance(iter_node, ast.Subscript):
+            if not isinstance(iter_node.slice, ast.Slice):
+                return
+            iter_node = iter_node.value
+
         # 1. Resolve the queryset source: either a bare Name (look up in
         #    tracker) or an inline chain (``for x in Foo.objects.all():``).
         chain: list[tuple[str, ast.Call]] = []
