@@ -1276,7 +1276,7 @@ class NPlusOneScanner(ast.NodeVisitor):
             # Manager filters make a new query and cannot reuse the .all() cache.
             inherited = {
                 path[len(prefix):] for path in eager_paths if path.startswith(prefix)
-            } if chain[0][0] == "all" else set()
+            } if len(chain) == 1 and chain[0][0] == "all" else set()
             return hops[-1][2], inherited
         return None, set()
 

@@ -217,6 +217,22 @@ class NestedRelationTest(unittest.TestCase):
             self.assertEqual(findings[0].accessed, ["order"])
             self.assertEqual(findings[0].suggested_fix, '.select_related("order")')
 
+    def test_filtered_manager_does_not_inherit_cache(self) -> None:
+        for manager_call in ("filter(active=True)", "all().filter(active=True)"):
+            with self.subTest(manager_call=manager_call), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for item in order.items.{manager_call}:\n"
+                    "            print(item.product.category.name)\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(findings[0].loop_var, "item")
+                self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
 
 class ScanForNPlusOneTest(unittest.TestCase):
     # ------------------------------------------------------------------ POSITIVE
