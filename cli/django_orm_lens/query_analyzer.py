@@ -966,14 +966,14 @@ class _ReturnedQuerySetTracker(ast.NodeVisitor):
     """
 
     def __init__(self) -> None:
-        # name -> (chain, model_root_name_or_None)
-        self.returns: dict[str, tuple[list[tuple[str, ast.Call]], str | None]] = {}
+        # name -> (chain, model_root_name_or_None, formal_parameters)
+        self.returns: dict[str, tuple[list[tuple[str, ast.Call]], str | None, ast.arguments]] = {}
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if node.name not in self.returns:
             resolved = self._resolve(node)
             if resolved is not None:
-                self.returns[node.name] = resolved
+                self.returns[node.name] = (*resolved, node.args)
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
@@ -1118,6 +1118,7 @@ class NPlusOneScanner(ast.NodeVisitor):
         chain: list[tuple[str, ast.Call]] = []
         qs_var = "<inline>"
         model_root: str | None = None
+        receiver_bindings: dict[str, str] | None = None
         if isinstance(iter_node, ast.Name):
             binding = self._tracker.bindings.get(iter_node.id)
             if binding is None:
@@ -1137,7 +1138,21 @@ class NPlusOneScanner(ast.NodeVisitor):
                 helper, in_chain = _helper_call_name(iter_node)
                 resolved = self._returns.returns.get(helper) if helper else None
                 if resolved is not None:
-                    helper_chain, model_root = resolved
+                    helper_chain, model_root, parameters = resolved
+                    call = iter_node
+                    while isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Call):
+                        call = call.func.value
+                    actuals = ([call.func.value] if in_chain else []) + call.args
+                    # Bind only explicit positional names; spreads have unknown positions.
+                    receiver_bindings = {}
+                    if not any(isinstance(arg, ast.Starred) for arg in actuals) and not any(
+                        keyword.arg is None for keyword in call.keywords
+                    ):
+                        receiver_bindings = {
+                            formal.arg: actual.id
+                            for formal, actual in zip(parameters.posonlyargs + parameters.args, actuals)
+                            if isinstance(actual, ast.Name)
+                        }
                     chain = helper_chain + (chain[1:] if in_chain else chain)
                     qs_var = f"{helper}()"
         else:
@@ -1154,7 +1169,7 @@ class NPlusOneScanner(ast.NodeVisitor):
 
         select_set, prefetch_set = _chain_prefetch_args(chain)
         select_paths, prefetch_paths = _chain_prefetch_args(chain, full_paths=True)
-        related_model, inherited_paths = self._inherited_paths(chain)
+        related_model, inherited_paths = self._inherited_paths(chain, receiver_bindings)
         model_root = model_root or related_model
         eager_paths = select_paths | prefetch_paths | inherited_paths
         self._loops[-1] = (loop, model_root, eager_paths)
@@ -1169,11 +1184,11 @@ class NPlusOneScanner(ast.NodeVisitor):
         uncovered_m2m: list[str] = []
         confidence = "medium"
         unloaded: dict[str, str] = {}
-        for access, kind_hint in accesses:
+        for access, kind_hint, manager_ops in accesses:
             parts = access.split("__")
             attr = parts[0]
             hops = self._relation_hops(model_root, parts)
-            if hops and (len(hops) > 1 or inherited_paths):
+            if hops and (len(hops) > 1 or inherited_paths) and "filter" not in manager_ops:
                 relation_parts = [name for name, _kind, _target in hops]
                 path = "__".join(relation_parts)
                 loaded = _loaded_prefix(relation_parts, eager_paths)
@@ -1205,7 +1220,7 @@ class NPlusOneScanner(ast.NodeVisitor):
                 if model_root is not None:
                     confidence = "high"
             elif kind in ("m2m", "reverse"):
-                if "*" in prefetch_set or attr in prefetch_set:
+                if "filter" not in manager_ops and ("*" in prefetch_set or attr in prefetch_set):
                     continue
                 uncovered_m2m.append(attr)
                 if model_root is not None or kind_hint == "reverse":
@@ -1274,15 +1289,17 @@ class NPlusOneScanner(ast.NodeVisitor):
 
     def _inherited_paths(
         self, chain: list[tuple[str, ast.Call]],
+        receiver_bindings: dict[str, str] | None = None,
     ) -> tuple[str | None, set[str]]:
         """Project an enclosing loop's eager paths onto a related queryset."""
         func = chain[0][1].func
         origin = _attr_chain(func.value) if isinstance(func, ast.Attribute) else None
         if not origin or len(origin) < 2:
             return None, set()
+        receiver = origin[0] if receiver_bindings is None else receiver_bindings.get(origin[0])
         for loop, model, eager_paths in reversed(self._loops[:-1]):
             if not any(
-                isinstance(name, ast.Name) and isinstance(name.ctx, ast.Store) and name.id == origin[0]
+                isinstance(name, ast.Name) and isinstance(name.ctx, ast.Store) and name.id == receiver
                 for name in ast.walk(loop.target)
             ):
                 continue
@@ -1345,20 +1362,20 @@ def _dedup_preserve(seq: Sequence[str]) -> list[str]:
 def _collect_target_accesses(
     body: Sequence[ast.stmt],
     loop_var: str,
-) -> list[tuple[str, str | None]]:
+) -> list[tuple[str, str | None, tuple[str, ...]]]:
     """Walk ``body`` and find every attribute-chain access rooted at the
-    loop target ``loop_var``. Returns a list of ``(access_path, kind_hint)``.
+    loop target ``loop_var``. Returns ``(access_path, kind_hint, manager_operations)`` entries.
 
-    * ``target.author.name`` -> ``("author__name", "chain")`` — chain of length >= 2
+    * ``target.author.name`` -> ``("author__name", "chain", ())`` — chain of length >= 2
       strongly suggests FK traversal.
-    * ``target.tags.all()`` -> ``("tags", "m2m")`` — reverse-manager idiom.
-    * ``target.comment_set`` (or ``.all()``) -> ``("comment_set", "reverse")``.
-    * ``target.author`` (single-attr access, no follow-up) -> ``("author", None)``.
+    * ``target.tags.all()`` -> ``("tags", "m2m", ("all",))`` — reverse-manager idiom.
+    * ``target.comment_set`` -> ``("comment_set", "reverse", ())``.
+    * ``target.author`` (single-attr access, no follow-up) -> ``("author", None, ())``.
 
     Nested for-loops are NOT descended into — a nested ``for tag in
     post.tags.all():`` is handled by a separate call from :meth:`visit_For`.
     """
-    hits: list[tuple[str, str | None]] = []
+    hits: list[tuple[str, str | None, tuple[str, ...]]] = []
     for stmt in body:
         _walk_for_accesses(stmt, loop_var, hits)
     return hits
@@ -1367,7 +1384,7 @@ def _collect_target_accesses(
 def _walk_for_accesses(
     node: ast.AST,
     loop_var: str,
-    hits: list[tuple[str, str | None]],
+    hits: list[tuple[str, str | None, tuple[str, ...]]],
 ) -> None:
     # Don't recurse into nested for-loops — the outer walker handles them
     # as their own top-level loop. Nested functions and class defs are
@@ -1384,20 +1401,26 @@ def _walk_for_accesses(
     if isinstance(node, ast.Call):
         # Method call: check if it's target.<attr>.<method>(...)
         method_name = _call_method_name(node)
-        if method_name is not None and isinstance(node.func, ast.Attribute):
-            chain = _attr_chain(node.func.value)
+        if method_name in ("all", "filter", "exclude", "count", "exists") and isinstance(node.func, ast.Attribute):
+            calls = _collect_call_chain_methods(node)
+            chain = _attr_chain(calls[0][1].func.value)
+            manager_ops = tuple(method for method, _call in calls)
             if chain and chain[0] == loop_var and len(chain) >= 2:
                 first_attr = chain[1]
                 if method_name == "all" and _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                    hits.append((first_attr, "reverse"))
+                    hits.append((first_attr, "reverse", manager_ops))
                 elif method_name == "all":
-                    hits.append((first_attr, "m2m"))
+                    hits.append((first_attr, "m2m", manager_ops))
                 elif method_name in ("filter", "exclude", "count", "exists"):
                     # target.related.filter(...) — related-manager idiom
                     if _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                        hits.append((first_attr, "reverse"))
+                        hits.append((first_attr, "reverse", manager_ops))
                     else:
-                        hits.append((first_attr, "m2m"))
+                        hits.append((first_attr, "m2m", manager_ops))
+                for _method, call in calls:
+                    for argument in (*call.args, *call.keywords):
+                        _walk_for_accesses(argument, loop_var, hits)
+                return
         for child in ast.iter_child_nodes(node):
             _walk_for_accesses(child, loop_var, hits)
         return
@@ -1407,13 +1430,13 @@ def _walk_for_accesses(
         if chain and chain[0] == loop_var and len(chain) >= 2:
             first_attr = chain[1]
             if _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                hits.append(("__".join(chain[1:]), "reverse"))
+                hits.append(("__".join(chain[1:]), "reverse", ()))
             elif len(chain) >= 3:
                 # target.author.name — chain of length >=3 → FK traversal
-                hits.append(("__".join(chain[1:]), "chain"))
+                hits.append(("__".join(chain[1:]), "chain", ()))
             else:
                 # target.author — single attr, no follow-up. Ambiguous.
-                hits.append((first_attr, None))
+                hits.append((first_attr, None, ()))
             # Don't descend further — we've captured the outermost chain.
             return
 

@@ -326,9 +326,55 @@ class NestedRelationTest(unittest.TestCase):
                         "            print(item.order)\n",
                     )
                     findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
-                    self.assertEqual([f.loop_var for f in findings], [] if eager else ["order"])
+                    expected = [] if eager and manager_call == "all()" else ["order"]
+                    self.assertEqual([f.loop_var for f in findings], expected)
                     if findings:
                         self.assertEqual(findings[0].accessed, ["items"])
+
+    def test_filtered_manager_bypasses_inherited_prefetch(self) -> None:
+        schema = {"apps": [{"models": [
+            {"name": "Customer", "fields": []},
+            {"name": "Order", "fields": [
+                {"name": "customer", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Customer", "relatedName": "orders"},
+            ]},
+            {"name": "Item", "fields": [
+                {"name": "order", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Order", "relatedName": "items"},
+            ]},
+        ]}]}
+        for eager in ("", ".prefetch_related()"):
+            for manager_call in ("all()", "filter(active=True)",
+                                 "all().filter(active=True)", "filter(active=True).all()"):
+                with self.subTest(eager=eager, manager_call=manager_call), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        "    for customer in Customer.objects.prefetch_related('orders__items'):\n"
+                        f"        for order in customer.orders.all(){eager}:\n"
+                        f"            print(order.items.{manager_call})\n",
+                    )
+                    findings = scan_for_nplusone(str(root), schema)
+                    expected = [] if manager_call == "all()" else ["order"]
+                    self.assertEqual([f.loop_var for f in findings], expected)
+                    if findings:
+                        self.assertEqual(findings[0].accessed, ["items"])
+
+    def test_filtered_manager_keeps_argument_accesses(self) -> None:
+        for relation in ("tags", "comment_set"):
+            for suffix in ("", ".all()", ".values('name')"):
+                with self.subTest(relation=relation, suffix=suffix), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        f"    for post in Post.objects.prefetch_related('{relation}'):\n"
+                        f"        print(post.{relation}.filter(owner=post.author.name){suffix})\n",
+                    )
+                    findings = scan_for_nplusone(str(root), BLOG_SCHEMA)
+                    self.assertEqual([f.loop_var for f in findings], ["post"])
+                    self.assertEqual(findings[0].accessed, ["author", relation])
 
     def test_inverse_cache_is_specific_to_incoming_relation(self) -> None:
         with TemporaryDirectory() as tmp:
@@ -388,9 +434,9 @@ class NestedRelationTest(unittest.TestCase):
                     "            print(item.product.category.name)\n",
                 )
                 findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
-                self.assertEqual(len(findings), 1)
-                self.assertEqual(findings[0].loop_var, "item")
-                self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+                self.assertEqual([f.loop_var for f in findings], ["order", "item"])
+                self.assertEqual(findings[0].accessed, ["items"])
+                self.assertEqual(findings[1].suggested_fix, '.select_related("product__category")')
 
 
 class ScanForNPlusOneTest(unittest.TestCase):
