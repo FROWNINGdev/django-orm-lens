@@ -17,12 +17,13 @@ from __future__ import annotations
 import ast
 import unittest
 from pathlib import Path
+from textwrap import indent
 
 from django_orm_lens.query_analyzer import (
     NPlusOneScanner,
     _helper_call_name,
-    _ReturnedQuerySetTracker,
     _RelationSchema,
+    _ReturnedQuerySetTracker,
 )
 
 ROOT = Path("/proj")
@@ -191,6 +192,10 @@ class NestedHelperInheritanceTest(unittest.TestCase):
                     f"        for item in {call}:\n"
                     "            print(item.product.category.name)\n"
                 )
+                if call.startswith("self."):
+                    src = "class OrderView:\n" + indent(
+                        src.replace("def report():", "def report(self):"), "    ",
+                    )
                 scanner = NPlusOneScanner(FILE, ROOT, schema)
                 scanner.visit(ast.parse(src))
                 found = scanner.findings

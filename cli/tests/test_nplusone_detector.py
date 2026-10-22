@@ -361,16 +361,43 @@ class NestedRelationTest(unittest.TestCase):
                     if findings:
                         self.assertEqual(findings[0].accessed, ["items"])
 
+    def test_manager_behind_fk_preserves_receiver_path(self) -> None:
+        for eager, manager_call, expected in (
+            (".select_related('order')", "all()", ["items"]),
+            (".prefetch_related('order__items')", "all()", []),
+            (".prefetch_related('order__items')", "filter(active=True)", ["items"]),
+            (".prefetch_related('order__items')", "all().filter(active=True)", ["items"]),
+            (".prefetch_related('order__items')", "filter(active=True).all()", ["items"]),
+        ):
+            with self.subTest(eager=eager, manager_call=manager_call), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    f"    for item in Item.objects.all(){eager}:\n"
+                    f"        print(list(item.order.items.{manager_call}))\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual([f.loop_var for f in findings], ["item"] if expected else [])
+                if expected:
+                    self.assertEqual(findings[0].accessed, expected)
+
     def test_filtered_manager_keeps_argument_accesses(self) -> None:
         for relation in ("tags", "comment_set"):
-            for suffix in ("", ".all()", ".values('name')"):
-                with self.subTest(relation=relation, suffix=suffix), TemporaryDirectory() as tmp:
+            for manager_call in (
+                "filter(owner=post.author.name)",
+                "filter(owner=post.author.name).all()",
+                "filter(owner=post.author.name).values('name')",
+                "filter(post.author.name)",
+                "filter(active=True).filter(owner=post.author.name)",
+            ):
+                with self.subTest(relation=relation, manager_call=manager_call), TemporaryDirectory() as tmp:
                     root = Path(tmp)
                     _write(
                         root / "views.py",
                         "def index():\n"
                         f"    for post in Post.objects.prefetch_related('{relation}'):\n"
-                        f"        print(post.{relation}.filter(owner=post.author.name){suffix})\n",
+                        f"        print(post.{relation}.{manager_call})\n",
                     )
                     findings = scan_for_nplusone(str(root), BLOG_SCHEMA)
                     self.assertEqual([f.loop_var for f in findings], ["post"])

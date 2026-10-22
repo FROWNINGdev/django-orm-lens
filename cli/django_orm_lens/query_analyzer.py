@@ -1142,7 +1142,7 @@ class NPlusOneScanner(ast.NodeVisitor):
                     call = iter_node
                     while isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Call):
                         call = call.func.value
-                    actuals = ([call.func.value] if in_chain else []) + call.args
+                    actuals = ([call.func.value] if in_chain and isinstance(call.func, ast.Attribute) else []) + call.args
                     # Bind only explicit positional names; spreads have unknown positions.
                     receiver_bindings = {}
                     if not any(isinstance(arg, ast.Starred) for arg in actuals) and not any(
@@ -1188,7 +1188,7 @@ class NPlusOneScanner(ast.NodeVisitor):
             parts = access.split("__")
             attr = parts[0]
             hops = self._relation_hops(model_root, parts)
-            if hops and (len(hops) > 1 or inherited_paths) and "filter" not in manager_ops:
+            if hops and (len(hops) > 1 or inherited_paths):
                 relation_parts = [name for name, _kind, _target in hops]
                 path = "__".join(relation_parts)
                 loaded = _loaded_prefix(relation_parts, eager_paths)
@@ -1199,6 +1199,8 @@ class NPlusOneScanner(ast.NodeVisitor):
                     or first_kind in ("m2m", "reverse") and "*" in prefetch_set
                 ):
                     loaded = max(loaded, 1)
+                if "filter" in manager_ops:
+                    loaded = min(loaded, len(hops) - 1)
                 if loaded == len(hops):
                     continue
                 unloaded[path] = "__".join(relation_parts[loaded:])
@@ -1403,20 +1405,23 @@ def _walk_for_accesses(
         method_name = _call_method_name(node)
         if method_name in ("all", "filter", "exclude", "count", "exists") and isinstance(node.func, ast.Attribute):
             calls = _collect_call_chain_methods(node)
-            chain = _attr_chain(calls[0][1].func.value)
+            first_func = calls[0][1].func
+            assert isinstance(first_func, ast.Attribute)
+            chain = _attr_chain(first_func.value)
             manager_ops = tuple(method for method, _call in calls)
             if chain and chain[0] == loop_var and len(chain) >= 2:
                 first_attr = chain[1]
+                access_path = "__".join(chain[1:])
                 if method_name == "all" and _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                    hits.append((first_attr, "reverse", manager_ops))
+                    hits.append((access_path, "reverse", manager_ops))
                 elif method_name == "all":
-                    hits.append((first_attr, "m2m", manager_ops))
+                    hits.append((access_path, "m2m", manager_ops))
                 elif method_name in ("filter", "exclude", "count", "exists"):
                     # target.related.filter(...) — related-manager idiom
                     if _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                        hits.append((first_attr, "reverse", manager_ops))
+                        hits.append((access_path, "reverse", manager_ops))
                     else:
-                        hits.append((first_attr, "m2m", manager_ops))
+                        hits.append((access_path, "m2m", manager_ops))
                 for _method, call in calls:
                     for argument in (*call.args, *call.keywords):
                         _walk_for_accesses(argument, loop_var, hits)
