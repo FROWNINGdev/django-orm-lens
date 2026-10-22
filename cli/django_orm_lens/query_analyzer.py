@@ -996,11 +996,12 @@ class _ReturnedQuerySetTracker(ast.NodeVisitor):
 
 
 class _RelationSchema(dict[str, dict[str, str]]):
-    """Keep the flat kind map compatible while retaining relation targets."""
+    """Keep the flat kind map compatible while retaining relation identities."""
 
     def __init__(self) -> None:
         super().__init__()
         self.targets: dict[tuple[str, str], str] = {}
+        self.inverse_fields: dict[tuple[str, str], str] = {}
 
 
 def _loaded_prefix(parts: list[str], eager_paths: set[str]) -> int:
@@ -1038,6 +1039,9 @@ class NPlusOneScanner(ast.NodeVisitor):
         self.models_schema = models_schema or {}
         self._relation_targets = (
             models_schema.targets if isinstance(models_schema, _RelationSchema) else {}
+        )
+        self._inverse_fields = (
+            models_schema.inverse_fields if isinstance(models_schema, _RelationSchema) else {}
         )
         self._loops: list[tuple[ast.For | ast.AsyncFor, str | None, set[str]]] = []
         self.findings: list[NPlusOneFinding] = []
@@ -1277,6 +1281,12 @@ class NPlusOneScanner(ast.NodeVisitor):
             inherited = {
                 path[len(prefix):] for path in eager_paths if path.startswith(prefix)
             } if len(chain) == 1 and chain[0][0] == "all" else set()
+            # Reverse-FK managers retain the parent even without a prefetch.
+            parent_model = hops[-2][2] if len(hops) > 1 else model
+            if parent_model is not None:
+                inverse = self._inverse_fields.get((parent_model, origin[-1]))
+                if inverse:
+                    inherited.add(inverse)
             return hops[-1][2], inherited
         return None, set()
 
@@ -1440,6 +1450,8 @@ def _build_schema_from_index(index: WorkspaceIndex) -> dict[str, dict[str, str]]
                 rev_kind, default_name = _reverse_kind(f.relation_kind, model.name)
                 schema[target].setdefault(f.related_name or default_name, rev_kind)
                 schema.targets.setdefault((target, f.related_name or default_name), model.name)
+                if f.relation_kind == "ForeignKey":
+                    schema.inverse_fields.setdefault((target, f.related_name or default_name), f.name)
     return schema
 
 
@@ -1559,6 +1571,8 @@ def _build_schema_from_index_dict(payload: dict[str, Any]) -> dict[str, dict[str
             rev_kind, default_name = _reverse_kind(f.get("relationKind"), model_name)
             schema[target].setdefault(f.get("relatedName") or default_name, rev_kind)
             schema.targets.setdefault((target, f.get("relatedName") or default_name), model_name)
+            if f.get("relationKind") == "ForeignKey" and fname:
+                schema.inverse_fields.setdefault((target, f.get("relatedName") or default_name), fname)
     return schema
 
 
