@@ -14,9 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from their enclosing queryset. Suggestions retain the full schema-validated
   relation path, such as `product__category`, and partial prefetches still
   report the relations that remain unloaded. Prefetch-cache coverage now follows
-  each documented queryset operation on the related manager, retaining findings
-  for non-cache-served operations while calls on other receivers preserve loaded
-  relation prefixes.
+  supported documented queryset operations on related managers, classifying
+  ordering- and emptiness-dependent cases conservatively while retaining findings
+  for non-cache-served operations and using schema-backed receiver checks to
+  preserve loaded relation prefixes for calls on other receivers.
 
 ## [py-1.13.5] - 2026-10-19
 
