@@ -696,6 +696,22 @@ _QS_SOURCE_METHODS = frozenset({
     "only", "defer", "using",
 })
 
+# Related-manager methods whose receiver is a relation rather than a model field.
+_MANAGER_METHODS = frozenset({
+    "all", "filter", "exclude", "count", "exists", "get", "order_by",
+    "values", "values_list", "annotate", "distinct", "select_related",
+})
+
+
+def _manager_chain_uses_prefetch_cache(operations: tuple[str, ...]) -> bool:
+    """Only cache readers preserve coverage; a queryset's second all() clones."""
+    return all(
+        operation in ("count", "exists")
+        or index == 0 and operation == "all"
+        for index, operation in enumerate(operations)
+    )
+
+
 # When the attribute name matches this suffix pattern we treat it as a
 # reverse FK / M2M reverse manager (``post.comment_set.all()`` etc.) so
 # even without a schema we can confidently flag it.
@@ -1199,7 +1215,7 @@ class NPlusOneScanner(ast.NodeVisitor):
                     or first_kind in ("m2m", "reverse") and "*" in prefetch_set
                 ):
                     loaded = max(loaded, 1)
-                if "filter" in manager_ops:
+                if not _manager_chain_uses_prefetch_cache(manager_ops):
                     loaded = min(loaded, len(hops) - 1)
                 if loaded == len(hops):
                     continue
@@ -1222,7 +1238,7 @@ class NPlusOneScanner(ast.NodeVisitor):
                 if model_root is not None:
                     confidence = "high"
             elif kind in ("m2m", "reverse"):
-                if "filter" not in manager_ops and ("*" in prefetch_set or attr in prefetch_set):
+                if _manager_chain_uses_prefetch_cache(manager_ops) and ("*" in prefetch_set or attr in prefetch_set):
                     continue
                 uncovered_m2m.append(attr)
                 if model_root is not None or kind_hint == "reverse":
@@ -1309,10 +1325,10 @@ class NPlusOneScanner(ast.NodeVisitor):
             if len(hops) != len(origin) - 1:
                 return None, set()
             prefix = "__".join(origin[1:]) + "__"
-            # Manager filters make a new query and cannot reuse the .all() cache.
+            # Only cache-served manager chains retain prefetched descendants.
             inherited = {
                 path[len(prefix):] for path in eager_paths if path.startswith(prefix)
-            } if len(chain) == 1 and chain[0][0] == "all" else set()
+            } if _manager_chain_uses_prefetch_cache(tuple(method for method, _call in chain)) else set()
             # Reverse-FK managers retain the parent even without a prefetch.
             parent_model = hops[-2][2] if len(hops) > 1 else model
             if parent_model is not None:
@@ -1403,7 +1419,7 @@ def _walk_for_accesses(
     if isinstance(node, ast.Call):
         # Method call: check if it's target.<attr>.<method>(...)
         method_name = _call_method_name(node)
-        if method_name in ("all", "filter", "exclude", "count", "exists") and isinstance(node.func, ast.Attribute):
+        if method_name in _MANAGER_METHODS and isinstance(node.func, ast.Attribute):
             calls = _collect_call_chain_methods(node)
             first_func = calls[0][1].func
             assert isinstance(first_func, ast.Attribute)
@@ -1412,16 +1428,8 @@ def _walk_for_accesses(
             if chain and chain[0] == loop_var and len(chain) >= 2:
                 first_attr = chain[1]
                 access_path = "__".join(chain[1:])
-                if method_name == "all" and _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                    hits.append((access_path, "reverse", manager_ops))
-                elif method_name == "all":
-                    hits.append((access_path, "m2m", manager_ops))
-                elif method_name in ("filter", "exclude", "count", "exists"):
-                    # target.related.filter(...) — related-manager idiom
-                    if _REVERSE_MANAGER_SUFFIX.search(first_attr):
-                        hits.append((access_path, "reverse", manager_ops))
-                    else:
-                        hits.append((access_path, "m2m", manager_ops))
+                kind_hint = "reverse" if _REVERSE_MANAGER_SUFFIX.search(first_attr) else "m2m"
+                hits.append((access_path, kind_hint, manager_ops))
                 for _method, call in calls:
                     for argument in (*call.args, *call.keywords):
                         _walk_for_accesses(argument, loop_var, hits)
