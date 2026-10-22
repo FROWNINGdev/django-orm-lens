@@ -696,17 +696,23 @@ _QS_SOURCE_METHODS = frozenset({
     "only", "defer", "using",
 })
 
-# Related-manager methods whose receiver is a relation rather than a model field.
+# Documented QuerySet operations; manager factories and create/get-or-create/raw are excluded.
 _MANAGER_METHODS = frozenset({
-    "all", "filter", "exclude", "count", "exists", "get", "order_by",
-    "values", "values_list", "annotate", "distinct", "select_related",
+    "aaggregate", "abulk_create", "abulk_update", "acontains", "acount", "adelete",
+    "aearliest", "aexists", "aexplain", "afirst", "aget", "aggregate", "ain_bulk", "aiterator",
+    "alast", "alatest", "alias", "all", "annotate", "aupdate", "aupdate_or_create",
+    "bulk_create", "bulk_update", "contains", "count", "dates", "datetimes", "defer", "delete",
+    "difference", "distinct", "earliest", "exclude", "exists", "explain", "extra", "filter",
+    "first", "get", "in_bulk", "intersection", "iterator", "last", "latest", "none", "only",
+    "order_by", "prefetch_related", "reverse", "select_for_update", "select_related", "union",
+    "update", "update_or_create", "using", "values", "values_list",
 })
 
 
 def _manager_chain_uses_prefetch_cache(operations: tuple[str, ...]) -> bool:
     """Only cache readers preserve coverage; a queryset's second all() clones."""
     return all(
-        operation in ("count", "exists")
+        operation in ("count", "exists", "contains", "acount", "aexists", "acontains")
         or index == 0 and operation == "all"
         for index, operation in enumerate(operations)
     )
@@ -818,8 +824,8 @@ def _chain_prefetch_args(
     ``full_paths`` retains lookup tails for nested coverage checks.
 
     ``.select_related()`` with no args is a "follow every FK" spanner —
-    represented by the wildcard token ``"*"``. Same for ``.prefetch_related()``
-    which is uncommon but valid.
+    represented by the wildcard token ``"*"``. An empty ``prefetch_related()``
+    adds no lookups.
     """
     select_set: set[str] = set()
     prefetch_set: set[str] = set()
@@ -831,8 +837,6 @@ def _chain_prefetch_args(
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     select_set.add(arg.value if full_paths else arg.value.split("__", 1)[0])
         elif method == "prefetch_related":
-            if not call.args and not call.keywords:
-                prefetch_set.add("*")
             for arg in call.args:
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     prefetch_set.add(arg.value if full_paths else arg.value.split("__", 1)[0])

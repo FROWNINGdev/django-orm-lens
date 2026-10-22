@@ -356,9 +356,13 @@ class NestedRelationTest(unittest.TestCase):
                         f"            print(order.items.{manager_call})\n",
                     )
                     findings = scan_for_nplusone(str(root), schema)
-                    expected = [] if manager_call == "all()" else ["order"]
+                    expected = ["customer", "order"] if eager else (
+                        [] if manager_call == "all()" else ["order"]
+                    )
                     self.assertEqual([f.loop_var for f in findings], expected)
-                    if findings:
+                    if eager:
+                        self.assertEqual([f.accessed for f in findings], [["orders"], ["items"]])
+                    elif findings:
                         self.assertEqual(findings[0].accessed, ["items"])
 
     def test_manager_behind_fk_preserves_receiver_path(self) -> None:
