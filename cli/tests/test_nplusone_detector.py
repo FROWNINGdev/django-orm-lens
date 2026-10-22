@@ -50,6 +50,174 @@ BLOG_SCHEMA = {
 }
 
 
+SHOP_SCHEMA = {
+    "apps": [{
+        "name": "shop",
+        "models": [
+            {"name": "Order", "fields": []},
+            {"name": "Item", "fields": [
+                {"name": "order", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Order", "relatedName": "items"},
+                {"name": "product", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Product"},
+            ]},
+            {"name": "Product", "fields": [
+                {"name": "category", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Category"},
+                {"name": "name", "isRelation": False},
+            ]},
+            {"name": "Category", "fields": [{"name": "name", "isRelation": False}]},
+        ],
+    }],
+}
+
+
+class NestedRelationTest(unittest.TestCase):
+    def _scan_nested(
+        self, eager: str = "", *, schema_less: bool = False,
+    ) -> list[NPlusOneFinding]:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from shop.models import Order\n"
+                "def index(request):\n"
+                f"    orders = Order.objects.all(){eager}\n"
+                "    for order in orders:\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.category.name)\n",
+            )
+            return scan_for_nplusone(str(root), None if schema_less else SHOP_SCHEMA)
+
+    def test_multihop_suggestion(self) -> None:
+        findings = self._scan_nested()
+        self.assertEqual([f.loop_var for f in findings], ["order", "item"])
+        self.assertEqual(findings[0].accessed, ["items"])
+        self.assertEqual(findings[0].suggested_fix, '.prefetch_related("items")')
+        self.assertEqual(findings[1].suggested_fix, '.select_related("product__category")')
+        self.assertEqual(findings[1].confidence, "high")
+
+    def test_full_outer_prefetch_covers_inner_loop(self) -> None:
+        self.assertEqual(
+            self._scan_nested('.prefetch_related("items__product__category")'), [],
+        )
+
+    def test_partial_outer_prefetch_reports_unloaded_category(self) -> None:
+        findings = self._scan_nested('.prefetch_related("items__product")')
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].loop_var, "item")
+        self.assertEqual(findings[0].accessed, ["category"])
+        self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
+    def test_schema_less_keeps_single_attribute_heuristic(self) -> None:
+        findings = self._scan_nested(schema_less=True)
+        self.assertEqual([f.loop_var for f in findings], ["order", "item"])
+        self.assertEqual(findings[1].accessed, ["product"])
+        self.assertEqual(findings[1].suggested_fix, '.select_related("product")')
+        self.assertEqual(findings[1].confidence, "medium")
+
+    def test_wildcard_does_not_cover_multihop_path(self) -> None:
+        for method in ("select_related", "prefetch_related"):
+            with self.subTest(method=method), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    f"    for item in Item.objects.{method}():\n"
+                    "        print(item.product.category.name)\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(
+                    findings[0].accessed,
+                    ["category" if method == "select_related" else "product__category"],
+                )
+                self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
+    def test_direct_eager_paths_and_prefix_boundaries(self) -> None:
+        for method in ("select_related", "prefetch_related"):
+            for eager, accessed in (
+                ("product__category", []), ("product", ["category"]),
+                ("product__category_extra", ["category"]),
+            ):
+                with self.subTest(method=method, eager=eager), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        f"    for item in Item.objects.{method}('{eager}'):\n"
+                        "        print(item.product.category.name)\n",
+                    )
+                    findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                    self.assertEqual([a for f in findings for a in f.accessed], accessed)
+
+    def test_validation_stops_at_scalar_or_unknown_hop(self) -> None:
+        for access in ("product.name.category", "product.unknown.category"):
+            with self.subTest(access=access), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    "    for item in Item.objects.all():\n"
+                    f"        print(item.{access})\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(findings[0].suggested_fix, '.select_related("product")')
+
+    def test_workspace_index_retains_relation_targets(self) -> None:
+        from django_orm_lens.parser import scan_workspace
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "shop" / "models.py",
+                "from django.db import models\n"
+                "class Category(models.Model):\n"
+                "    name = models.CharField(max_length=30)\n"
+                "class Product(models.Model):\n"
+                "    category = models.ForeignKey(Category, on_delete=models.CASCADE)\n"
+                "class Item(models.Model):\n"
+                "    product = models.ForeignKey(Product, on_delete=models.CASCADE)\n",
+            )
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for item in Item.objects.all():\n"
+                "        print(item.product.category.name)\n",
+            )
+            findings = scan_for_nplusone(str(root), scan_workspace(str(root)))
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
+    def test_async_nested_prefetch(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "async def index():\n"
+                "    async for order in Order.objects.prefetch_related('items__product__category'):\n"
+                "        async for item in order.items.all():\n"
+                "            print(item.product.category.name)\n",
+            )
+            self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
+    def test_covered_chain_does_not_hide_other_access(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.category.name, item.order)\n",
+            )
+            findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].accessed, ["order"])
+            self.assertEqual(findings[0].suggested_fix, '.select_related("order")')
+
+
 class ScanForNPlusOneTest(unittest.TestCase):
     # ------------------------------------------------------------------ POSITIVE
 
