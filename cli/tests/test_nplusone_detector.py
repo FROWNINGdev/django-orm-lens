@@ -107,6 +107,78 @@ class NestedRelationTest(unittest.TestCase):
             self._scan_nested('.prefetch_related("items__product__category")'), [],
         )
 
+    def test_prefetch_alias_leaves_final_relation_unloaded(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from django.db.models import Prefetch\n"
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related(\n"
+                "        Prefetch('items__product__category', to_attr='cached_category')\n"
+                "    ):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.category.name)\n",
+            )
+            self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [
+                NPlusOneFinding(
+                    file="views.py", line=6, loop_var="item", queryset_var="<inline>",
+                    accessed=["category"], suggested_fix='.select_related("product__category")',
+                    confidence="high",
+                ),
+            ])
+
+    def test_plain_prefetch_object_covers_inner_loop(self) -> None:
+        for destination in ("", ", to_attr=None", ", to_attr='' "):
+            with self.subTest(destination=destination), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "from django.db.models import Prefetch\n"
+                    "def index():\n"
+                    "    for order in Order.objects.prefetch_related(\n"
+                    f"        Prefetch('items__product__category'{destination})\n"
+                    "    ):\n"
+                    "        for item in order.items.all():\n"
+                    "            print(item.product.category.name)\n",
+                )
+                self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
+    def test_nearer_unpacking_loop_stops_inheritance(self) -> None:
+        for target in ("order", "order, label", "[order, label]",
+                       "label, (order, other)", "*order, label", "label, [*order]"):
+            with self.subTest(target=target), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index(pairs):\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for {target} in pairs:\n"
+                    "            for item in order.items.all():\n"
+                    "                print(item.product.category.name)\n",
+                )
+                self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [
+                    NPlusOneFinding(
+                        file="views.py", line=4, loop_var="item", queryset_var="<inline>",
+                        accessed=["product"], suggested_fix='.select_related("product")',
+                        confidence="medium",
+                    ),
+                ])
+
+    def test_unrelated_unpacking_loop_keeps_inheritance(self) -> None:
+        for target in ("other, label", "[other, label]", "label, [*other]", "order.label"):
+            with self.subTest(target=target), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index(pairs):\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for {target} in pairs:\n"
+                    "            for item in order.items.all():\n"
+                    "                print(item.product.category.name)\n",
+                )
+                self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
     def test_partial_outer_prefetch_reports_unloaded_category(self) -> None:
         findings = self._scan_nested('.prefetch_related("items__product")')
         self.assertEqual(len(findings), 1)

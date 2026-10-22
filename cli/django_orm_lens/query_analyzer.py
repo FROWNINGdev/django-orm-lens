@@ -824,7 +824,17 @@ def _chain_prefetch_args(
                 elif isinstance(arg, ast.Call):
                     for inner in arg.args:
                         if isinstance(inner, ast.Constant) and isinstance(inner.value, str):
-                            prefetch_set.add(inner.value if full_paths else inner.value.split("__", 1)[0])
+                            lookup = inner.value
+                            if full_paths and any(
+                                keyword.arg == "to_attr" and not (
+                                    isinstance(keyword.value, ast.Constant) and not keyword.value.value
+                                )
+                                for keyword in arg.keywords
+                            ):
+                                # Only the final lookup is stored on the alias.
+                                lookup = lookup.rpartition("__")[0]
+                            if lookup:
+                                prefetch_set.add(lookup if full_paths else lookup.split("__", 1)[0])
                             break
     return select_set, prefetch_set
 
@@ -1271,7 +1281,10 @@ class NPlusOneScanner(ast.NodeVisitor):
         if not origin or len(origin) < 2:
             return None, set()
         for loop, model, eager_paths in reversed(self._loops[:-1]):
-            if not isinstance(loop.target, ast.Name) or loop.target.id != origin[0]:
+            if not any(
+                isinstance(name, ast.Name) and isinstance(name.ctx, ast.Store) and name.id == origin[0]
+                for name in ast.walk(loop.target)
+            ):
                 continue
             hops = self._relation_hops(model, origin[1:])
             if len(hops) != len(origin) - 1:
