@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`nplusone` flagged nested relations already prefetched by the outer
+  queryset (#146).** Nested loops now inherit explicit eager-loading paths
+  from their enclosing queryset. Suggestions retain the full schema-validated
+  relation path, such as `product__category`, and partial prefetches still
+  report the relations that remain unloaded. Prefetch-cache coverage now follows
+  supported documented queryset operations on related managers, classifying
+  ordering- and emptiness-dependent cases conservatively while retaining findings
+  for non-cache-served operations and using schema-backed receiver checks to
+  preserve loaded relation prefixes for calls on other receivers.
+
 ## [py-1.13.5] - 2026-10-19
 
 ### Fixed

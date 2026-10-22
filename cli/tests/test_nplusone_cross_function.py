@@ -17,10 +17,12 @@ from __future__ import annotations
 import ast
 import unittest
 from pathlib import Path
+from textwrap import indent
 
 from django_orm_lens.query_analyzer import (
     NPlusOneScanner,
     _helper_call_name,
+    _RelationSchema,
     _ReturnedQuerySetTracker,
 )
 
@@ -37,7 +39,7 @@ def scan(src: str) -> list:
 def helpers(src: str) -> dict:
     tracker = _ReturnedQuerySetTracker()
     tracker.visit(ast.parse(src))
-    return {name: model for name, (_chain, model) in tracker.returns.items()}
+    return {name: model for name, (_chain, model, _parameters) in tracker.returns.items()}
 
 
 class HelperCallNameTest(unittest.TestCase):
@@ -143,6 +145,63 @@ class CrossFunctionScanTest(unittest.TestCase):
             "    return Post.objects.all()\n"
         )
         self.assertEqual(len(scan(src)), 1)
+
+
+class NestedHelperInheritanceTest(unittest.TestCase):
+    def test_helper_receiver_uses_call_site_binding(self) -> None:
+        schema = _RelationSchema()
+        schema.update({
+            "Order": {"items": "reverse"},
+            "Item": {"product": "fk"},
+            "Product": {"category": "fk"},
+        })
+        schema.targets.update({
+            ("Order", "items"): "Item",
+            ("Item", "product"): "Product",
+            ("Product", "category"): "Category",
+        })
+        for parameters, receiver, call, expected in (
+            ("order", "order", "get_items(other)", ["product"]),
+            ("order", "order", "get_items(order)", []),
+            ("source", "source", "get_items(order)", []),
+            ("order, /", "order", "get_items(order)", []),
+            ("label, order", "order", "get_items(other, order)", []),
+            ("label, order", "order", "get_items(order, other)", ["product"]),
+            ("order", "order", "get_items(order.child)", ["product"]),
+            ("order", "order", "get_items(resolve(order))", ["product"]),
+            ("order", "order", "get_items(order=order)", ["product"]),
+            ("*, order", "order", "get_items(order=order)", ["product"]),
+            ("order", "order", "get_items(*others)", ["product"]),
+            ("label, order", "order", "get_items(*(), order)", ["product"]),
+            ("order, *extra", "order", "get_items(order, *others)", ["product"]),
+            ("order, **extra", "order", "get_items(order, **options)", ["product"]),
+            ("order=None", "order", "get_items()", ["product"]),
+            ("source", "order", "get_items(order)", ["product"]),
+            ("order", "order", "get_items(order).all()", ["product__category"]),
+            ("self, order", "order", "self.get_items(order)", []),
+            ("self, order", "order", "self.get_items(other)", ["product"]),
+            ("order", "order", "get_items(order).select_related('product__category')", []),
+        ):
+            with self.subTest(parameters=parameters, receiver=receiver, call=call):
+                src = (
+                    f"def get_items({parameters}):\n"
+                    f"    return {receiver}.items.all()\n"
+                    "\n"
+                    "def report():\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for item in {call}:\n"
+                    "            print(item.product.category.name)\n"
+                )
+                if call.startswith("self."):
+                    src = "class OrderView:\n" + indent(
+                        src.replace("def report():", "def report(self):"), "    ",
+                    )
+                scanner = NPlusOneScanner(FILE, ROOT, schema)
+                scanner.visit(ast.parse(src))
+                found = scanner.findings
+                self.assertEqual([f.loop_var for f in found], ["item"] if expected else [])
+                if expected:
+                    self.assertEqual(found[0].accessed, expected)
 
 
 class SuppressionTest(unittest.TestCase):

@@ -50,6 +50,426 @@ BLOG_SCHEMA = {
 }
 
 
+SHOP_SCHEMA = {
+    "apps": [{
+        "name": "shop",
+        "models": [
+            {"name": "Order", "fields": []},
+            {"name": "Item", "fields": [
+                {"name": "order", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Order", "relatedName": "items"},
+                {"name": "product", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Product"},
+                {"name": "supplier", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Supplier"},
+                {"name": "backup_order", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Order", "relatedName": "backup_items"},
+            ]},
+            {"name": "Product", "fields": [
+                {"name": "category", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Category"},
+                {"name": "name", "isRelation": False},
+            ]},
+            {"name": "Category", "fields": [{"name": "name", "isRelation": False}]},
+            {"name": "Supplier", "fields": [{"name": "name", "isRelation": False}]},
+        ],
+    }],
+}
+
+
+class NestedRelationTest(unittest.TestCase):
+    def _scan_nested(
+        self, eager: str = "", *, schema_less: bool = False,
+    ) -> list[NPlusOneFinding]:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from shop.models import Order\n"
+                "def index(request):\n"
+                f"    orders = Order.objects.all(){eager}\n"
+                "    for order in orders:\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.category.name)\n",
+            )
+            return scan_for_nplusone(str(root), None if schema_less else SHOP_SCHEMA)
+
+    def test_multihop_suggestion(self) -> None:
+        findings = self._scan_nested()
+        self.assertEqual([f.loop_var for f in findings], ["order", "item"])
+        self.assertEqual(findings[0].accessed, ["items"])
+        self.assertEqual(findings[0].suggested_fix, '.prefetch_related("items")')
+        self.assertEqual(findings[1].suggested_fix, '.select_related("product__category")')
+        self.assertEqual(findings[1].confidence, "high")
+
+    def test_full_outer_prefetch_covers_inner_loop(self) -> None:
+        self.assertEqual(
+            self._scan_nested('.prefetch_related("items__product__category")'), [],
+        )
+
+    def test_prefetch_alias_leaves_final_relation_unloaded(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from django.db.models import Prefetch\n"
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related(\n"
+                "        Prefetch('items__product__category', to_attr='cached_category')\n"
+                "    ):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.category.name)\n",
+            )
+            self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [
+                NPlusOneFinding(
+                    file="views.py", line=6, loop_var="item", queryset_var="<inline>",
+                    accessed=["category"], suggested_fix='.select_related("product__category")',
+                    confidence="high",
+                ),
+            ])
+
+    def test_plain_prefetch_object_covers_inner_loop(self) -> None:
+        for destination in ("", ", to_attr=None", ", to_attr='' "):
+            with self.subTest(destination=destination), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "from django.db.models import Prefetch\n"
+                    "def index():\n"
+                    "    for order in Order.objects.prefetch_related(\n"
+                    f"        Prefetch('items__product__category'{destination})\n"
+                    "    ):\n"
+                    "        for item in order.items.all():\n"
+                    "            print(item.product.category.name)\n",
+                )
+                self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
+    def test_nearer_unpacking_loop_stops_inheritance(self) -> None:
+        for target in ("order", "order, label", "[order, label]",
+                       "label, (order, other)", "*order, label", "label, [*order]"):
+            with self.subTest(target=target), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index(pairs):\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for {target} in pairs:\n"
+                    "            for item in order.items.all():\n"
+                    "                print(item.product.category.name)\n",
+                )
+                self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [
+                    NPlusOneFinding(
+                        file="views.py", line=4, loop_var="item", queryset_var="<inline>",
+                        accessed=["product"], suggested_fix='.select_related("product")',
+                        confidence="medium",
+                    ),
+                ])
+
+    def test_unrelated_unpacking_loop_keeps_inheritance(self) -> None:
+        for target in ("other, label", "[other, label]", "label, [*other]", "order.label"):
+            with self.subTest(target=target), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index(pairs):\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for {target} in pairs:\n"
+                    "            for item in order.items.all():\n"
+                    "                print(item.product.category.name)\n",
+                )
+                self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
+    def test_partial_outer_prefetch_reports_unloaded_category(self) -> None:
+        findings = self._scan_nested('.prefetch_related("items__product")')
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].loop_var, "item")
+        self.assertEqual(findings[0].accessed, ["category"])
+        self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
+    def test_single_hop_inherited_prefetch_covers_inner_loop(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related('items__product'):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.name)\n",
+            )
+            self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
+    def test_schema_less_keeps_single_attribute_heuristic(self) -> None:
+        findings = self._scan_nested(schema_less=True)
+        self.assertEqual([f.loop_var for f in findings], ["order", "item"])
+        self.assertEqual(findings[1].accessed, ["product"])
+        self.assertEqual(findings[1].suggested_fix, '.select_related("product")')
+        self.assertEqual(findings[1].confidence, "medium")
+
+    def test_wildcard_does_not_cover_multihop_path(self) -> None:
+        for method in ("select_related", "prefetch_related"):
+            with self.subTest(method=method), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    f"    for item in Item.objects.{method}():\n"
+                    "        print(item.product.category.name)\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(
+                    findings[0].accessed,
+                    ["category" if method == "select_related" else "product__category"],
+                )
+                self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
+    def test_direct_eager_paths_and_prefix_boundaries(self) -> None:
+        for method in ("select_related", "prefetch_related"):
+            for eager, accessed in (
+                ("product__category", []), ("product", ["category"]),
+                ("product__category_extra", ["category"]),
+            ):
+                with self.subTest(method=method, eager=eager), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        f"    for item in Item.objects.{method}('{eager}'):\n"
+                        "        print(item.product.category.name)\n",
+                    )
+                    findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                    self.assertEqual([a for f in findings for a in f.accessed], accessed)
+
+    def test_validation_stops_at_scalar_or_unknown_hop(self) -> None:
+        for access in ("product.name.category", "product.unknown.category"):
+            with self.subTest(access=access), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    "    for item in Item.objects.all():\n"
+                    f"        print(item.{access})\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(findings[0].suggested_fix, '.select_related("product")')
+
+    def test_workspace_index_retains_relation_targets(self) -> None:
+        from django_orm_lens.parser import scan_workspace
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "shop" / "models.py",
+                "from django.db import models\n"
+                "class Order(models.Model):\n"
+                "    pass\n"
+                "class Category(models.Model):\n"
+                "    name = models.CharField(max_length=30)\n"
+                "class Product(models.Model):\n"
+                "    category = models.ForeignKey(Category, on_delete=models.CASCADE)\n"
+                "class Item(models.Model):\n"
+                "    product = models.ForeignKey(Product, on_delete=models.CASCADE)\n"
+                "    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')\n",
+            )
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for item in Item.objects.all():\n"
+                "        print(item.product.category.name)\n"
+                "    for order in Order.objects.prefetch_related('items'):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.order)\n",
+            )
+            findings = scan_for_nplusone(str(root), scan_workspace(str(root)))
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].suggested_fix, '.select_related("product__category")')
+
+    def test_async_nested_prefetch(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "async def index():\n"
+                "    async for order in Order.objects.prefetch_related('items__product__category'):\n"
+                "        async for item in order.items.all():\n"
+                "            print(item.product.category.name)\n",
+            )
+            self.assertEqual(scan_for_nplusone(str(root), SHOP_SCHEMA), [])
+
+    def test_covered_chain_does_not_hide_other_access(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.product.category.name, item.supplier)\n",
+            )
+            findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].accessed, ["supplier"])
+            self.assertEqual(findings[0].suggested_fix, '.select_related("supplier")')
+
+    def test_reverse_manager_caches_inverse_fk(self) -> None:
+        for eager in ("", ".prefetch_related('items')",
+                      ".prefetch_related('items__product__category')"):
+            for manager_call in ("all()", "filter(active=True)", "all().filter(active=True)"):
+                with self.subTest(eager=eager, manager_call=manager_call), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        f"    for order in Order.objects.all(){eager}:\n"
+                        f"        for item in order.items.{manager_call}:\n"
+                        "            print(item.order)\n",
+                    )
+                    findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                    expected = [] if eager and manager_call == "all()" else ["order"]
+                    self.assertEqual([f.loop_var for f in findings], expected)
+                    if findings:
+                        self.assertEqual(findings[0].accessed, ["items"])
+
+    def test_filtered_manager_bypasses_inherited_prefetch(self) -> None:
+        schema = {"apps": [{"models": [
+            {"name": "Customer", "fields": []},
+            {"name": "Order", "fields": [
+                {"name": "customer", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Customer", "relatedName": "orders"},
+            ]},
+            {"name": "Item", "fields": [
+                {"name": "order", "isRelation": True, "relationKind": "ForeignKey",
+                 "relatedModel": "Order", "relatedName": "items"},
+            ]},
+        ]}]}
+        for eager in ("", ".prefetch_related()"):
+            for manager_call in ("all()", "filter(active=True)",
+                                 "all().filter(active=True)", "filter(active=True).all()"):
+                with self.subTest(eager=eager, manager_call=manager_call), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        "    for customer in Customer.objects.prefetch_related('orders__items'):\n"
+                        f"        for order in customer.orders.all(){eager}:\n"
+                        f"            print(order.items.{manager_call})\n",
+                    )
+                    findings = scan_for_nplusone(str(root), schema)
+                    expected = ["customer", "order"] if eager else (
+                        [] if manager_call == "all()" else ["order"]
+                    )
+                    self.assertEqual([f.loop_var for f in findings], expected)
+                    if eager:
+                        self.assertEqual([f.accessed for f in findings], [["orders"], ["items"]])
+                    elif findings:
+                        self.assertEqual(findings[0].accessed, ["items"])
+
+    def test_manager_behind_fk_preserves_receiver_path(self) -> None:
+        for eager, manager_call, expected in (
+            (".select_related('order')", "all()", ["items"]),
+            (".prefetch_related('order__items')", "all()", []),
+            (".prefetch_related('order__items')", "filter(active=True)", ["items"]),
+            (".prefetch_related('order__items')", "all().filter(active=True)", ["items"]),
+            (".prefetch_related('order__items')", "filter(active=True).all()", ["items"]),
+        ):
+            with self.subTest(eager=eager, manager_call=manager_call), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    f"    for item in Item.objects.all(){eager}:\n"
+                    f"        print(list(item.order.items.{manager_call}))\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual([f.loop_var for f in findings], ["item"] if expected else [])
+                if expected:
+                    self.assertEqual(findings[0].accessed, expected)
+
+    def test_filtered_manager_keeps_argument_accesses(self) -> None:
+        for relation in ("tags", "comment_set"):
+            for manager_call in (
+                "filter(owner=post.author.name)",
+                "filter(owner=post.author.name).all()",
+                "filter(owner=post.author.name).values('name')",
+                "filter(post.author.name)",
+                "filter(active=True).filter(owner=post.author.name)",
+            ):
+                with self.subTest(relation=relation, manager_call=manager_call), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    _write(
+                        root / "views.py",
+                        "def index():\n"
+                        f"    for post in Post.objects.prefetch_related('{relation}'):\n"
+                        f"        print(post.{relation}.{manager_call})\n",
+                    )
+                    findings = scan_for_nplusone(str(root), BLOG_SCHEMA)
+                    self.assertEqual([f.loop_var for f in findings], ["post"])
+                    self.assertEqual(findings[0].accessed, ["author", relation])
+
+    def test_inverse_cache_is_specific_to_incoming_relation(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related('items'):\n"
+                "        for item in order.items.all():\n"
+                "            print(item.order, item.backup_order)\n",
+            )
+            findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].accessed, ["backup_order"])
+            self.assertEqual(findings[0].suggested_fix, '.select_related("backup_order")')
+
+    def test_unrelated_or_invalid_manager_origin_keeps_finding(self) -> None:
+        for origin in ("other.items", "order.unknown"):
+            with self.subTest(origin=origin), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for item in {origin}.all():\n"
+                    "            print(item.product.category.name)\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual(len(findings), 1)
+                self.assertEqual(findings[0].loop_var, "item")
+                self.assertEqual(findings[0].suggested_fix, '.select_related("product")')
+
+    def test_nested_function_does_not_inherit_outer_loop(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "def index():\n"
+                "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                "        def nested(order):\n"
+                "            for item in order.items.all():\n"
+                "                print(item.product.category.name)\n",
+            )
+            findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].suggested_fix, '.select_related("product")')
+
+    def test_filtered_manager_does_not_inherit_cache(self) -> None:
+        for manager_call in ("filter(active=True)", "all().filter(active=True)"):
+            with self.subTest(manager_call=manager_call), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                _write(
+                    root / "views.py",
+                    "def index():\n"
+                    "    for order in Order.objects.prefetch_related('items__product__category'):\n"
+                    f"        for item in order.items.{manager_call}:\n"
+                    "            print(item.product.category.name)\n",
+                )
+                findings = scan_for_nplusone(str(root), SHOP_SCHEMA)
+                self.assertEqual([f.loop_var for f in findings], ["order", "item"])
+                self.assertEqual(findings[0].accessed, ["items"])
+                self.assertEqual(findings[1].suggested_fix, '.select_related("product__category")')
+
+
 class ScanForNPlusOneTest(unittest.TestCase):
     # ------------------------------------------------------------------ POSITIVE
 
