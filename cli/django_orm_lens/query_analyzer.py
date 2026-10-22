@@ -1208,6 +1208,11 @@ class NPlusOneScanner(ast.NodeVisitor):
             parts = access.split("__")
             attr = parts[0]
             hops = self._relation_hops(model_root, parts)
+            if hops and (
+                len(hops) != len(parts) or hops[-1][1] not in ("m2m", "reverse")
+            ):
+                # Only operations on the terminal related manager can bypass its cache.
+                manager_ops = ()
             if hops and (len(hops) > 1 or inherited_paths):
                 relation_parts = [name for name, _kind, _target in hops]
                 path = "__".join(relation_parts)

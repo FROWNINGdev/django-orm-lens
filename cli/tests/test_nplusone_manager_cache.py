@@ -2,6 +2,7 @@
 
 import ast
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -138,3 +139,75 @@ def test_non_queryset_manager_methods_remain_outside_gate(tmp_path: Path, method
     accesses = _collect_target_accesses(ast.parse(source).body[0].body, "post")
     assert accesses[0][2] == ()
     assert scan_for_nplusone(str(tmp_path), BLOG_SCHEMA) == []
+
+
+@pytest.mark.parametrize("loaded", [True, False], ids=["loaded", "unloaded"])
+@pytest.mark.parametrize("model,method,path,access,category_kind", [
+    pytest.param(
+        "Item", "select_related", "product__category",
+        "product.category.metadata.get('label')", "fk", id="scalar-suffix",
+    ),
+    pytest.param(
+        "Item", "select_related", "product__category",
+        "product.category.unknown.get('label')", "fk", id="unknown-suffix",
+    ),
+    pytest.param(
+        "Item", "select_related", "product__category",
+        "product.category.delete()", "fk", id="single-valued-receiver",
+    ),
+    pytest.param(
+        "Item", "select_related", "product__category",
+        "product.category.delete()", "o2o", id="one-to-one-receiver",
+    ),
+    pytest.param(
+        "Item", "select_related", "product__category",
+        "product.category.delete()", "reverse_o2o", id="reverse-one-to-one-receiver",
+    ),
+    pytest.param(
+        "Item", "prefetch_related", "order__items",
+        "order.items.instance.metadata.get('label')", "fk", id="many-valued-prefix-unknown-suffix",
+    ),
+    pytest.param(
+        "Order", "prefetch_related", "items",
+        "items.instance.metadata.get('label')", "fk", id="single-hop-many-valued-prefix-unknown-suffix",
+    ),
+])
+def test_non_manager_receivers_preserve_loaded_prefixes(
+    tmp_path: Path, loaded: bool, model: str, method: str, path: str, access: str,
+    category_kind: str,
+) -> None:
+    schema = deepcopy(SHOP_SCHEMA)
+    declarations = {entry["name"]: entry for entry in schema["apps"][0]["models"]}
+    for name in ("Category", "Order"):
+        declarations[name]["fields"].append({"name": "metadata", "isRelation": False})
+    if category_kind == "o2o":
+        declarations["Product"]["fields"][0]["relationKind"] = "OneToOneField"
+    elif category_kind == "reverse_o2o":
+        declarations["Product"]["fields"] = [
+            field for field in declarations["Product"]["fields"] if field["name"] != "category"
+        ]
+        declarations["Category"]["fields"].append({
+            "name": "product", "isRelation": True, "relationKind": "OneToOneField",
+            "relatedModel": "Product", "relatedName": "category",
+        })
+    query = f"{model}.objects.{method}('{path}')" if loaded else f"{model}.objects.all()"
+    _write(tmp_path / "views.py", f"for item in {query}:\n    print(item.{access})\n")
+    findings = scan_for_nplusone(str(tmp_path), schema)
+    assert bool(findings) == (not loaded)
+    if findings:
+        assert len(findings) == 1
+        assert findings[0].accessed == [path]
+        assert findings[0].suggested_fix == f'.{method}("{path}")'
+
+
+@pytest.mark.parametrize("operation", ["get(pk=1)", "exclude(pk=1)"])
+def test_direct_manager_bypass_keeps_schema_less_heuristic(tmp_path: Path, operation: str) -> None:
+    _write(
+        tmp_path / "views.py",
+        "for post in Post.objects.prefetch_related('tags'):\n"
+        f"    print(post.tags.{operation})\n",
+    )
+    findings = scan_for_nplusone(str(tmp_path))
+    assert len(findings) == 1
+    assert findings[0].accessed == ["tags"]
+    assert findings[0].suggested_fix == '.prefetch_related("tags")'
