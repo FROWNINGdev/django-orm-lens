@@ -778,7 +778,14 @@ def _collect_call_chain_methods(node: ast.AST) -> list[tuple[str, ast.Call]]:
     """
     out: list[tuple[str, ast.Call]] = []
     cursor: ast.AST = node
-    while isinstance(cursor, ast.Call):
+    while True:
+        # QuerySet slicing preserves laziness and the underlying method chain.
+        # Unwrap slices wherever they occur in the chain, while leaving indexed
+        # access alone because it resolves to a model instance.
+        while isinstance(cursor, ast.Subscript) and isinstance(cursor.slice, ast.Slice):
+            cursor = cursor.value
+        if not isinstance(cursor, ast.Call):
+            break
         method = _call_method_name(cursor)
         if method is None:
             break

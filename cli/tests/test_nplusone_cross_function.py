@@ -66,6 +66,10 @@ class ReturnTrackerTest(unittest.TestCase):
         found = helpers("def built():\n    qs = Post.objects.all()\n    return qs\n")
         self.assertEqual(found, {"built": "Post"})
 
+    def test_direct_return_of_a_sliced_chain(self) -> None:
+        found = helpers("def recent():\n    return Post.objects.filter(a=1)[:50]\n")
+        self.assertEqual(found, {"recent": "Post"})
+
     def test_return_inside_a_conditional_is_seen(self) -> None:
         src = (
             "def maybe(flag):\n"
@@ -106,6 +110,20 @@ class CrossFunctionScanTest(unittest.TestCase):
         found = scan(src)
         self.assertEqual(len(found), 1)
         self.assertEqual(found[0].loop_var, "post")
+        self.assertIn("select_related", found[0].suggested_fix)
+
+    def test_flags_a_loop_over_a_helper_returning_a_slice(self) -> None:
+        src = (
+            "def recent():\n"
+            "    return Post.objects.filter(published=True)[:50]\n"
+            "\n"
+            "def report():\n"
+            "    for post in recent():\n"
+            "        print(post.author.name)\n"
+        )
+        found = scan(src)
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].queryset_var, "recent()")
         self.assertIn("select_related", found[0].suggested_fix)
 
     def test_flags_a_loop_over_self_get_queryset(self) -> None:
