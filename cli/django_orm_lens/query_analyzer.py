@@ -1144,8 +1144,9 @@ class NPlusOneScanner(ast.NodeVisitor):
         # AST wraps its source in ``Subscript`` (``qs[:50]``) rather than the
         # ``Name`` / ``Call`` shapes handled below.  Indexed QuerySets are
         # deliberately excluded: they resolve to one model instance, not an
-        # iterable QuerySet.
-        if isinstance(iter_node, ast.Subscript):
+        # iterable QuerySet.  A slice of a slice (``qs[:50][:10]``) is still
+        # a lazy QuerySet, so unwrap every layer.
+        while isinstance(iter_node, ast.Subscript):
             if not isinstance(iter_node.slice, ast.Slice):
                 return
             iter_node = iter_node.value

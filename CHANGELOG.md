@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.13.6] - 2026-10-28
+
 ### Fixed
 
 - **`nplusone` skipped loops over sliced QuerySets (#145).** Iterating
   `Post.objects.filter(...)[:50]` is still lazy and can cause one related
   lookup per row; it now produces the same finding and eager-loading
-  suggestion as an unsliced QuerySet.
+  suggestion as an unsliced QuerySet. A slice of a slice
+  (`qs[:50][:10]`) is unwrapped too.
 
 - **`nplusone` flagged nested relations already prefetched by the outer
   queryset (#146).** Nested loops now inherit explicit eager-loading paths
