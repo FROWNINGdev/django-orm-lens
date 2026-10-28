@@ -800,7 +800,14 @@ def _collect_call_chain_methods(node: ast.AST) -> list[tuple[str, ast.Call]]:
     """
     out: list[tuple[str, ast.Call]] = []
     cursor: ast.AST = node
-    while isinstance(cursor, ast.Call):
+    while True:
+        # QuerySet slicing preserves laziness and the underlying method chain.
+        # Unwrap slices wherever they occur in the chain, while leaving indexed
+        # access alone because it resolves to a model instance.
+        while isinstance(cursor, ast.Subscript) and isinstance(cursor.slice, ast.Slice):
+            cursor = cursor.value
+        if not isinstance(cursor, ast.Call):
+            break
         method = _call_method_name(cursor)
         if method is None:
             break
@@ -1132,6 +1139,16 @@ class NPlusOneScanner(ast.NodeVisitor):
         if not isinstance(target, ast.Name) or iter_node is None:
             return
         loop_var = target.id
+
+        # A QuerySet slice is still lazily evaluated and iterable, but the
+        # AST wraps its source in ``Subscript`` (``qs[:50]``) rather than the
+        # ``Name`` / ``Call`` shapes handled below.  Indexed QuerySets are
+        # deliberately excluded: they resolve to one model instance, not an
+        # iterable QuerySet.
+        if isinstance(iter_node, ast.Subscript):
+            if not isinstance(iter_node.slice, ast.Slice):
+                return
+            iter_node = iter_node.value
 
         # 1. Resolve the queryset source: either a bare Name (look up in
         #    tracker) or an inline chain (``for x in Foo.objects.all():``).

@@ -564,6 +564,42 @@ class ScanForNPlusOneTest(unittest.TestCase):
             self.assertEqual(findings[0].queryset_var, "<inline>")
             self.assertEqual(findings[0].confidence, "high")
 
+    def test_sliced_queryset_loop_with_fk_access_is_flagged(self) -> None:
+        """Slicing preserves QuerySet iteration and must not hide an N+1."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from blog.models import Post\n"
+                "def recent():\n"
+                "    for post in Post.objects.filter(published=True)[:50]:\n"
+                "        print(post.author.email)\n",
+            )
+            findings = scan_for_nplusone(str(root), BLOG_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].confidence, "high")
+            self.assertEqual(findings[0].queryset_var, "<inline>")
+            self.assertEqual(findings[0].accessed, ["author"])
+            self.assertIn('.select_related("author")', findings[0].suggested_fix)
+
+    def test_sliced_queryset_assigned_to_variable_is_flagged(self) -> None:
+        """A slice must remain part of the tracked QuerySet assignment."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from blog.models import Post\n"
+                "def recent():\n"
+                "    posts = Post.objects.filter(published=True)[:50]\n"
+                "    for post in posts:\n"
+                "        print(post.author.email)\n",
+            )
+            findings = scan_for_nplusone(str(root), BLOG_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].queryset_var, "posts")
+            self.assertEqual(findings[0].accessed, ["author"])
+            self.assertIn('.select_related("author")', findings[0].suggested_fix)
+
     def test_medium_confidence_without_schema(self) -> None:
         """No schema → detector falls back to structural heuristics.
 
