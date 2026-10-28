@@ -22,6 +22,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 try:  # the ``mcp`` extra is optional — the base install must stay zero-dep
@@ -359,7 +360,6 @@ def _registered_server():
     from the real signatures."""
     import contextlib
     import io
-    from unittest import mock
 
     from django_orm_lens import mcp_server
 
@@ -373,7 +373,7 @@ def _registered_server():
         def run(self, *args, **kwargs):
             captured.append(self)
 
-    with mock.patch.object(
+    with unittest.mock.patch.object(
         mcp_server, "_load_server_class", return_value=(_NoRun, takes_version)
     ), contextlib.redirect_stderr(io.StringIO()):
         mcp_server.main()

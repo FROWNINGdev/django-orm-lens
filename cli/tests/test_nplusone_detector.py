@@ -600,6 +600,22 @@ class ScanForNPlusOneTest(unittest.TestCase):
             self.assertEqual(findings[0].accessed, ["author"])
             self.assertIn('.select_related("author")', findings[0].suggested_fix)
 
+    def test_slice_of_a_slice_in_loop_is_flagged(self) -> None:
+        """``qs[:50][:10]`` is still a lazy QuerySet; unwrap every slice."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write(
+                root / "views.py",
+                "from blog.models import Post\n"
+                "def recent():\n"
+                "    for post in Post.objects.filter(published=True)[:50][:10]:\n"
+                "        print(post.author.email)\n",
+            )
+            findings = scan_for_nplusone(str(root), BLOG_SCHEMA)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].accessed, ["author"])
+            self.assertIn('.select_related("author")', findings[0].suggested_fix)
+
     def test_medium_confidence_without_schema(self) -> None:
         """No schema → detector falls back to structural heuristics.
 

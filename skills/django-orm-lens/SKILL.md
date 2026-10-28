@@ -18,7 +18,7 @@ compatibility: >-
   Read-only: never imports the project, never touches a database.
 metadata:
   author: FROWNINGdev
-  version: 1.0.1
+  version: 1.2.0
   homepage: https://github.com/FROWNINGdev/django-orm-lens
 ---
 
@@ -167,16 +167,19 @@ too. Say which ones you dismissed and why.
    1 + N + 2N. Otherwise prefetch the chain:
    `.prefetch_related("items__product__category")`.
 3. Re-run the scan and report before/after counts. A finding is resolved
-   when it is gone, or when you can point to the prefetch that covers it:
-   after an outer `prefetch_related("items__...")` the scan may still flag
-   the inner `for item in order.items.all()` loop, because it does not link
-   the inner queryset to the outer prefetch. Say so explicitly rather than
-   leaving it unexplained or "fixing" it twice.
-4. Then read the loop bodies the scan flagged for one level deeper than it
-   reported, and other loops over sliced querysets (`qs[:50]`) or querysets
-   built in another function: static detection cannot see every case, so a
-   short manual pass catches what it misses. Report those as "found by
-   review", separately from tool findings.
+   when it is gone, or when you can point to the prefetch that covers it.
+   From py-1.13.6 the scan links an inner `for item in order.items.all()`
+   loop to an outer `prefetch_related("items__...")`, reports loops over
+   sliced querysets (`qs[:50]`) and suggests the whole chain
+   (`select_related("product__category")`). On 1.13.5 and earlier it may
+   still flag a covered inner loop and names only the first hop: say so
+   explicitly rather than leaving it unexplained or "fixing" it twice.
+4. Then read the loop bodies the scan flagged, and loops over querysets
+   built dynamically or passed through several functions: static detection
+   cannot see every case, so a short manual pass catches what it misses. On
+   1.13.5 and earlier also check one level deeper than reported and loops
+   over sliced querysets. Report those as "found by review", separately
+   from tool findings.
 5. For hot filters, `suggest_indexes` on the model (CLI:
    `suggest-indexes app.Model`) proposes `Meta.indexes` from the
    `filter/exclude/get/order_by` calls it finds. It needs several usage
