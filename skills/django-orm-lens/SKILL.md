@@ -18,7 +18,7 @@ compatibility: >-
   Read-only: never imports the project, never touches a database.
 metadata:
   author: FROWNINGdev
-  version: 1.3.0
+  version: 1.3.1
   homepage: https://github.com/FROWNINGdev/django-orm-lens
 ---
 
@@ -205,8 +205,9 @@ with `IntegrityError`, unless the entry says `"db_constraint": false`, in
 which case the delete succeeds and leaves ids pointing nowhere. Entries with
 `"db_level": true` come from Django 6.1's `DB_CASCADE` / `DB_SET_NULL` /
 `DB_SET_DEFAULT`: the database does the work, so no `pre_delete` /
-`post_delete` handler runs for those rows. Say so when the user relies on
-signals for audit logs or file cleanup. On older releases, read the
+`post_delete` handler runs for those rows. From py-1.13.8 such entries carry
+`skipped_receivers`: the `@receiver` handlers that will not run. Name them,
+because a file-cleanup or audit handler that stops firing raises no error. On older releases, read the
 `on_delete` values from `find_relations` yourself.
 
 ### F. Wiring and history
