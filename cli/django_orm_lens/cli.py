@@ -235,7 +235,7 @@ def _cmd_nplusone(args: argparse.Namespace) -> int:
     # scan_for_nplusone accepts a WorkspaceIndex directly (see
     # query_analyzer._normalise_schema) — no need to pre-flatten. Passing idx
     # avoids importing the private _build_schema_from_index helper here.
-    findings = scan_for_nplusone(args.path, idx)
+    findings = scan_for_nplusone(args.path, idx, include_tests=args.include_tests)
     if args.confidence == "high":
         findings = [f for f in findings if f.confidence == "high"]
     elif args.confidence == "medium":
@@ -774,6 +774,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--exit-zero",
         action="store_true",
         help="Always exit 0 even when findings are present",
+    )
+    npo.add_argument(
+        "--include-tests",
+        action="store_true",
+        help=(
+            "Also scan test modules (test_*.py, *_test.py, tests.py, conftest.py "
+            "and anything under tests/ or test/). Skipped by default: a query "
+            "per row in a test is not a production N+1"
+        ),
     )
     npo.set_defaults(func=_cmd_nplusone)
 

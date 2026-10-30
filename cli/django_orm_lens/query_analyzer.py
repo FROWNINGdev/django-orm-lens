@@ -709,6 +709,30 @@ _MANAGER_METHODS = frozenset({
 })
 
 
+# RelatedManager-only mutators. _MANAGER_METHODS leaves them out on purpose
+# (no QuerySet has them, and no eager loading serves them), but the
+# attribute-chain fallback used to catch ``interface.vdcs.set(...)`` as a
+# relation read and suggest a prefetch. QuerySet writes such as update() and
+# delete() stay findings: they are documented manager operations that bypass
+# the prefetch cache.
+_RELATED_WRITE_METHODS = frozenset({
+    "add", "remove", "set", "clear", "create", "get_or_create",
+    "aadd", "aremove", "aset", "aclear", "acreate", "aget_or_create",
+})
+
+
+def _is_test_file(rel: Path) -> bool:
+    """Test modules and anything under a ``tests`` / ``test`` directory.
+
+    A query per row in a test is not a production N+1, and these files were
+    a steady source of noise on real projects.
+    """
+    name = rel.name
+    if name in ("tests.py", "conftest.py") or name.startswith("test_") or name.endswith("_test.py"):
+        return True
+    return any(part in ("tests", "test") for part in rel.parts[:-1])
+
+
 def _manager_chain_uses_prefetch_cache(operations: tuple[str, ...]) -> bool:
     """Only cache readers preserve coverage; a queryset's second all() clones."""
     return all(
@@ -1225,6 +1249,16 @@ class NPlusOneScanner(ast.NodeVisitor):
         for access, kind_hint, manager_ops in accesses:
             parts = access.split("__")
             attr = parts[0]
+            if kind_hint == "write":
+                # Only the load of a single-valued relation before the write
+                # is an N+1 that select_related fixes; a write on a manager is
+                # not served by any eager loading.
+                if len(parts) == 1 and self._classify(model_root, attr, None) in (
+                    "fk", "o2o", "reverse_o2o"
+                ) and not ("*" in select_set or attr in select_set or attr in prefetch_set):
+                    uncovered_fk.append(attr)
+                    confidence = "high"
+                continue
             hops = self._relation_hops(model_root, parts)
             if hops and (
                 len(hops) != len(parts) or hops[-1][1] not in ("m2m", "reverse")
@@ -1285,6 +1319,11 @@ class NPlusOneScanner(ast.NodeVisitor):
                 ):
                     uncovered_fk.append(attr)
 
+        # One attribute is either single-valued or a manager, never both. A
+        # schema-less guess from a method call (``x.user.delete()``) must not
+        # add a prefetch for what an attribute access already proved is a FK.
+        single_valued = set(uncovered_fk)
+        uncovered_m2m = [a for a in uncovered_m2m if a not in single_valued]
         if not uncovered_fk and not uncovered_m2m:
             return
 
@@ -1446,6 +1485,21 @@ def _walk_for_accesses(
     if isinstance(node, ast.Call):
         # Method call: check if it's target.<attr>.<method>(...)
         method_name = _call_method_name(node)
+        if method_name in _RELATED_WRITE_METHODS and isinstance(node.func, ast.Attribute):
+            calls = _collect_call_chain_methods(node)
+            first_func = calls[0][1].func
+            chain = _attr_chain(first_func.value) if isinstance(first_func, ast.Attribute) else None
+            if chain and chain[0] == loop_var and len(chain) >= 2:
+                # A write through the relation. Recorded as "write": the
+                # scanner keeps it only when the relation is single-valued,
+                # because ``profile.user.delete()`` still loads profile.user.
+                # No manager operations recorded: these methods stay outside
+                # the prefetch-cache gate, as _MANAGER_METHODS intends.
+                hits.append(("__".join(chain[1:]), "write", ()))
+                for _method, call in calls:
+                    for argument in (*call.args, *call.keywords):
+                        _walk_for_accesses(argument, loop_var, hits)
+                return
         if method_name in _MANAGER_METHODS and isinstance(node.func, ast.Attribute):
             calls = _collect_call_chain_methods(node)
             first_func = calls[0][1].func
@@ -1534,6 +1588,7 @@ def _build_schema_from_index(index: WorkspaceIndex) -> dict[str, dict[str, str]]
 def scan_for_nplusone(
     project_root: str,
     models_schema: Any | None = None,
+    include_tests: bool = False,
 ) -> list[NPlusOneFinding]:
     """Public entry point — walks ``project_root`` and returns findings.
 
@@ -1553,6 +1608,13 @@ def scan_for_nplusone(
 
     findings: list[NPlusOneFinding] = []
     for py in _iter_py_files_broad(root):
+        if not include_tests:
+            try:
+                rel = py.relative_to(root)
+            except ValueError:
+                rel = py
+            if _is_test_file(rel):
+                continue
         try:
             source = py.read_text(encoding="utf-8", errors="replace")
         except OSError:
