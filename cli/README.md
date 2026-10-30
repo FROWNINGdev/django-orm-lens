@@ -53,7 +53,7 @@ pip install django-orm-lens
 pip install "django-orm-lens[mcp]"
 ```
 
-Requires Python **3.9+**. Works on Linux, macOS, and Windows.
+Requires Python **3.9+**; the MCP server needs **3.10+**, like the `mcp` SDK. Works on Linux, macOS, and Windows.
 
 ---
 

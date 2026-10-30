@@ -164,7 +164,7 @@ pip install django-orm-lens              # CLI only
 pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
 ```
 
-Requires Python 3.9+. Zero runtime dependencies for the CLI.
+Requires Python 3.9+ (the MCP server: 3.10+). Zero runtime dependencies for the CLI.
 
 **Docker (v0.6+):**
 

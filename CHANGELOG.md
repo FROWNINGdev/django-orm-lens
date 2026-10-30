@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pip install "django-orm-lens[mcp]"` failed outright on Python 3.9.**
+  It never worked there: every mcp release, 1.x included, requires Python
+  3.10, so pip and uv rejected the whole install, CLI and all. py-1.13.0 made
+  that explicit without noticing, by gating `mcp>=1.0,<2` to
+  `python_version < '3.10'` on the belief that 1.x runs on 3.9. The extra
+  now asks for mcp only on 3.10+, so on 3.9 it installs the CLI and nothing
+  else, and `django-orm-lens-mcp` says the server needs 3.10+ and prints a
+  `uvx --python 3.12` command instead of repeating the pip command that just
+  ran. 3.10+ installs are unchanged (mcp 2.x), and the bootstrap still
+  accepts an mcp 1.x that another tool already put in the environment.
+
 ## [py-1.13.6] - 2026-10-28
 
 ### Fixed

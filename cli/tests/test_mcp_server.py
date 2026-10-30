@@ -50,6 +50,7 @@ from django_orm_lens.mcp_server import (
     _advertise_our_version,
     _load_server_class,
     _lowlevel_handle,
+    _missing_sdk_message,
     _resolve,
     _tool_blast_radius,
     _tool_cascade_preview,
@@ -554,6 +555,42 @@ class LoadServerClassTests(unittest.TestCase):
         self.assertIsNone(
             self._run_with_modules({"mcp.server": types.ModuleType("mcp.server")})
         )
+
+
+class MissingSdkMessageTests(unittest.TestCase):
+    """The no-SDK message must point at something that can work.
+
+    On 3.9 the [mcp] extra resolves nothing, because no mcp release supports
+    that Python. Telling a 3.9 user to `pip install 'django-orm-lens[mcp]'`
+    is a loop: they just did, and the server is still missing.
+    """
+
+    def test_python_39_names_the_floor_instead_of_the_extra(self) -> None:
+        msg = _missing_sdk_message((3, 9, 25, "final", 0))
+        self.assertIn("needs Python 3.10+", msg)
+        self.assertIn("this is 3.9.25", msg)
+        self.assertIn("uvx --python 3.12", msg)
+        self.assertNotIn("install with: pip install", msg)
+
+    def test_supported_python_still_points_at_the_extra(self) -> None:
+        for vi in ((3, 10, 0), (3, 14, 1)):
+            msg = _missing_sdk_message(vi)
+            self.assertIn("install with: pip install 'django-orm-lens[mcp]'", msg)
+            self.assertNotIn("needs Python 3.10+", msg)
+
+    def test_main_prints_the_message_and_exits_3(self) -> None:
+        import contextlib
+        import io
+
+        from django_orm_lens import mcp_server
+
+        err = io.StringIO()
+        with unittest.mock.patch.object(
+            mcp_server, "_load_server_class", return_value=None
+        ), contextlib.redirect_stderr(err):
+            code = mcp_server.main()
+        self.assertEqual(code, 3)
+        self.assertEqual(err.getvalue().strip(), _missing_sdk_message().strip())
 
 
 if __name__ == "__main__":
