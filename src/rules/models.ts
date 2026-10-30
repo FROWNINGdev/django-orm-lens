@@ -17,9 +17,13 @@ const DOCS_BASE =
 /** `models.CharField(...)` or `models.TextField(...)` — string-based fields. */
 const RE_STRING_FIELD_LINE =
   /\b(?:models\.)?(CharField|TextField)\s*\(([^()]*)\)/g;
-/** ForeignKey call opener — used to detect missing on_delete on the same line. */
-const RE_FOREIGN_KEY_LINE =
-  /\b(?:models\.)?ForeignKey\s*\(([^()]*)\)/g;
+/**
+ * ForeignKey call opener — used to detect missing on_delete on the same line.
+ * The argument list is read by `readCallArgs`, so nested calls such as
+ * `verbose_name=_("author")` don't hide the call.
+ */
+const RE_FOREIGN_KEY_OPEN =
+  /\b(?:models\.)?ForeignKey\s*\(/g;
 /** class Foo(models.Model): or class Foo(SomethingWithModel): */
 const RE_CLASS_HEAD =
   /^(\s*)class\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*:/;
@@ -34,6 +38,37 @@ function hasKwarg(argBody: string, kw: string): boolean {
 function hasKwargName(argBody: string, kw: string): boolean {
   const re = new RegExp(`\\b${kw}\\s*=`);
   return re.test(argBody);
+}
+
+/**
+ * Read a call's argument list, starting just after its opening `(`, up to
+ * the matching `)` on the same line. Quotes and nested brackets are
+ * respected. Returns the text between the parentheses and the column just
+ * past the closing `)`, or null when the call doesn't close on this line.
+ */
+function readCallArgs(
+  text: string,
+  start: number,
+): { argBody: string; end: number } | null {
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '[' || ch === '{' || ch === '(') depth++;
+    else if (ch === ']' || ch === '}' || ch === ')') {
+      if (depth === 0) {
+        return ch === ')' ? { argBody: text.slice(start, i), end: i + 1 } : null;
+      }
+      depth--;
+    }
+  }
+  return null;
 }
 
 /**
@@ -233,10 +268,12 @@ const DOL013: Rule = {
     for (let i = 0; i < ctx.lineCount; i++) {
       const text = ctx.lineAt(i);
       if (isCommentLine(text)) continue;
-      RE_FOREIGN_KEY_LINE.lastIndex = 0;
+      RE_FOREIGN_KEY_OPEN.lastIndex = 0;
       let m: RegExpExecArray | null;
-      while ((m = RE_FOREIGN_KEY_LINE.exec(text)) !== null) {
-        const argBody = m[1];
+      while ((m = RE_FOREIGN_KEY_OPEN.exec(text)) !== null) {
+        const call = readCallArgs(text, m.index + m[0].length);
+        if (call === null) continue;
+        const argBody = call.argBody;
         if (hasKwargName(argBody, 'on_delete')) continue;
         // ForeignKey(to, on_delete, ...): a second positional argument is
         // on_delete. Django's own contrib apps write it that way, and the
@@ -245,7 +282,7 @@ const DOL013: Rule = {
         out.push({
           code: 'DOL013',
           messageId: 'default',
-          range: { line: i, startCol: m.index, endCol: m.index + m[0].length },
+          range: { line: i, startCol: m.index, endCol: call.end },
           applicability: 'suggestion',
         });
       }
