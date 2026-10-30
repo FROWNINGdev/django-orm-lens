@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`cascade` called a delete isolated when Django 6.1 would cascade in the
+  database.** Django 6.1 added `on_delete=models.DB_CASCADE`, `DB_SET_NULL`
+  and `DB_SET_DEFAULT`, where the FK constraint carries `ON DELETE` and the
+  database does the work. Those relations fell out of every bucket, so
+  `cascade` could print "the delete is isolated" over child rows the database
+  would delete. They now land in `cascade_kills` / `set_null` marked
+  `"db_level": true`, the text output tags them `(db)` and notes that Django
+  sends no delete signals for them, and DBML export maps them to
+  `delete: cascade` / `set null` / `set default`. In the ER graph,
+  `DB_SET_NULL` and `DB_SET_DEFAULT` edges get the set-null colour instead of
+  the cascade one.
+
 - **`pip install "django-orm-lens[mcp]"` failed outright on Python 3.9.**
   It never worked there: every mcp release, 1.x included, requires Python
   3.10, so pip and uv rejected the whole install, CLI and all. py-1.13.0 made

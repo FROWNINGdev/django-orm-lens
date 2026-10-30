@@ -145,6 +145,10 @@ _DBML_ON_DELETE = {
     "PROTECT": "restrict",
     "RESTRICT": "restrict",
     "DO_NOTHING": "no action",
+    # Django 6.1: the same policies enforced by the database itself.
+    "DB_CASCADE": "cascade",
+    "DB_SET_NULL": "set null",
+    "DB_SET_DEFAULT": "set default",
 }
 
 

@@ -562,21 +562,28 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
     if kills:
         print(f"  CASCADE-deletes rows in ({len(kills)}):")
         for e in kills:
-            suffix = " (self)" if e.get("self") else ""
-            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
+            print(f"    - {e['model']}  via {e['via_field']}{_cascade_suffix(e)}")
     if nulls:
         print(f"  sets FK to NULL/default in ({len(nulls)}):")
         for e in nulls:
-            suffix = " (self)" if e.get("self") else ""
-            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
+            print(f"    - {e['model']}  via {e['via_field']}{_cascade_suffix(e)}")
     if prot:
         print(f"  BLOCKED by PROTECT/RESTRICT from ({len(prot)}):")
         for e in prot:
-            suffix = " (self)" if e.get("self") else ""
-            print(f"    - {e['model']}  via {e['via_field']}{suffix}")
+            print(f"    - {e['model']}  via {e['via_field']}{_cascade_suffix(e)}")
     if not (kills or nulls or prot):
         print("  no inbound relations — the delete is isolated.")
+    if any(e.get("db_level") for e in kills + nulls):
+        print(
+            "  (db) = on_delete=DB_*: the database applies it, so Django "
+            "sends no delete signals for those rows."
+        )
     return 0
+
+
+def _cascade_suffix(entry: dict) -> str:
+    tags = [tag for key, tag in (("self", "self"), ("db_level", "db")) if entry.get(key)]
+    return f" ({', '.join(tags)})" if tags else ""
 
 
 def _build_mermaid(index: WorkspaceIndex) -> str:
