@@ -425,7 +425,8 @@ TOOLS: dict[str, dict[str, Any]] = {
         "handler": _tool_cascade_preview,
         "description": (
             "Blast radius of deleting a row: inbound relations grouped by "
-            "on_delete behavior (cascade_kills, set_null, protected)." + _WORKSPACE_HINT
+            "on_delete behavior (cascade_kills, set_null, protected, "
+            "unhandled for DO_NOTHING)." + _WORKSPACE_HINT
         ),
     },
     "er_diagram": {

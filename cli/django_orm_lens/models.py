@@ -6,6 +6,7 @@ extension emit the same camelCase JSON schema.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -218,7 +219,10 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
 
     Groups every inbound relation by its ``on_delete`` behaviour:
     ``cascade_kills`` (rows deleted with the target), ``set_null``
-    (FK nulled/reset), ``protected`` (delete blocked by PROTECT/RESTRICT).
+    (FK nulled/reset), ``protected`` (delete blocked by PROTECT/RESTRICT),
+    ``unhandled`` (DO_NOTHING: Django leaves the rows, so the FK constraint
+    fails the delete; ``"db_constraint": false`` when there is none and the
+    rows are left pointing nowhere instead).
     Django 6.1's ``DB_CASCADE`` / ``DB_SET_NULL`` / ``DB_SET_DEFAULT`` join
     the matching bucket with ``"db_level": true``. Static source analysis —
     ``count_hint`` stays ``"unknown"`` because we never touch a database.
@@ -241,6 +245,7 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
         "cascade_kills": [],
         "set_null": [],
         "protected": [],
+        "unhandled": [],
     }
     user_model = find_user_model(index)
     user_name = user_model.name if user_model is not None else None
@@ -272,7 +277,16 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
                     out["set_null"].append(entry)
                 elif on_delete in ("PROTECT", "RESTRICT"):
                     out["protected"].append(entry)
+                elif on_delete == "DO_NOTHING":
+                    if _NO_DB_CONSTRAINT.search(f.args or ""):
+                        entry["db_constraint"] = False
+                    out["unhandled"].append(entry)
     return out
+
+
+# DO_NOTHING with db_constraint=False: no constraint to trip, so the delete
+# succeeds and the referencing rows keep an id that points nowhere.
+_NO_DB_CONSTRAINT = re.compile(r"\bdb_constraint\s*=\s*False\b")
 
 
 # Django 6.1 added database-level policies: the FK constraint carries

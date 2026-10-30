@@ -64,7 +64,7 @@ class CascadeCommandTest(unittest.TestCase):
         self.assertEqual(code, 0)
         payload = json.loads(out)
         self.assertEqual(payload["target"], "orders.Order")
-        for bucket in ("cascade_kills", "set_null", "protected"):
+        for bucket in ("cascade_kills", "set_null", "protected", "unhandled"):
             self.assertIn(bucket, payload)
         kills = payload["cascade_kills"]
         self.assertEqual(len(kills), 1)
@@ -147,6 +147,55 @@ class CascadeCommandTest(unittest.TestCase):
             nulls = {e["model"]: e for e in payload["set_null"]}
             self.assertEqual(set(nulls), {"shop.Note", "shop.Tag"})
             self.assertTrue(all(e["db_level"] for e in nulls.values()))
+
+    def test_do_nothing_is_reported_not_isolated(self) -> None:
+        """DO_NOTHING used to fall out of every bucket, so a delete that the
+        FK constraint rejects was reported as isolated."""
+        from django_orm_lens.blast_radius import _cascade_line
+
+        with TemporaryDirectory() as tmp:
+            _write(
+                Path(tmp) / "shop" / "models.py",
+                "from django.db import models\n\n"
+                "class Order(models.Model):\n"
+                "    pass\n\n"
+                "class Audit(models.Model):\n"
+                "    order = models.ForeignKey(Order, on_delete=models.DO_NOTHING)\n\n"
+                "class Mirror(models.Model):\n"
+                "    order = models.ForeignKey(Order, models.DO_NOTHING, "
+                "db_constraint=False)\n",
+            )
+            code, out, _err = _run(["cascade", "shop.Order", "--path", tmp])
+            self.assertEqual(code, 0)
+            self.assertNotIn("the delete is isolated", out)
+            self.assertIn("left as-is by DO_NOTHING in (2):", out)
+            self.assertIn("shop.Audit  via order\n", out)
+            self.assertIn("shop.Mirror  via order (no constraint)", out)
+            self.assertIn("IntegrityError", out)
+            self.assertIn("points nowhere", out)
+
+            code, out, _err = _run(
+                ["cascade", "shop.Order", "--path", tmp, "--format", "json"]
+            )
+            payload = json.loads(out)
+            left = {e["model"]: e for e in payload["unhandled"]}
+            self.assertEqual(set(left), {"shop.Audit", "shop.Mirror"})
+            self.assertNotIn("db_constraint", left["shop.Audit"])
+            self.assertIs(left["shop.Mirror"]["db_constraint"], False)
+            self.assertEqual(payload["cascade_kills"], [])
+            self.assertEqual(
+                _cascade_line(payload),
+                "cascade: 0 deleted, 0 nulled, 0 blocked by PROTECT, "
+                "2 left by DO_NOTHING",
+            )
+
+    def test_cascade_line_unchanged_without_do_nothing(self) -> None:
+        from django_orm_lens.blast_radius import _cascade_line
+
+        self.assertEqual(
+            _cascade_line({"cascade_kills": [{}], "set_null": [], "protected": []}),
+            "cascade: 1 deleted, 0 nulled, 0 blocked by PROTECT",
+        )
 
     def test_orm_level_policies_print_no_db_footnote(self) -> None:
         code, out, _err = _run(["cascade", "orders.Order", "--path", str(MINIAPP)])
