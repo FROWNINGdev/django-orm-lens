@@ -52,7 +52,7 @@ from .models import (
 )
 from .parser import DEFAULT_EXCLUDES, _iter_python_files, scan_workspace
 from .query_analyzer import scan_for_nplusone, suggest_indexes
-from .signals_parser import signal_graph
+from .signals_parser import signal_graph, skipped_delete_receivers
 from .stats import STATS_QUERY, ProductionStats, StatsError
 
 
@@ -552,6 +552,7 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
     if "error" in result:
         print(f"error: model {args.model!r} not found", file=sys.stderr)
         return 2
+    skipped_delete_receivers(result, args.path, idx)
     if args.format == "json":
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
@@ -583,6 +584,11 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
             "  (db) = on_delete=DB_*: the database applies it, so Django "
             "sends no delete signals for those rows."
         )
+    skipped = [(e, r) for e in kills for r in e.get("skipped_receivers", [])]
+    if skipped:
+        print(f"  ! {len(skipped)} delete receiver(s) will NOT run for (db) rows:")
+        for e, r in skipped:
+            print(f"    - {r['signal']} {r['handler']}  for {e['model']}  ({r['file']})")
     if any(e.get("db_constraint") is not False for e in left):
         print(
             "  DO_NOTHING: Django leaves those rows, so their FK constraint "

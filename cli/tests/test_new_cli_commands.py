@@ -197,6 +197,57 @@ class CascadeCommandTest(unittest.TestCase):
             "cascade: 1 deleted, 0 nulled, 0 blocked by PROTECT",
         )
 
+    def test_db_cascade_lists_delete_receivers_that_will_not_run(self) -> None:
+        """DB_CASCADE rows are deleted by the database, so their pre_delete /
+        post_delete receivers never fire. cascade names them."""
+        with TemporaryDirectory() as tmp:
+            _write(
+                Path(tmp) / "shop" / "models.py",
+                "from django.db import models\n\n"
+                "class Order(models.Model):\n"
+                "    pass\n\n"
+                "class Line(models.Model):\n"
+                "    order = models.ForeignKey(Order, on_delete=models.DB_CASCADE)\n\n"
+                "class Refund(models.Model):\n"
+                "    order = models.ForeignKey(Order, on_delete=models.CASCADE)\n",
+            )
+            _write(
+                Path(tmp) / "shop" / "signals.py",
+                "from django.db.models.signals import post_delete, post_save, pre_delete\n"
+                "from django.dispatch import receiver\n"
+                "from .models import Line, Refund\n\n"
+                "@receiver(post_delete, sender=Line)\n"
+                "def audit_line(sender, instance, **kw):\n"
+                "    pass\n\n"
+                "@receiver(pre_delete)\n"
+                "def audit_everything(sender, instance, **kw):\n"
+                "    pass\n\n"
+                "@receiver(post_save, sender=Line)\n"
+                "def touch_line(sender, instance, **kw):\n"
+                "    pass\n\n"
+                "@receiver(post_delete, sender=Refund)\n"
+                "def audit_refund(sender, instance, **kw):\n"
+                "    pass\n",
+            )
+            code, out, _err = _run(
+                ["cascade", "shop.Order", "--path", tmp, "--format", "json"]
+            )
+            self.assertEqual(code, 0)
+            kills = {e["model"]: e for e in json.loads(out)["cascade_kills"]}
+            skipped = {r["handler"]: r for r in kills["shop.Line"]["skipped_receivers"]}
+            self.assertEqual(
+                set(skipped), {"shop.signals.audit_line", "shop.signals.audit_everything"}
+            )
+            self.assertEqual(skipped["shop.signals.audit_line"]["signal"], "post_delete")
+            # signal_graph points at the handler's `def` line, under its decorator.
+            self.assertEqual(skipped["shop.signals.audit_line"]["file"], "shop/signals.py:6")
+            # ORM CASCADE still sends the signals, so nothing is skipped there.
+            self.assertNotIn("skipped_receivers", kills["shop.Refund"])
+
+            code, out, _err = _run(["cascade", "shop.Order", "--path", tmp])
+            self.assertIn("! 2 delete receiver(s) will NOT run for (db) rows:", out)
+            self.assertIn("post_delete shop.signals.audit_line  for shop.Line", out)
+
     def test_orm_level_policies_print_no_db_footnote(self) -> None:
         code, out, _err = _run(["cascade", "orders.Order", "--path", str(MINIAPP)])
         self.assertEqual(code, 0)

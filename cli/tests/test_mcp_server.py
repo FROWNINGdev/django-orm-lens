@@ -557,6 +557,48 @@ class LoadServerClassTests(unittest.TestCase):
         )
 
 
+class CascadePreviewSkippedReceiversTests(unittest.TestCase):
+    """The MCP tool and the CLI share skipped_delete_receivers, so an agent
+    asking about a delete hears that DB_CASCADE silences the handlers."""
+
+    def test_tool_lists_receivers_skipped_by_db_cascade(self) -> None:
+        import tempfile
+        from pathlib import Path as _Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            app = _Path(tmp) / "shop"
+            app.mkdir()
+            (app / "models.py").write_text(
+                "from django.db import models\n"
+                "class Order(models.Model):\n"
+                "    pass\n"
+                "class Line(models.Model):\n"
+                "    order = models.ForeignKey(Order, models.DB_CASCADE)\n",
+                encoding="utf-8",
+            )
+            (app / "signals.py").write_text(
+                "from django.db.models.signals import post_delete\n"
+                "from django.dispatch import receiver\n"
+                "@receiver(post_delete, sender='shop.Line')\n"
+                "def drop_file(sender, instance, **kw):\n"
+                "    pass\n",
+                encoding="utf-8",
+            )
+            clear_cache()
+            self.addCleanup(clear_cache)
+            payload = json.loads(
+                _tool_cascade_preview(
+                    {"workspace_root": tmp, "app_label": "shop", "model_name": "Order"}
+                )
+            )
+        (line,) = payload["cascade_kills"]
+        self.assertTrue(line["db_level"])
+        self.assertEqual(
+            [r["handler"] for r in line["skipped_receivers"]],
+            ["shop.signals.drop_file"],
+        )
+
+
 class MissingSdkMessageTests(unittest.TestCase):
     """The no-SDK message must point at something that can work.
 

@@ -414,7 +414,7 @@ Register it once with your agent and it exposes thirteen read-only tools:
 | `list_models` | Flat `app.Model` list, optional app filter |
 | `describe_model` | Full field / relation / Meta detail for one model |
 | `find_relations` | Inbound + outbound relations for one model |
-| `cascade_preview` | Blast radius of one `delete()`, grouped by `on_delete` |
+| `cascade_preview` | Blast radius of one `delete()`, grouped by `on_delete`, plus the `post_delete` receivers Django 6.1's `DB_CASCADE` skips |
 | `er_diagram` | ER diagram — `mermaid` / `dbml` / `d2` / `plantuml` / `dot` |
 | `describe_migration_dependency` | Per-app migration DAG: roots, leaves, cross-app deps |
 | `suggest_indexes` | `Meta.indexes` proposals from observed QuerySet usage |

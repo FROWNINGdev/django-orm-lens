@@ -375,7 +375,7 @@ django-orm-lens cascade blog.Author          # what one delete() takes down
 | `list_models` | Плоский список `app.Model`, опциональный фильтр по приложению |
 | `describe_model` | Полная детализация полей / связей / Meta одной модели |
 | `find_relations` | Входящие и исходящие связи одной модели |
-| `cascade_preview` | Радиус поражения одного `delete()`, с группировкой по `on_delete` |
+| `cascade_preview` | Радиус поражения одного `delete()`, с группировкой по `on_delete`, и `post_delete`-обработчики, которые пропускает `DB_CASCADE` из Django 6.1 |
 | `er_diagram` | ER-диаграмма — `mermaid` / `dbml` / `d2` / `plantuml` |
 | `describe_migration_dependency` | DAG миграций по приложениям: корни, листья, зависимости между приложениями |
 | `suggest_indexes` | Предложения `Meta.indexes` на основе наблюдаемого использования QuerySet |
