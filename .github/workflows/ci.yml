@@ -75,6 +75,19 @@ jobs:
         if: matrix.python-version == '3.12' && matrix.django-version == '5.2'
         working-directory: cli
         run: pip install -e ".[mcp]"
+      # No mcp release supports 3.9, so the extra resolves nothing there. It
+      # must still install, CLI and all, and the server must explain the
+      # floor (exit 3) instead of the resolver rejecting the whole install.
+      - name: The mcp extra still installs on 3.9
+        if: matrix.python-version == '3.9'
+        working-directory: cli
+        run: |
+          pip install -e ".[mcp]"
+          set +e
+          django-orm-lens-mcp
+          code=$?
+          set -e
+          test "$code" -eq 3
       - name: Run pytest
         working-directory: cli
         run: python -m pytest -q
