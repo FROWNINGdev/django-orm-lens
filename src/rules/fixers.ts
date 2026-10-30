@@ -151,7 +151,9 @@ const FIX_DOL013: Fixer = {
     const before = slice.slice(0, idx);
     const trimmed = before.replace(/\s+$/, '');
     const isEmpty = /\(\s*$/.test(trimmed);
-    const sep = isEmpty ? '' : ', ';
+    // `OneToOneField(User,)` already ends with a comma; another would be a
+    // syntax error.
+    const sep = isEmpty ? '' : trimmed.endsWith(',') ? ' ' : ', ';
     const newSlice = `${trimmed}${sep}on_delete=models.CASCADE)`;
     return replaceRange(ctx.finding, newSlice);
   },

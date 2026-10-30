@@ -132,6 +132,27 @@ test('DOL013 fixer inserts on_delete into a OneToOneField too', () => {
   );
 });
 
+test('DOL013 fixer keeps a single comma after a trailing comma', () => {
+  const fixer = findFixersForCode('DOL013')[0];
+  const line = 'profile = models.OneToOneField(User,)';
+  const start = line.indexOf('models.OneToOneField');
+  const end = line.length;
+  const edits = fixer.build({
+    finding: {
+      code: 'DOL013',
+      messageId: 'default',
+      range: { line: 0, startCol: start, endCol: end },
+      applicability: 'suggestion',
+    },
+    document: docWithLine(line),
+  });
+  assert.ok(edits);
+  assert.equal(
+    edits[0].newText,
+    'models.OneToOneField(User, on_delete=models.CASCADE)',
+  );
+});
+
 test('DOL021 fixer replaces datetime.now() with timezone.now()', () => {
   const fixer = findFixersForCode('DOL021')[0];
   const edits = fixer.build({
