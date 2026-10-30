@@ -402,6 +402,8 @@ django-orm-lens stats-sql                    # read-only SQL for --stats
 
 > `impact`, `blast-radius`, `drift` and `stats-sql` ship in **py-1.7.0** and later.
 
+> **Django 6.1:** `on_delete=models.DB_CASCADE` deletes child rows in the database, so their `post_delete` handlers never run. Since **py-1.13.8**, `cascade` names the handlers each `DB_CASCADE` relation skips — [why that matters and what to do](docs/articles/django-6-1-db-cascade-signals.md).
+
 Every command accepts `--path <dir>` and `--exclude <glob>`. `nplusone` / `migration-risk` / `diff` exit code `1` on findings — drop them into CI to block PRs on regressions.
 
 ### MCP server
