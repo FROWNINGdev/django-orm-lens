@@ -127,21 +127,20 @@ def test_mcp_tool_count_matches_module_docstring() -> None:
 
 
 def test_mcp_extra_pins_each_api_to_a_python_that_has_it() -> None:
-    """Each mcp major must be bounded, and gated on a Python that can run it.
+    """Every mcp requirement must be bounded and gated to Python 3.10+.
 
     mcp 2.0.0 removed `mcp.server.fastmcp`. While the bootstrap only knew that
     name, a bare `>=1.0` resolved 2.0.0 and every MCP user got "requires the
     'mcp' package" from a package that was installed — which is why this test
-    used to demand a flat `<2` cap.
+    once demanded a flat `<2` cap. `_load_server_class()` now accepts either
+    SDK, so the cap moved up to `<3`: a 3.0 that removes `MCPServer` the way
+    2.0 removed `FastMCP` must fail here, not in a user's terminal.
 
-    `mcp_server._load_server_class()` now accepts either SDK, so the cap moves
-    up rather than away. What replaces it is the constraint that actually
-    binds: mcp 2.0 requires Python >= 3.10 while this package supports 3.9, so
-    the two majors have to be split on an environment marker. Without the
-    marker, pip on 3.9 finds no installable mcp 2.x and fails the whole extra.
-
-    Both ceilings stay closed. A 3.0 that removes `MCPServer` the way 2.0
-    removed `FastMCP` must fail here, not in a user's terminal.
+    The extra used to carry `mcp>=1.0,<2; python_version < '3.10'` for 3.9.
+    That line could never resolve: every mcp release, 1.x included, declares
+    `requires-python >=3.10`, so pip and uv rejected the whole
+    `django-orm-lens[mcp]` install on 3.9. A requirement the resolver can
+    only fail on is worse than none, so no mcp line may reach below 3.10.
     """
     text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(
         encoding="utf-8"
@@ -152,11 +151,14 @@ def test_mcp_extra_pins_each_api_to_a_python_that_has_it() -> None:
             for row in text.splitlines()
             if row.strip().startswith(f"{extra} = [")
         )
-        assert "mcp>=1.0,<2" in line, f"{extra} must keep a 1.x branch: {line}"
-        assert "mcp>=2.0,<3" in line, f"{extra} must cap 2.x below 3.0: {line}"
-        assert (
-            "python_version < '3.10'" in line
-        ), f"{extra} must gate 1.x to Python 3.9: {line}"
-        assert (
-            "python_version >= '3.10'" in line
-        ), f"{extra} must gate 2.x to Python 3.10+: {line}"
+        reqs = re.findall(r'"([^"]+)"', line)
+        mcp_reqs = [r for r in reqs if re.match(r"mcp\b", r)]
+        assert mcp_reqs, f"{extra} must install the mcp SDK: {line}"
+        for req in mcp_reqs:
+            assert "<3" in req, f"{extra} must cap mcp below 3.0: {req}"
+            assert (
+                "python_version >= '3.10'" in req
+            ), f"{extra}: mcp has no release for Python < 3.10, gate it: {req}"
+            assert (
+                "python_version < '3.10'" not in req
+            ), f"{extra}: this can never resolve, mcp requires 3.10: {req}"

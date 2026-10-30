@@ -571,13 +571,12 @@ def _load_server_class():
     that this module uses are unchanged between the two, so the whole port is
     which name to import and whether the constructor takes a version.
 
-    Both are supported rather than one, because the floor is not ours to move:
-    this package declares ``requires-python = ">=3.9"`` and mcp 2.0 requires
-    3.10. Dropping 3.9 across a CLI whose whole pitch is working against old,
-    broken checkouts, in order to satisfy one optional extra, would be the tail
-    wagging the dog. The extra carries an environment marker so 3.9 resolves
-    mcp 1.x and 3.10+ resolves 2.x, and this function accepts whichever
-    arrived.
+    Both are accepted because the extra is not the only way an SDK arrives:
+    an environment that already pins mcp 1.x for another server still gets a
+    working bootstrap. The extra itself resolves 2.x, and only on 3.10+.
+    Every mcp release, 1.x included, requires Python 3.10, so there is no SDK
+    to give 3.9; the CLI keeps 3.9 and the server explains the floor (see
+    ``_missing_sdk_message``) instead of failing the whole install.
 
     :returns: ``None`` when neither import succeeds, i.e. the extra is absent.
     """
@@ -595,15 +594,38 @@ def _load_server_class():
         return None
 
 
+_MCP_MIN_PYTHON = (3, 10)
+
+
+def _missing_sdk_message(version_info: Any = None) -> str:
+    """What to print when no mcp SDK can be imported.
+
+    Below 3.10 the extra installs nothing, because no mcp release supports
+    that Python. Repeating "pip install 'django-orm-lens[mcp]'" there would
+    send the user round in a loop, so name the real blocker and a command
+    that works from the same machine.
+    """
+    vi = tuple(sys.version_info if version_info is None else version_info)
+    if vi[:2] < _MCP_MIN_PYTHON:
+        running = ".".join(str(part) for part in vi[:3])
+        return (
+            f"django-orm-lens MCP needs Python 3.10+, this is {running}.\n"
+            "every release of the 'mcp' package requires 3.10, so the [mcp] "
+            "extra installs nothing here; the CLI itself works on this Python.\n"
+            "run the server from a newer interpreter, e.g.:\n"
+            "  uvx --python 3.12 --from 'django-orm-lens[mcp]' django-orm-lens-mcp"
+        )
+    return (
+        "django-orm-lens MCP requires the 'mcp' package.\n"
+        "install with: pip install 'django-orm-lens[mcp]'"
+    )
+
+
 def main() -> int:
     """Start the MCP stdio server. Lazy-imports the ``mcp`` package."""
     loaded = _load_server_class()
     if loaded is None:
-        print(
-            "django-orm-lens MCP requires the 'mcp' package.\n"
-            "install with: pip install 'django-orm-lens[mcp]'",
-            file=sys.stderr,
-        )
+        print(_missing_sdk_message(), file=sys.stderr)
         return 3
     server_class, takes_version = loaded
 

@@ -57,9 +57,12 @@ classifiers = [
 dependencies = []
 
 # Default install is zero-dependency. Add [mcp] or [full] to enable MCP server for AI agents.
+# Every mcp release (1.x included) requires Python 3.10, so on 3.9 the extras
+# install nothing and `django-orm-lens-mcp` explains the floor. A requirement
+# gated to 3.9 would make the whole install unresolvable there.
 [project.optional-dependencies]
-mcp = ["mcp>=1.0,<2; python_version < '3.10'", "mcp>=2.0,<3; python_version >= '3.10'"]
-full = ["mcp>=1.0,<2; python_version < '3.10'", "mcp>=2.0,<3; python_version >= '3.10'"]
+mcp = ["mcp>=2.0,<3; python_version >= '3.10'"]
+full = ["mcp>=2.0,<3; python_version >= '3.10'"]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "build>=1.2", "twine>=5.1"]
 
 [project.scripts]
