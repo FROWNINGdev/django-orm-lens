@@ -32,11 +32,12 @@ jobs:
       fail-fast: false
       # Explicit pairs instead of a cross product. The Python axis is the one
       # that matters: the parser is built on `ast`, which changes between
-      # releases, so every Python in `requires-python` runs, 3.9 through 3.14.
+      # releases, so every Python in `requires-python` runs, 3.9 through 3.15.
       # The tests never import Django, so the Django axis only checks that the
       # CLI installs next to each supported release. Each pair is one Django
-      # supports: 4.2 stops at 3.12, 6.x starts at 3.12. 5.0 and 5.1 are past
-      # end of life and were dropped from the matrix.
+      # supports: 4.2 stops at 3.12, 6.x starts at 3.12, and 3.15 pairs with
+      # 6.1, the first release line to support it. 5.0 and 5.1 are past end of
+      # life and were dropped from the matrix.
       matrix:
         include:
           - { python-version: "3.9", django-version: "4.2" }
@@ -51,6 +52,7 @@ jobs:
           - { python-version: "3.13", django-version: "6.1" }
           - { python-version: "3.14", django-version: "5.2" }
           - { python-version: "3.14", django-version: "6.1" }
+          - { python-version: "3.15", django-version: "6.1" }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
