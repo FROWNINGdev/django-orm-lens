@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **DOL013 missed `OneToOneField` without `on_delete` (#181).**
+  `models.OneToOneField(User)` raises `TypeError` at import just like a
+  `ForeignKey` without a policy, but the rule only checked `ForeignKey`. It now
+  flags both, its message names the field it found, and the quick fix adds
+  `on_delete=models.CASCADE` to either. `ManyToManyField` has no `on_delete` and
+  is still left alone.
+
 ## [py-1.14.0] - 2026-10-31
 
 ### Fixed
