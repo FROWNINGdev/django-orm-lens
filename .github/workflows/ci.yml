@@ -30,12 +30,27 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Explicit pairs instead of a cross product. The Python axis is the one
+      # that matters: the parser is built on `ast`, which changes between
+      # releases, so every Python in `requires-python` runs, 3.9 through 3.14.
+      # The tests never import Django, so the Django axis only checks that the
+      # CLI installs next to each supported release. Each pair is one Django
+      # supports: 4.2 stops at 3.12, 6.x starts at 3.12. 5.0 and 5.1 are past
+      # end of life and were dropped from the matrix.
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-        django-version: ["4.2", "5.0", "5.1", "5.2"]
-        exclude:
-          - python-version: "3.10"
-            django-version: "5.2"
+        include:
+          - { python-version: "3.9", django-version: "4.2" }
+          - { python-version: "3.10", django-version: "4.2" }
+          - { python-version: "3.11", django-version: "4.2" }
+          - { python-version: "3.11", django-version: "5.2" }
+          - { python-version: "3.12", django-version: "4.2" }
+          - { python-version: "3.12", django-version: "5.2" }
+          - { python-version: "3.12", django-version: "6.0" }
+          - { python-version: "3.13", django-version: "5.2" }
+          - { python-version: "3.13", django-version: "6.0" }
+          - { python-version: "3.13", django-version: "6.1" }
+          - { python-version: "3.14", django-version: "5.2" }
+          - { python-version: "3.14", django-version: "6.1" }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

@@ -521,7 +521,7 @@ Django ORM Lens se sitúa en la intersección entre las **herramientas de editor
 | Servidor MCP para agentes de IA | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Descubrible en el [Registro MCP](https://registry.modelcontextprotocol.io/) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Gratis y de código abierto (MIT) | ✅ | ✅ | ✅ | ✅ | ❌ (IDE de pago) |
-| Soporte de versiones de Django | **4.0 – 5.2** | última | 3.2 – 4.1 (sin cambios desde 2023) | última | última |
+| Soporte de versiones de Django | **4.0 – 6.1** | última | 3.2 – 4.1 (sin cambios desde 2023) | última | última |
 
 > *`django-schema-graph` no se actualiza desde 2023-05 y no prueba Django 5.x.*
 
