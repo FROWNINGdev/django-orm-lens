@@ -309,3 +309,43 @@ def signal_graph(
         ],
         "orphan_handlers": dedup_orphans,
     }
+
+
+_DELETE_SIGNALS = frozenset({"pre_delete", "post_delete"})
+
+
+def skipped_delete_receivers(
+    cascade: dict[str, Any], root: str, index: WorkspaceIndex | None = None
+) -> dict[str, Any]:
+    """Mark DB_CASCADE rows whose delete receivers will not run.
+
+    Django 6.1's ``on_delete=DB_CASCADE`` deletes the child rows inside the
+    database, so the ORM never collects them and sends no ``pre_delete`` /
+    ``post_delete`` for them. A receiver registered for that model, or for
+    every model, silently stops firing for those rows: audit logs, file
+    cleanup and cache invalidation just stop. Adds ``skipped_receivers``
+    (``signal``, ``handler``, ``file``) to each such entry of
+    ``cascade["cascade_kills"]`` in place, and returns ``cascade``.
+
+    Sees ``@receiver`` decorators, the same scope as :func:`signal_graph`;
+    ``signal.connect(...)`` calls are not followed. The signal graph is only
+    built when a ``DB_CASCADE`` relation exists, so plain schemas pay nothing.
+    """
+    targets = [e for e in cascade.get("cascade_kills", []) if e.get("db_level")]
+    if not targets:
+        return cascade
+    edges = signal_graph(root, index)["edges"]
+    for entry in targets:
+        hits: list[dict[str, Any]] = []
+        for edge in edges:
+            signal = (edge.get("signal") or "").rsplit(".", 1)[-1]
+            if signal not in _DELETE_SIGNALS:
+                continue
+            if edge.get("sender") not in (None, entry["model"]):
+                continue
+            hits.append(
+                {"signal": signal, "handler": edge["handler"], "file": edge["file"]}
+            )
+        if hits:
+            entry["skipped_receivers"] = hits
+    return cascade

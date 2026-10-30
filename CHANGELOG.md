@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`cascade` names the delete receivers Django 6.1's `DB_CASCADE` silently
+  skips.** With `on_delete=models.DB_CASCADE` the database deletes the child
+  rows itself, so Django never sends `pre_delete` / `post_delete` for them: a
+  `post_delete` handler that removes the uploaded file, writes the audit log
+  or busts a cache just stops running, with no error. `cascade` (CLI and the
+  MCP `cascade_preview` tool) now lists each `@receiver` for that model, or
+  for every model, under the affected relation as `skipped_receivers`, and
+  the text output prints them with file and line. The signal graph is only
+  built when a `DB_CASCADE` relation exists.
+
 ## [0.19.5] - 2026-10-31
 
 ### Fixed

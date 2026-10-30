@@ -49,6 +49,7 @@ from .models import (
 from .query_analyzer import scan_for_nplusone as _scan_for_nplusone
 from .query_analyzer import suggest_indexes as _suggest_indexes
 from .signals_parser import signal_graph as _signal_graph
+from .signals_parser import skipped_delete_receivers
 from .workspace import WorkspaceError, get_index, resolve_workspace
 
 # ---------------------------------------------------------------------------
@@ -213,6 +214,7 @@ def _tool_cascade_preview(args: dict[str, Any]) -> str:
     out = cascade_preview(idx, ref)
     if "error" in out:
         raise ValueError(f"model {ref!r} not found")
+    skipped_delete_receivers(out, str(ws), idx)
     return json.dumps(out, indent=2)
 
 
@@ -426,7 +428,9 @@ TOOLS: dict[str, dict[str, Any]] = {
         "description": (
             "Blast radius of deleting a row: inbound relations grouped by "
             "on_delete behavior (cascade_kills, set_null, protected, "
-            "unhandled for DO_NOTHING)." + _WORKSPACE_HINT
+            "unhandled for DO_NOTHING). DB_CASCADE entries list the "
+            "pre_delete/post_delete receivers that will not run as "
+            "skipped_receivers." + _WORKSPACE_HINT
         ),
     },
     "er_diagram": {
