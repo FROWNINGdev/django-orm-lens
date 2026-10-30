@@ -18,7 +18,7 @@ compatibility: >-
   Read-only: never imports the project, never touches a database.
 metadata:
   author: FROWNINGdev
-  version: 1.2.0
+  version: 1.3.0
   homepage: https://github.com/FROWNINGdev/django-orm-lens
 ---
 

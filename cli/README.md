@@ -177,7 +177,7 @@ pre-commit users get two ready-made hooks:
 ```yaml
 repos:
   - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.13.6
+    rev: py-v1.13.7
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk

@@ -7,53 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.5] - 2026-10-31
+
 ### Fixed
 
-- **`cascade` ignored `on_delete=DO_NOTHING`.** Those relations fell out of
-  every bucket, so `cascade` could call a delete isolated that the FK
+- **DOL013 flagged a positional `on_delete` as missing (#176).**
+  `ForeignKey(Order, models.CASCADE)` is valid Django — `contrib.auth` and
+  `contrib.admin` write it that way — but the rule reported an error-severity
+  "ForeignKey requires on_delete", and its quick fix appended a second
+  `on_delete=` that made the call raise for real. A second positional argument
+  now counts as the policy; `ForeignKey(Author, related_name="books")` is still
+  flagged.
+
+- **The ER graph and the reverse-references panel misread `on_delete`
+  (#175, #176).** A positional policy was not read at all, so its edge got the
+  cascade colour by default and the panel showed `unknown`. Django 6.1's
+  `DB_SET_NULL` and `DB_SET_DEFAULT` edges were drawn in the cascade colour too.
+  Both now get the colour of the policy they declare.
+
+## [py-1.13.7] - 2026-10-31
+
+### Fixed
+
+- **`cascade` and `blast-radius` missed a positional `on_delete` (#176).**
+  `ForeignKey` and `OneToOneField` take `(to, on_delete, ...)`, and Django's
+  own `contrib.auth` and `contrib.admin` pass the policy positionally:
+  `ForeignKey(ContentType, models.CASCADE)`. The parser only looked for
+  `on_delete=`, so such relations were left out of every bucket and `cascade`
+  could call the delete isolated. The second positional argument now counts
+  for FK and O2O, with any dotted prefix and `SET(...)`; `ManyToManyField`,
+  whose second positional is `related_name`, is left alone.
+
+- **`cascade` ignored `on_delete=DO_NOTHING` (#177).** Those relations fell out
+  of every bucket, so `cascade` could call a delete isolated that the FK
   constraint rejects: Django leaves the referencing rows, and the database
   raises `IntegrityError`. They now land in a new `unhandled` bucket (CLI JSON
-  and the MCP `cascade_preview` tool, additive), the text output lists them
-  as "left as-is by DO_NOTHING" with one line on what happens, and
-  `blast-radius` adds "N left by DO_NOTHING" to its cascade line when there
-  are any. With `db_constraint=False` there is no constraint to trip, so the
-  entry carries `"db_constraint": false` and the text says the rows keep an id
-  that points nowhere.
-
-- **A positional `on_delete` was read as missing:
-  `ForeignKey(Order, models.CASCADE)`.** `ForeignKey` and `OneToOneField`
-  take `(to, on_delete, ...)`, and Django's own `contrib.auth` and
-  `contrib.admin` pass the policy positionally. Both parsers only looked for
-  `on_delete=`, so `cascade` and the `blast-radius` counts left such
-  relations out and could call the delete isolated, and in the extension
-  DOL013 reported an error-severity "ForeignKey without on_delete" on valid
-  code — with a quick fix that added a second `on_delete=` and made the call
-  raise for real. The second positional argument now counts for FK and O2O,
-  with any dotted prefix and `SET(...)`; `ManyToManyField`, whose second
-  positional is `related_name`, is left alone.
+  and the MCP `cascade_preview` tool, additive), the text output lists them as
+  "left as-is by DO_NOTHING" with one line on what happens, and `blast-radius`
+  adds "N left by DO_NOTHING" to its cascade line when there are any. With
+  `db_constraint=False` there is no constraint to trip, so the entry carries
+  `"db_constraint": false` and the text says the rows keep an id that points
+  nowhere.
 
 - **`cascade` called a delete isolated when Django 6.1 would cascade in the
-  database.** Django 6.1 added `on_delete=models.DB_CASCADE`, `DB_SET_NULL`
-  and `DB_SET_DEFAULT`, where the FK constraint carries `ON DELETE` and the
-  database does the work. Those relations fell out of every bucket, so
-  `cascade` could print "the delete is isolated" over child rows the database
-  would delete. They now land in `cascade_kills` / `set_null` marked
+  database (#175).** Django 6.1 added `on_delete=models.DB_CASCADE`,
+  `DB_SET_NULL` and `DB_SET_DEFAULT`, where the FK constraint carries
+  `ON DELETE` and the database does the work. Those relations fell out of
+  every bucket. They now land in `cascade_kills` / `set_null` marked
   `"db_level": true`, the text output tags them `(db)` and notes that Django
   sends no delete signals for them, and DBML export maps them to
-  `delete: cascade` / `set null` / `set default`. In the ER graph,
-  `DB_SET_NULL` and `DB_SET_DEFAULT` edges get the set-null colour instead of
-  the cascade one.
+  `delete: cascade` / `set null` / `set default`.
 
-- **`pip install "django-orm-lens[mcp]"` failed outright on Python 3.9.**
-  It never worked there: every mcp release, 1.x included, requires Python
-  3.10, so pip and uv rejected the whole install, CLI and all. py-1.13.0 made
-  that explicit without noticing, by gating `mcp>=1.0,<2` to
-  `python_version < '3.10'` on the belief that 1.x runs on 3.9. The extra
-  now asks for mcp only on 3.10+, so on 3.9 it installs the CLI and nothing
-  else, and `django-orm-lens-mcp` says the server needs 3.10+ and prints a
+- **`pip install "django-orm-lens[mcp]"` failed outright on Python 3.9
+  (#174).** It never worked there: every mcp release, 1.x included, requires
+  Python 3.10, so pip and uv rejected the whole install, CLI and all.
+  py-1.13.0 made that explicit without noticing, by gating `mcp>=1.0,<2` to
+  `python_version < '3.10'` on the belief that 1.x runs on 3.9. The extra now
+  asks for mcp only on 3.10+, so on 3.9 it installs the CLI and nothing else,
+  and `django-orm-lens-mcp` says the server needs 3.10+ and prints a
   `uvx --python 3.12` command instead of repeating the pip command that just
-  ran. 3.10+ installs are unchanged (mcp 2.x), and the bootstrap still
-  accepts an mcp 1.x that another tool already put in the environment.
+  ran. 3.10+ installs are unchanged (mcp 2.x), and the bootstrap still accepts
+  an mcp 1.x that another tool already put in the environment.
+
+### Changed
+
+- **Tested on every supported Python, 3.9 through 3.14, and on Django 4.2,
+  5.2, 6.0 and 6.1 (#173).** CI ran 3.10–3.12 only, which is how the 3.9
+  install failure above went unnoticed, and stopped at Django 5.2. The package
+  metadata now lists Django 6.0 and 6.1 and Python 3.14, and the 3.9 leg
+  checks that the `[mcp]` extra installs.
 
 ## [py-1.13.6] - 2026-10-28
 
