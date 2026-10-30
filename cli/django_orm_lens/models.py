@@ -219,8 +219,9 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
     Groups every inbound relation by its ``on_delete`` behaviour:
     ``cascade_kills`` (rows deleted with the target), ``set_null``
     (FK nulled/reset), ``protected`` (delete blocked by PROTECT/RESTRICT).
-    Static source analysis — ``count_hint`` stays ``"unknown"`` because we
-    never touch a database.
+    Django 6.1's ``DB_CASCADE`` / ``DB_SET_NULL`` / ``DB_SET_DEFAULT`` join
+    the matching bucket with ``"db_level": true``. Static source analysis —
+    ``count_hint`` stays ``"unknown"`` because we never touch a database.
 
     Shared by the CLI ``cascade`` command and the MCP ``cascade_preview``
     tool so both surfaces answer identically. Returns an ``"error"`` key
@@ -262,11 +263,25 @@ def cascade_preview(index: WorkspaceIndex, ref: str) -> dict[str, Any]:
                 }
                 if is_self:
                     entry["self"] = True
-                if on_delete == "CASCADE":
+                if on_delete in _DB_LEVEL_ON_DELETE:
+                    entry["db_level"] = True
+                if on_delete in _CASCADE_ON_DELETE:
                     entry["count_hint"] = "unknown"
                     out["cascade_kills"].append(entry)
-                elif on_delete in ("SET_NULL", "SET_DEFAULT", "SET"):
+                elif on_delete in _SET_ON_DELETE:
                     out["set_null"].append(entry)
                 elif on_delete in ("PROTECT", "RESTRICT"):
                     out["protected"].append(entry)
     return out
+
+
+# Django 6.1 added database-level policies: the FK constraint carries
+# ON DELETE and the database does the work, so Django's delete collector
+# never sees those rows and sends no pre_delete/post_delete for them. The
+# rows still go, or get nulled, so they land in the same buckets, marked
+# ``db_level`` so a reader knows no signal handler will run.
+_DB_LEVEL_ON_DELETE = frozenset({"DB_CASCADE", "DB_SET_NULL", "DB_SET_DEFAULT"})
+_CASCADE_ON_DELETE = frozenset({"CASCADE", "DB_CASCADE"})
+_SET_ON_DELETE = frozenset(
+    {"SET_NULL", "SET_DEFAULT", "SET", "DB_SET_NULL", "DB_SET_DEFAULT"}
+)

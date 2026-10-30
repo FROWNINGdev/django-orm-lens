@@ -71,9 +71,14 @@ function edgeStyle(field: WireField): EdgeStyleSpec {
   if (field.relationKind === 'OneToOneField') {
     return { color: 'var(--dol-color-o2o)', label: '1:1' };
   }
-  // ForeignKey — colour by on_delete
+  // ForeignKey — colour by on_delete. Django 6.1's DB_SET_NULL and
+  // DB_SET_DEFAULT null the column like their ORM twins; DB_CASCADE falls
+  // through to the cascade colour below.
   const od = (field.onDelete ?? '').toUpperCase();
-  if (od === 'SET_NULL' || od === 'SET_DEFAULT' || od === 'SET') {
+  if (
+    od === 'SET_NULL' || od === 'SET_DEFAULT' || od === 'SET' ||
+    od === 'DB_SET_NULL' || od === 'DB_SET_DEFAULT'
+  ) {
     return { color: 'var(--dol-color-fk-setnull)', dashed: true, label: od };
   }
   if (od === 'PROTECT' || od === 'RESTRICT' || od === 'DO_NOTHING') {

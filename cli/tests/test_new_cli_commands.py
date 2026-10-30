@@ -105,6 +105,54 @@ class CascadeCommandTest(unittest.TestCase):
             self.assertEqual(payload["protected"][0]["via_field"], "protected_parent")
             self.assertTrue(payload["protected"][0]["self"])
 
+    def test_django_61_db_level_policies_are_bucketed(self) -> None:
+        """DB_CASCADE / DB_SET_NULL / DB_SET_DEFAULT (Django 6.1) used to fall
+        out of every bucket, so the delete looked isolated while the
+        database would cascade."""
+        with TemporaryDirectory() as tmp:
+            _write(
+                Path(tmp) / "shop" / "models.py",
+                "from django.db import models\n\n"
+                "class Order(models.Model):\n"
+                "    pass\n\n"
+                "class Line(models.Model):\n"
+                "    order = models.ForeignKey(Order, on_delete=models.DB_CASCADE)\n\n"
+                "class Note(models.Model):\n"
+                "    order = models.ForeignKey(Order, null=True, "
+                "on_delete=models.DB_SET_NULL)\n\n"
+                "class Tag(models.Model):\n"
+                "    order = models.ForeignKey(Order, default=1, "
+                "on_delete=models.DB_SET_DEFAULT)\n\n"
+                "class Refund(models.Model):\n"
+                "    order = models.ForeignKey(Order, on_delete=models.CASCADE)\n",
+            )
+            code, out, _err = _run(["cascade", "shop.Order", "--path", tmp])
+            self.assertEqual(code, 0)
+            self.assertNotIn("the delete is isolated", out)
+            self.assertIn("shop.Line  via order (db)", out)
+            self.assertIn("shop.Note  via order (db)", out)
+            self.assertIn("shop.Tag  via order (db)", out)
+            self.assertIn("shop.Refund  via order\n", out)
+            self.assertIn("Django sends no delete signals", out)
+
+            code, out, _err = _run(
+                ["cascade", "shop.Order", "--path", tmp, "--format", "json"]
+            )
+            self.assertEqual(code, 0)
+            payload = json.loads(out)
+            kills = {e["model"]: e for e in payload["cascade_kills"]}
+            self.assertEqual(set(kills), {"shop.Line", "shop.Refund"})
+            self.assertTrue(kills["shop.Line"]["db_level"])
+            self.assertNotIn("db_level", kills["shop.Refund"])
+            nulls = {e["model"]: e for e in payload["set_null"]}
+            self.assertEqual(set(nulls), {"shop.Note", "shop.Tag"})
+            self.assertTrue(all(e["db_level"] for e in nulls.values()))
+
+    def test_orm_level_policies_print_no_db_footnote(self) -> None:
+        code, out, _err = _run(["cascade", "orders.Order", "--path", str(MINIAPP)])
+        self.assertEqual(code, 0)
+        self.assertNotIn("(db)", out)
+
     def test_unknown_model_exits_2(self) -> None:
         code, out, err = _run(
             ["cascade", "GhostModel", "--path", str(MINIAPP)]

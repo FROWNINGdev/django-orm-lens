@@ -164,6 +164,32 @@ class SyntheticSchemaTest(unittest.TestCase):
         d2 = build_d2(idx)
         self.assertIn("through Tagging", d2)
 
+    def test_dbml_maps_django_61_db_level_on_delete(self) -> None:
+        idx = self._index_for(
+            "from django.db import models\n"
+            "class Post(models.Model):\n"
+            "    pass\n"
+            "class Comment(models.Model):\n"
+            "    post = models.ForeignKey(Post, on_delete=models.DB_CASCADE)\n"
+            "    reply_to = models.ForeignKey(\n"
+            "        'self', null=True, on_delete=models.DB_SET_NULL)\n"
+            "    pinned_on = models.ForeignKey(\n"
+            "        Post, default=1, on_delete=models.DB_SET_DEFAULT,\n"
+            "        related_name='pins')\n"
+        )
+        dbml = build_dbml(idx)
+        self.assertIn(
+            "Ref: blog.Comment.post > blog.Post.id [delete: cascade]", dbml
+        )
+        self.assertIn(
+            "Ref: blog.Comment.reply_to > blog.Comment.id [delete: set null]",
+            dbml,
+        )
+        self.assertIn(
+            "Ref: blog.Comment.pinned_on > blog.Post.id [delete: set default]",
+            dbml,
+        )
+
     def test_auth_user_model_resolves_like_mermaid(self) -> None:
         idx = self._index_for(
             "from django.conf import settings\n"
