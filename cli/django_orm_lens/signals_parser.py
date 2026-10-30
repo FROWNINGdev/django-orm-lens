@@ -2,7 +2,8 @@
 
 Walks every ``.py`` file in the workspace and extracts three things:
 
-1. Every ``@receiver(signal[, sender=X])`` decorated function — captured as a
+1. Every ``@receiver(signal[, sender=X])`` decorated function and every
+   ``signal.connect(handler[, sender=X])`` call — captured as a
    ``sender → signal → handler`` edge. ``sender`` is normalised to
    ``app.Model`` when the class name resolves against the parsed workspace,
    or left as the raw source token when it doesn't (with a note).
@@ -107,6 +108,40 @@ def _sender_kwarg(call: ast.Call) -> str | None:
                 return kw.value.value
             return _name_of(kw.value)
     return None
+
+
+def _connect_call(
+    call: ast.Call, known_signals: set[str]
+) -> tuple[str, str, str | None] | None:
+    """Read ``<signal>.connect(<handler>[, sender=X])`` as
+    (signal, handler, raw sender), or None if ``call`` is not one.
+
+    ``.connect`` is a common method name (sockets, database clients), so the
+    call only counts when the signal is a Django built-in or a ``Signal()``
+    defined in the workspace, or when it passes ``sender=``.
+    """
+    func = call.func
+    if not isinstance(func, ast.Attribute) or func.attr != "connect":
+        return None
+    signal_name = _name_of(func.value)
+    if not signal_name:
+        return None
+    handler_node: ast.AST | None = call.args[0] if call.args else None
+    for kw in call.keywords:
+        if kw.arg == "receiver":
+            handler_node = kw.value
+    handler = _name_of(handler_node) if handler_node is not None else None
+    if not handler:
+        return None
+    sender_raw = _sender_kwarg(call)
+    tail = signal_name.rsplit(".", 1)[-1]
+    if (
+        tail not in _BUILTIN_SIGNALS
+        and tail not in known_signals
+        and sender_raw is None
+    ):
+        return None
+    return signal_name, handler, sender_raw
 
 
 def _iter_signal_definitions(tree: ast.Module) -> list[tuple[str, int]]:
@@ -228,8 +263,37 @@ def signal_graph(
     bare_signal_map: dict[str, list[str]] = {}
     for fqn, meta in custom_signals.items():
         bare_signal_map.setdefault(meta["name"], []).append(fqn)
+    known_signals = set(bare_signal_map)
 
-    # Pass 2 — decorators + .send() calls.
+    def add_edge(
+        signal_name: str,
+        sender_raw: str | None,
+        handler: str,
+        file: str,
+        via: str,
+    ) -> None:
+        sender, note = _resolve_sender(sender_raw, model_index, user_model_name)
+        edge: dict[str, Any] = {
+            "signal": signal_name,
+            "sender": sender,
+            "handler": handler,
+            "file": file,
+        }
+        if sender_raw is None:
+            edge["note"] = "no sender = fires for all models"
+        elif note:
+            edge["note"] = note
+            orphan_handlers.append(
+                {
+                    "handler": handler,
+                    "reason": f"{via} but sender model not found in workspace",
+                }
+            )
+        if signal_name in _BUILTIN_SIGNALS or signal_name.rsplit(".", 1)[-1] in _BUILTIN_SIGNALS:
+            edge["builtin"] = True
+        edges.append(edge)
+
+    # Pass 2 — decorators, .connect() and .send() calls.
     for py, tree, module_path in parsed:
         # Walk all functions (module-level + nested) for @receiver decorators.
         for node in ast.walk(tree):
@@ -238,37 +302,33 @@ def signal_graph(
                     rcall = _extract_receiver_call(dec)
                     if rcall is None:
                         continue
-                    signal_name = _signal_arg_name(rcall) or "<unknown>"
-                    sender_raw = _sender_kwarg(rcall)
-                    sender, note = _resolve_sender(
-                        sender_raw, model_index, user_model_name
-                    )
-
                     handler_fqn = (
                         f"{module_path}.{node.name}" if module_path else node.name
                     )
-                    edge: dict[str, Any] = {
-                        "signal": signal_name,
-                        "sender": sender,
-                        "handler": handler_fqn,
-                        "file": _rel(root_path, py, node.lineno),
-                    }
-                    if sender_raw is None:
-                        edge["note"] = "no sender = fires for all models"
-                    elif note:
-                        edge["note"] = note
-                        orphan_handlers.append(
-                            {
-                                "handler": handler_fqn,
-                                "reason": "@receiver but sender model not found in workspace",
-                            }
-                        )
-                    if signal_name in _BUILTIN_SIGNALS or signal_name.rsplit(".", 1)[-1] in _BUILTIN_SIGNALS:
-                        edge["builtin"] = True
-                    edges.append(edge)
+                    add_edge(
+                        _signal_arg_name(rcall) or "<unknown>",
+                        _sender_kwarg(rcall),
+                        handler_fqn,
+                        _rel(root_path, py, node.lineno),
+                        "@receiver",
+                    )
 
-            # Custom signal .send() / .send_robust() call collection.
             if isinstance(node, ast.Call):
+                # <signal>.connect(handler, sender=...) — the handler is
+                # recorded as written; it is often imported from elsewhere.
+                connected = _connect_call(node, known_signals)
+                if connected is not None:
+                    signal_name, handler, sender_raw = connected
+                    add_edge(
+                        signal_name,
+                        sender_raw,
+                        handler,
+                        _rel(root_path, py, node.lineno),
+                        ".connect()",
+                    )
+                    continue
+
+                # Custom signal .send() / .send_robust() call collection.
                 func = node.func
                 if not isinstance(func, ast.Attribute):
                     continue
@@ -327,8 +387,8 @@ def skipped_delete_receivers(
     (``signal``, ``handler``, ``file``) to each such entry of
     ``cascade["cascade_kills"]`` in place, and returns ``cascade``.
 
-    Sees ``@receiver`` decorators, the same scope as :func:`signal_graph`;
-    ``signal.connect(...)`` calls are not followed. The signal graph is only
+    Sees ``@receiver`` decorators and ``signal.connect(...)`` calls, the same
+    scope as :func:`signal_graph`. The signal graph is only
     built when a ``DB_CASCADE`` relation exists, so plain schemas pay nothing.
     """
     targets = [e for e in cascade.get("cascade_kills", []) if e.get("db_level")]

@@ -229,6 +229,13 @@ class CascadeCommandTest(unittest.TestCase):
                 "def audit_refund(sender, instance, **kw):\n"
                 "    pass\n",
             )
+            _write(
+                Path(tmp) / "shop" / "apps.py",
+                "from django.db.models.signals import post_delete\n"
+                "from .models import Line\n\n"
+                "def ready():\n"
+                "    post_delete.connect(files.delete_line_file, sender=Line)\n",
+            )
             code, out, _err = _run(
                 ["cascade", "shop.Order", "--path", tmp, "--format", "json"]
             )
@@ -236,16 +243,23 @@ class CascadeCommandTest(unittest.TestCase):
             kills = {e["model"]: e for e in json.loads(out)["cascade_kills"]}
             skipped = {r["handler"]: r for r in kills["shop.Line"]["skipped_receivers"]}
             self.assertEqual(
-                set(skipped), {"shop.signals.audit_line", "shop.signals.audit_everything"}
+                set(skipped),
+                {
+                    "shop.signals.audit_line",
+                    "shop.signals.audit_everything",
+                    "files.delete_line_file",
+                },
             )
             self.assertEqual(skipped["shop.signals.audit_line"]["signal"], "post_delete")
+            # A receiver wired with .connect() is silenced just the same.
+            self.assertEqual(skipped["files.delete_line_file"]["file"], "shop/apps.py:5")
             # signal_graph points at the handler's `def` line, under its decorator.
             self.assertEqual(skipped["shop.signals.audit_line"]["file"], "shop/signals.py:6")
             # ORM CASCADE still sends the signals, so nothing is skipped there.
             self.assertNotIn("skipped_receivers", kills["shop.Refund"])
 
             code, out, _err = _run(["cascade", "shop.Order", "--path", tmp])
-            self.assertIn("! 2 delete receiver(s) will NOT run for (db) rows:", out)
+            self.assertIn("! 3 delete receiver(s) will NOT run for (db) rows:", out)
             self.assertIn("post_delete shop.signals.audit_line  for shop.Line", out)
 
     def test_orm_level_policies_print_no_db_footnote(self) -> None:

@@ -89,10 +89,8 @@ quiet.
 
 What the scan does not cover, so you know where to look by hand:
 
-- It reads `@receiver(...)` decorators in your project.
-  `post_delete.connect(handler, sender=Model)` is not followed yet
-  ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183) is open
-  if you want to add it).
+- It reads `@receiver(...)` decorators and
+  `post_delete.connect(handler, sender=Model)` calls in your project.
 - Receivers that third-party packages register inside site-packages are not
   scanned.
 - It reports one level of cascade. Run it again for each model it lists, the

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`signals` / MCP `signal_graph` missed receivers registered with
+  `.connect()`.** Only `@receiver(...)` decorators were read, so
+  `post_delete.connect(delete_file, sender=Attachment)` in an `AppConfig.ready()`
+  was invisible, and `cascade` left it out of the `DB_CASCADE`
+  `skipped_receivers` list. `signal.connect(handler, sender=Model)` is now an
+  edge like a decorator, with a bare or dotted signal (`post_delete`,
+  `models.signals.post_delete`), `receiver=` as a keyword, and no `sender`
+  meaning every model. To keep sockets and database clients out, a `.connect()`
+  call only counts when the signal is a Django built-in, a `Signal()` defined in
+  the workspace, or the call passes `sender=`.
+  ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183))
+
 ## [py-1.14.0] - 2026-10-31
 
 ### Fixed
