@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`migration-risk` raised 405 false criticals on six large Django codebases.**
+  Run over NetBox, PostHog, authentik, Plane, paperless-ngx and Healthchecks,
+  it reported 407 critical findings, and 2 of them were real. The rules now
+  follow what Django actually does to existing rows:
+  - `ManyToManyField`, `TaggableManager` and `GenericRelation` add no column,
+    so they are never a NOT NULL risk.
+  - `blank=True` on a text field, including project subclasses such as
+    `ColorField(max_length=6)`, gets `""`. `auto_now` / `auto_now_add` get the
+    current time, and `db_default` and `GeneratedField` fill themselves.
+  - A table created earlier in the same migration is empty. A squashed
+    migration (`replaces = [...]`) only ever runs on a fresh database.
+  - `unique=True` with `null=True` and no default, or `default=None`, fills
+    rows with NULL, which never collides.
+  - A field removed and then re-added, renamed onto the same name, or a model
+    deleted and re-created, in that migration or a later one, is no longer
+    "still referenced".
+  - The migration graph collapses squashed migrations the way Django's loader
+    does, so a squash and the migrations it replaces are not reported as
+    conflicting leaves.
+  - A NOT NULL column added after a `RunPython`, or after a `RunSQL` that
+    deletes, updates or truncates rows, is a warning instead of a certain
+    critical, because that step may have emptied the table.
+
 ## [py-1.13.8] - 2026-10-31
 
 ### Added

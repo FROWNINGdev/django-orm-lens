@@ -158,6 +158,7 @@ def _parse_migration_file(path: Path) -> dict[str, Any] | None:
     name = path.stem  # e.g. "0042_add_user_email"
     dependencies: list[list[str]] = []
     operations: list[str] = []
+    replaces: list[list[str]] = []
 
     for node in tree.body:
         if not isinstance(node, ast.ClassDef):
@@ -172,13 +173,61 @@ def _parse_migration_file(path: Path) -> dict[str, Any] | None:
                 dependencies = _extract_dependency_pairs(stmt.value)
             elif "operations" in targets:
                 operations = _extract_operation_names(stmt.value)
+            elif "replaces" in targets:
+                replaces = _extract_dependency_pairs(stmt.value)
         break  # only the first class named Migration counts
 
-    return {
+    out: dict[str, Any] = {
         "name": name,
         "dependencies": dependencies,
         "operations": operations,
     }
+    if replaces:
+        out["replaces"] = replaces
+    return out
+
+
+def _collapse_squashed(
+    migrations: list[dict[str, Any]], app_label: str | None
+) -> list[dict[str, Any]]:
+    """Model Django's loader: a squashed migration stands in for its replaces.
+
+    When both a squashed migration and the migrations it ``replaces`` are on
+    disk, Django drops the replaced nodes from the graph and points every
+    dependency on them at the squash. Counting leaves without doing the same
+    calls the last replaced migration a second leaf and reports a conflict
+    that Django never raises.
+    """
+    replaced_by: dict[str, str] = {}
+    for m in migrations:
+        for dep in m.get("replaces", []):
+            if dep[0] == app_label:
+                replaced_by[dep[1]] = m["name"]
+    if not replaced_by:
+        return migrations
+
+    def resolve(name: str) -> str:
+        seen: set = set()
+        while name in replaced_by and name not in seen:
+            seen.add(name)
+            name = replaced_by[name]
+        return name
+
+    out: list[dict[str, Any]] = []
+    for m in migrations:
+        if m["name"] in replaced_by:
+            continue
+        deps: list[list[str]] = []
+        for dep in m["dependencies"]:
+            if dep[0] == app_label and dep[1] in replaced_by:
+                target = resolve(dep[1])
+                if target == m["name"]:
+                    continue  # the squash depending on what it replaces
+                dep = [dep[0], target]
+            if dep not in deps:
+                deps.append(dep)
+        out.append({**m, "dependencies": deps})
+    return out
 
 
 def _compute_roots_leaves_cross(
@@ -238,7 +287,9 @@ def describe_migration_dependency(app_label: str, root: str) -> dict[str, Any]:
             migrations.append(parsed)
 
     migrations.sort(key=lambda m: m["name"])
-    roots, leaves, cross_app_deps = _compute_roots_leaves_cross(migrations, app_label)
+    roots, leaves, cross_app_deps = _compute_roots_leaves_cross(
+        _collapse_squashed(migrations, app_label), app_label
+    )
 
     return {
         "app_label": app_label,
@@ -341,6 +392,82 @@ def _field_type(call: ast.Call) -> str | None:
     return _call_op_name(call)
 
 
+# Field classes that add no column to the model's own table: a join table
+# (M2M and its third-party twins) or nothing at all (GenericRelation).
+_NO_COLUMN_FIELDS = frozenset(
+    {
+        "ManyToManyField",
+        "TaggableManager",
+        "GenericRelation",
+        "ParentalManyToManyField",
+        "SortedManyToManyField",
+        "TreeManyToManyField",
+    }
+)
+
+# Fields Django fills with "" (b"" for BinaryField) when they are blank=True
+# and get no explicit default: BaseDatabaseSchemaEditor._effective_default
+# does that for every field with empty_strings_allowed. Numeric, date, bool,
+# UUID and FK fields do not allow empty strings and are not here.
+_EMPTY_STRING_FIELDS = frozenset(
+    {
+        "CharField",
+        "TextField",
+        "SlugField",
+        "EmailField",
+        "URLField",
+        "FileField",
+        "ImageField",
+        "FilePathField",
+        "BinaryField",
+        "CICharField",
+        "CIEmailField",
+        "CITextField",
+    }
+)
+
+_AUTO_NOW_FIELDS = frozenset({"DateField", "DateTimeField", "TimeField"})
+
+_STRING_FIELD_SUFFIXES = ("CharField", "TextField", "SlugField", "EmailField", "URLField")
+
+
+def _is_string_field(field_call: ast.Call, field_type: str) -> bool:
+    """A field that stores text, including project subclasses of one.
+
+    Migrations reference custom fields by their own class name
+    (``utilities.fields.ColorField``, ``LowercaseSlugField``), which no list
+    can know in advance. Two signals stand in: a name ending in a text field's
+    name, or a ``max_length`` argument, which only CharField and its
+    subclasses take among the fields that reach a migration.
+    """
+    return (
+        field_type in _EMPTY_STRING_FIELDS
+        or field_type.endswith(_STRING_FIELD_SUFFIXES)
+        or _has_kwarg(field_call, "max_length")
+    )
+
+
+def _has_effective_default(field_call: ast.Call, field_type: str) -> bool:
+    """True when Django fills existing rows without an explicit ``default=``.
+
+    Mirrors ``BaseDatabaseSchemaEditor._effective_default`` and the other
+    ways a column gets a value on ADD COLUMN:
+
+    * ``db_default=`` (Django 5.0+) is a database-side default;
+    * ``blank=True`` on a field that allows empty strings gets ``""``;
+    * ``auto_now`` / ``auto_now_add`` date fields get the current time;
+    * ``GeneratedField`` is computed by the database.
+    """
+    if _has_kwarg(field_call, "db_default") or field_type == "GeneratedField":
+        return True
+    if _kwarg_literal(field_call, "blank") is True and _is_string_field(field_call, field_type):
+        return True
+    return field_type in _AUTO_NOW_FIELDS and (
+        _kwarg_literal(field_call, "auto_now") is True
+        or _kwarg_literal(field_call, "auto_now_add") is True
+    )
+
+
 def _migration_prefix(name: str) -> int:
     """Return the numeric prefix of a migration filename stem, or -1."""
     m = _MIGRATION_PREFIX_RE.match(name)
@@ -426,6 +553,24 @@ class MigrationRiskAnalyzer:
         self.migration_index = migration_index
         self.current_schema = current_schema or {}
         self.findings: list[MigrationRisk] = []
+        # Tables this migration creates itself: still empty when a later
+        # operation in the same file alters them (makemigrations splits FKs
+        # out of CreateModel into AddField exactly like that).
+        self.created_models: set[str] = set()
+        # A squashed migration (``replaces = [...]``) only ever runs on a fresh
+        # database. Where the replaced migrations are applied, Django marks it
+        # applied without running it, so it never touches populated tables.
+        self.is_squashed = False
+        # (line, model, field-or-None) for every operation that brings a field
+        # or a whole model (back) into existence. A RemoveField followed by an
+        # AddField or a RenameField onto the same name, or a DeleteModel
+        # followed by a CreateModel, leaves the name in place; the
+        # still-referenced rules check this list, in this file and later ones.
+        self.introduced: list[tuple[int, str, str | None]] = []
+        # A data operation earlier in the file that may empty or backfill the
+        # table before a NOT NULL column arrives.
+        self.data_op_before = False
+        self.module_strings: dict[str, str] = {}
 
     # ------------------------------------------------------------------
     # Entry
@@ -440,12 +585,27 @@ class MigrationRiskAnalyzer:
         except SyntaxError:
             return []
 
+        # Module-level string constants, so RunSQL(SOME_SQL) can be read.
+        for node in tree.body:
+            if (
+                isinstance(node, ast.Assign)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        self.module_strings[t.id] = node.value.value
+
         for node in tree.body:
             if not isinstance(node, ast.ClassDef) or node.name != "Migration":
                 continue
-            for stmt in node.body:
-                if not isinstance(stmt, ast.Assign):
-                    continue
+            assigns = [stmt for stmt in node.body if isinstance(stmt, ast.Assign)]
+            # `replaces` can sit before or after `operations`; read it first.
+            for stmt in assigns:
+                targets = [t.id for t in stmt.targets if isinstance(t, ast.Name)]
+                if "replaces" in targets and isinstance(stmt.value, (ast.List, ast.Tuple)):
+                    self.is_squashed = bool(stmt.value.elts)
+            for stmt in assigns:
                 targets = [t.id for t in stmt.targets if isinstance(t, ast.Name)]
                 if "operations" not in targets:
                     continue
@@ -465,7 +625,18 @@ class MigrationRiskAnalyzer:
             op = _call_op_name(elt)
             if op is None or op not in _KNOWN_OP_TYPES:
                 continue
+            if op == "CreateModel":
+                created = _kwarg_literal(elt, "name")
+                if created is None and elt.args:
+                    created = _literal_or_none(elt.args[0])
+                if isinstance(created, str):
+                    self.created_models.add(created.lower())
             handler = getattr(self, f"_check_{op}", None)
+            self._record_introduction(op, elt)
+            if op == "RunPython" or (op == "RunSQL" and self._sql_changes_rows(elt)):
+                # Read only by operations later in the list; this element's own
+                # handler does not look at it.
+                self.data_op_before = True
             if handler is not None:
                 try:
                     handler(elt)
@@ -510,8 +681,48 @@ class MigrationRiskAnalyzer:
             )
         )
 
-    def _table_likely_non_empty(self) -> bool:
-        """Heuristic: anything after 0001_initial → assume the table has rows."""
+    def _record_introduction(self, op: str, call: ast.Call) -> None:
+        line = getattr(call, "lineno", 0)
+        if op == "AddField":
+            model, name = _kwarg_literal(call, "model_name"), _kwarg_literal(call, "name")
+        elif op == "RenameField":
+            model, name = _kwarg_literal(call, "model_name"), _kwarg_literal(call, "new_name")
+        elif op == "CreateModel":
+            model, name = _kwarg_literal(call, "name"), None
+            if model is None and call.args:
+                model = _literal_or_none(call.args[0])
+        elif op == "RenameModel":
+            model, name = _kwarg_literal(call, "new_name"), None
+        else:
+            return
+        if isinstance(model, str):
+            self.introduced.append((line, model.lower(), name if isinstance(name, str) else None))
+
+    def _sql_changes_rows(self, call: ast.Call) -> bool:
+        """RunSQL whose forward SQL deletes, truncates or updates rows."""
+        node = _get_kwarg(call, "sql") or (call.args[0] if call.args else None)
+        parts = node.elts if isinstance(node, (ast.List, ast.Tuple)) else [node]
+        for part in parts:
+            if isinstance(part, ast.Constant) and isinstance(part.value, str):
+                sql = part.value
+            elif isinstance(part, ast.Name):
+                sql = self.module_strings.get(part.id, "")
+            else:
+                continue
+            if re.search(r"\b(DELETE|TRUNCATE|UPDATE)\b", sql, re.I):
+                return True
+        return False
+
+    def _table_likely_non_empty(self, model: Any = None) -> bool:
+        """Heuristic: anything after 0001_initial → assume the table has rows.
+
+        Except a table this same migration created, and anything in a
+        squashed migration, which only runs on a fresh database.
+        """
+        if self.is_squashed:
+            return False
+        if isinstance(model, str) and model.lower() in self.created_models:
+            return False
         return self.migration_index > 0
 
     def _model_field_names(self, model_lower: str) -> set | None:
@@ -535,6 +746,11 @@ class MigrationRiskAnalyzer:
         has_default = _has_kwarg(field_call, "default")
         unique_val = _kwarg_literal(field_call, "unique")
         field_type = _field_type(field_call) or "Field"
+        if field_type in _NO_COLUMN_FIELDS:
+            # M2M and generic relations add a join table or nothing at all,
+            # never a column on this table.
+            return
+        populated = self._table_likely_non_empty(model)
 
         # Rule 1: NOT NULL with no default on a populated table.
         # ``null=True`` explicit means nullable → no risk.
@@ -544,29 +760,49 @@ class MigrationRiskAnalyzer:
         if (
             is_not_null
             and not has_default
-            and self._table_likely_non_empty()
+            and not _has_effective_default(field_call, field_type)
+            and populated
             and field_type not in ("AutoField", "BigAutoField", "SmallAutoField")
         ):
+            description = (
+                f"Adds NOT NULL column '{name}' to '{model}' without a "
+                f"default; existing rows will raise IntegrityError."
+            )
+            nn_confidence, nn_severity = "high", "critical"
+            if self.data_op_before:
+                # A RunPython, or a RunSQL that deletes or updates rows, runs
+                # first. It may empty or backfill the table; say so instead of
+                # calling it certain.
+                description += (
+                    " A data operation runs earlier in this migration; if it "
+                    "empties the table, this is safe."
+                )
+                nn_confidence, nn_severity = "medium", "warning"
             self._add(
                 call,
                 "AddField",
                 rule="add_field_not_null_no_default",
-                description=(
-                    f"Adds NOT NULL column '{name}' to '{model}' without a "
-                    f"default; existing rows will raise IntegrityError."
-                ),
+                description=description,
                 mitigation=(
                     "Add null=True first, backfill via RunPython, then a "
                     "third migration to set null=False. Or provide default=."
                 ),
-                confidence="high",
-                severity="critical",
+                confidence=nn_confidence,
+                severity=nn_severity,
                 model=model,
                 field=name,
             )
 
         # Rule 7: unique=True on a populated table without a per-row default.
-        if unique_val is True and self._table_likely_non_empty():
+        # A nullable column with no default (or default=None) fills existing
+        # rows with NULL, and NULLs never collide in a unique constraint, so
+        # that form is safe.
+        default_node = _get_kwarg(field_call, "default")
+        default_is_none = (
+            isinstance(default_node, ast.Constant) and default_node.value is None
+        )
+        nulls_fill_rows = null_val is True and (not has_default or default_is_none)
+        if unique_val is True and populated and not nulls_fill_rows:
             default_node = _get_kwarg(field_call, "default")
             # A callable default (e.g. ``default=uuid.uuid4``) can produce
             # unique values per row → medium. Anything else (literal or
@@ -765,9 +1001,9 @@ class MigrationRiskAnalyzer:
     # Rule 4: AddIndex without CONCURRENTLY
     # ------------------------------------------------------------------
     def _check_AddIndex(self, call: ast.Call) -> None:
-        if not self._table_likely_non_empty():
-            return
         model = _kwarg_literal(call, "model_name")
+        if not self._table_likely_non_empty(model):
+            return
         self._add(
             call,
             "AddIndex",
@@ -910,7 +1146,7 @@ class MigrationRiskAnalyzer:
     # Rule: AlterUniqueTogether on a populated table
     # ------------------------------------------------------------------
     def _check_AlterUniqueTogether(self, call: ast.Call) -> None:
-        if not self._table_likely_non_empty():
+        if not self._table_likely_non_empty(_kwarg_literal(call, "name")):
             return
         # Removing the constraint is safe. Django's MigrationWriter emits the
         # cleared form as ``unique_together=set()`` (a Call node), hand-written
@@ -988,6 +1224,33 @@ class MigrationRiskAnalyzer:
         return
 
 
+def _reintroduced_later(
+    idx: int,
+    finding: MigrationRisk,
+    introduced: list[tuple[int, int, str, str | None]],
+) -> bool:
+    """True when a still-referenced finding is undone later in the history.
+
+    ``remove_field_still_referenced`` / ``delete_model_still_referenced``
+    compare a historical RemoveField / DeleteModel against today's models.py.
+    The name is legitimately still there when a later operation brought it
+    back: an AddField or a RenameField onto the same name, or a CreateModel
+    of the same model, in the same file or any later migration of the app.
+    """
+    if finding.rule not in ("remove_field_still_referenced", "delete_model_still_referenced"):
+        return False
+    model = (finding.model or "").lower()
+    here = (idx, finding.line_number)
+    for i2, line2, m2, f2 in introduced:
+        if (i2, line2) <= here or m2 != model:
+            continue
+        if finding.rule == "delete_model_still_referenced" and f2 is None:
+            return True
+        if finding.rule == "remove_field_still_referenced" and f2 in (None, finding.field):
+            return True
+    return False
+
+
 def analyze_migration_risks(
     project_root: str,
     current_schema: dict[str, dict[str, set]] | None = None,
@@ -1027,6 +1290,10 @@ def analyze_migration_risks(
                 ordered_files.append(f)
         ordered_files.sort(key=lambda p: (_migration_prefix(p.stem), p.name))
 
+        app_findings: list[tuple[int, MigrationRisk]] = []
+        # (migration index, line, model, field-or-None) for every operation in
+        # the app that brings a name (back) into existence.
+        introduced: list[tuple[int, int, str, str | None]] = []
         for idx, path in enumerate(ordered_files):
             analyzer = MigrationRiskAnalyzer(
                 file_path=path,
@@ -1035,7 +1302,11 @@ def analyze_migration_risks(
                 migration_index=idx,
                 current_schema=current_schema,
             )
-            findings.extend(analyzer.analyze())
+            app_findings.extend((idx, f) for f in analyzer.analyze())
+            introduced.extend((idx, line, m, fl) for line, m, fl in analyzer.introduced)
+        findings.extend(
+            f for idx, f in app_findings if not _reintroduced_later(idx, f, introduced)
+        )
 
         # Graph-level rule, so it lives here rather than in the per-file
         # analyzer: Django refuses to run an app whose migration graph has more
@@ -1075,7 +1346,9 @@ def analyze_migration_risks(
                 else None
             )
             leaves = (
-                _compute_roots_leaves_cross(parsed, effective_label)[1]
+                _compute_roots_leaves_cross(
+                    _collapse_squashed(parsed, effective_label), effective_label
+                )[1]
                 if effective_label
                 else []
             )
