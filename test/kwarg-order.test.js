@@ -51,3 +51,38 @@ test('extractRelated resolves to= even when it is not the first kwarg', () => {
   assert.equal(editor.relatedModel, 'accounts.User');
   assert.equal(editor.onDelete, 'SET_NULL');
 });
+
+// ForeignKey(to, on_delete, ...) — the spelling Django's own contrib apps use.
+// Mirrors ExtractOnDeletePositionalTest in the Python suite.
+test('a positional on_delete is read for FK and O2O, never for M2M', () => {
+  const models = parseModelsFile(
+    'shop/models.py',
+    [
+      'from django.db import models',
+      'class Order(models.Model):',
+      '    pass',
+      'class Line(models.Model):',
+      '    order = models.ForeignKey(Order, models.CASCADE)',
+      '    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, verbose_name="user")',
+      '    receipt = models.OneToOneField(',
+      "        'shop.Order',",
+      '        models.PROTECT,',
+      "        related_name='receipt_line',",
+      '    )',
+      "    refund = models.ForeignKey('shop.Order', models.SET(0), related_name='refunds')",
+      '    ct = models.ForeignKey(ContentType, django.db.models.deletion.PROTECT)',
+      "    plain = models.ForeignKey(Order, verbose_name='x', related_name='plain')",
+      "    tags = models.ManyToManyField(Order, 'TAGGED')",
+      '',
+    ].join('\n')
+  );
+  const line = models.find((m) => m.name === 'Line');
+  const od = Object.fromEntries(line.fields.map((f) => [f.name, f.onDelete]));
+  assert.equal(od.order, 'CASCADE');
+  assert.equal(od.user, 'CASCADE');
+  assert.equal(od.receipt, 'PROTECT');
+  assert.equal(od.refund, 'SET');
+  assert.equal(od.ct, 'PROTECT');
+  assert.equal(od.plain, undefined);
+  assert.equal(od.tags, undefined);
+});

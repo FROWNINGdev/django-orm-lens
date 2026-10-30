@@ -36,6 +36,42 @@ function hasKwargName(argBody: string, kw: string): boolean {
   return re.test(argBody);
 }
 
+/**
+ * Number of positional arguments before the first keyword, splitting on
+ * top-level commas only (quotes and brackets respected).
+ */
+function positionalArgCount(argBody: string): number {
+  const parts: string[] = [];
+  let depth = 0;
+  let quote: string | null = null;
+  let cur = '';
+  for (let i = 0; i < argBody.length; i++) {
+    const ch = argBody[i];
+    if (quote) {
+      cur += ch;
+      if (ch === '\\') cur += argBody[++i] ?? '';
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '[' || ch === '{' || ch === '(') depth++;
+    else if (ch === ']' || ch === '}' || ch === ')') depth--;
+    else if (ch === ',' && depth === 0) {
+      parts.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim()) parts.push(cur);
+  let count = 0;
+  for (const part of parts) {
+    if (/^\s*[A-Za-z_]\w*\s*=(?!=)/.test(part) || /^\s*\*/.test(part)) break;
+    if (part.trim()) count++;
+  }
+  return count;
+}
+
 /** Skip lines whose leading non-space char is `#`. */
 function isCommentLine(text: string): boolean {
   return text.trimStart().startsWith('#');
@@ -202,6 +238,10 @@ const DOL013: Rule = {
       while ((m = RE_FOREIGN_KEY_LINE.exec(text)) !== null) {
         const argBody = m[1];
         if (hasKwargName(argBody, 'on_delete')) continue;
+        // ForeignKey(to, on_delete, ...): a second positional argument is
+        // on_delete. Django's own contrib apps write it that way, and the
+        // fixer would add a duplicate on_delete= that really does raise.
+        if (positionalArgCount(argBody) >= 2) continue;
         out.push({
           code: 'DOL013',
           messageId: 'default',
