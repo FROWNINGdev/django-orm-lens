@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.13.8] - 2026-10-31
+
 ### Added
 
-- **`cascade` names the delete receivers Django 6.1's `DB_CASCADE` silently
-  skips.** With `on_delete=models.DB_CASCADE` the database deletes the child
+- **`cascade` names the delete handlers Django 6.1's `DB_CASCADE` skips (#179).**
+  With `on_delete=models.DB_CASCADE` the database deletes the child
   rows itself, so Django never sends `pre_delete` / `post_delete` for them: a
   `post_delete` handler that removes the uploaded file, writes the audit log
   or busts a cache just stops running, with no error. `cascade` (CLI and the
@@ -18,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for every model, under the affected relation as `skipped_receivers`, and
   the text output prints them with file and line. The signal graph is only
   built when a `DB_CASCADE` relation exists.
+
+- **Tested on Python 3.15 (#180).** CI gained a Python 3.15 + Django 6.1 leg,
+  and the package metadata lists 3.15.
 
 ## [0.19.5] - 2026-10-31
 
