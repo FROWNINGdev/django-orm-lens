@@ -7,27 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.14.0] - 2026-10-31
+
 ### Fixed
 
-- **`nplusone` reported writes and test code as N+1 reads.** Checked against
-  NetBox, PostHog, authentik, Plane, paperless-ngx and Healthchecks:
-  - `post.tags.set(...)`, `.add()`, `.remove()`, `.clear()`, `.create()` and
-    `.get_or_create()` on a relation were caught by the attribute-chain
-    fallback and given a prefetch, which cannot serve a write. They are not
-    reported now. Loading a single-valued relation before writing to it
-    (`profile.user.delete()`) is still an N+1, and its fix is
-    `select_related`. QuerySet writes such as `update()` and `delete()` on a
-    related manager stay findings, as before.
-  - One field is never suggested in both `select_related` and
-    `prefetch_related`. `.select_related("user").prefetch_related("user")`
-    came from a schema-less guess on `x.user.delete()`.
-  - Test modules (`test_*.py`, `*_test.py`, `tests.py`, `conftest.py`, and
-    anything under `tests/` or `test/`) are skipped, because a query per row
-    in a test is not a production N+1. Pass `--include-tests` to scan them.
-    This also halves the scan time on large repositories (PostHog: 80 s to
-    39 s).
-
-- **`migration-risk` raised 405 false criticals on six large Django codebases.**
+- **`migration-risk`: 407 criticals on six big Django codebases, 2 real.**
   Run over NetBox, PostHog, authentik, Plane, paperless-ngx and Healthchecks,
   it reported 407 critical findings, and 2 of them were real. The rules now
   follow what Django actually does to existing rows:
@@ -49,6 +33,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A NOT NULL column added after a `RunPython`, or after a `RunSQL` that
     deletes, updates or truncates rows, is a warning instead of a certain
     critical, because that step may have emptied the table.
+
+- **`nplusone` reported writes and test code as N+1 reads.** Checked against
+  NetBox, PostHog, authentik, Plane, paperless-ngx and Healthchecks:
+  - `post.tags.set(...)`, `.add()`, `.remove()`, `.clear()`, `.create()` and
+    `.get_or_create()` on a relation were caught by the attribute-chain
+    fallback and given a prefetch, which cannot serve a write. They are not
+    reported now. Loading a single-valued relation before writing to it
+    (`profile.user.delete()`) is still an N+1, and its fix is
+    `select_related`. QuerySet writes such as `update()` and `delete()` on a
+    related manager stay findings, as before.
+  - One field is never suggested in both `select_related` and
+    `prefetch_related`. `.select_related("user").prefetch_related("user")`
+    came from a schema-less guess on `x.user.delete()`.
+  - Test modules (`test_*.py`, `*_test.py`, `tests.py`, `conftest.py`, and
+    anything under `tests/` or `test/`) are skipped, because a query per row
+    in a test is not a production N+1. Pass `--include-tests` to scan them.
+    This also halves the scan time on large repositories (PostHog: 80 s to
+    39 s).
 
 ## [py-1.13.8] - 2026-10-31
 
