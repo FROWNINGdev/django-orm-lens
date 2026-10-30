@@ -127,6 +127,30 @@ test('DOL013 leaves ForeignKey with on_delete alone', () => {
   assert.equal(findings.length, 0);
 });
 
+test('DOL013 accepts a positional on_delete, as Django contrib writes it', () => {
+  // ForeignKey(to, on_delete, ...). Flagging it was an error-severity false
+  // positive, and the fixer then added a duplicate on_delete= that raises.
+  const rule = ruleByCode('DOL013');
+  for (const src of [
+    'order = models.ForeignKey(Order, models.CASCADE)',
+    'user = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, verbose_name="user")',
+    'ct = models.ForeignKey(ContentType, my_policy, related_name="x")',
+  ]) {
+    assert.equal(rule.check(makeCtx(src)).length, 0, src);
+  }
+});
+
+test('DOL013 still flags one positional plus keywords', () => {
+  const rule = ruleByCode('DOL013');
+  for (const src of [
+    "author = models.ForeignKey(Author, related_name='books')",
+    'author = models.ForeignKey("a, b", null=True)',
+    'author = models.ForeignKey(to=Author)',
+  ]) {
+    assert.equal(rule.check(makeCtx(src)).length, 1, src);
+  }
+});
+
 test('DOL014 flags CharField without max_length', () => {
   const rule = ruleByCode('DOL014');
   const findings = rule.check(makeCtx('nickname = models.CharField()'));

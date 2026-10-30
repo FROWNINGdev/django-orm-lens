@@ -210,12 +210,24 @@ function extractRelated(argsBlock: string): string | undefined {
   return raw.replace(/^['"]|['"]$/g, '');
 }
 
-function extractOnDelete(argsBlock: string): string | undefined {
+function extractOnDelete(
+  argsBlock: string,
+  positional = true
+): string | undefined {
   const m = argsBlock.match(
     /on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)/
   );
   if (m) return m[1];
   if (argsBlock.match(/on_delete\s*=\s*(?:models\.)?SET\s*\(/)) return 'SET';
+  if (!positional) return undefined;
+  // ForeignKey(to, on_delete, ...): the second positional argument is
+  // on_delete, and Django's own contrib apps pass it that way. Not for
+  // ManyToManyField, whose second positional is related_name.
+  const p = argsBlock.match(
+    /^\s*[^,=()[\]]+,\s*(?:[\w.]+\.)?([A-Z][A-Z_]*)\s*(?:[,)]|$)/
+  );
+  if (p) return p[1];
+  if (/^\s*[^,=()[\]]+,\s*(?:[\w.]+\.)?SET\s*\(/.test(argsBlock)) return 'SET';
   return undefined;
 }
 
@@ -375,7 +387,10 @@ export function collectDefs(filePath: string, content: string): ParsedModel[] {
             fieldType === 'TaggableManager'
               ? 'taggit.Tag'
               : extractRelated(argsInner);
-          const onDelete = extractOnDelete(argsInner);
+          const onDelete = extractOnDelete(
+            argsInner,
+            relationKind !== 'ManyToManyField'
+          );
           if (onDelete) field.onDelete = onDelete;
           const relatedName = extractRelatedName(argsInner);
           if (relatedName) field.relatedName = relatedName;

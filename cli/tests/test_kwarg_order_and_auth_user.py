@@ -112,6 +112,92 @@ class ExtractOnDeleteKwargOrderTest(unittest.TestCase):
         self.assertIsNone(_extract_on_delete("null=True, blank=True)"))
 
 
+class ExtractOnDeletePositionalTest(unittest.TestCase):
+    """``ForeignKey(to, on_delete, ...)`` — the spelling Django's own
+    ``contrib.auth`` / ``contrib.admin`` use. It used to read as "no
+    on_delete", so ``cascade`` reported such relations as absent."""
+
+    def test_second_positional_is_on_delete(self) -> None:
+        self.assertEqual(_extract_on_delete("Order, models.CASCADE)"), "CASCADE")
+        self.assertEqual(
+            _extract_on_delete(
+                "settings.AUTH_USER_MODEL, models.CASCADE, verbose_name='user')"
+            ),
+            "CASCADE",
+        )
+        self.assertEqual(
+            _extract_on_delete("ContentType, django.db.models.deletion.PROTECT)"),
+            "PROTECT",
+        )
+        self.assertEqual(_extract_on_delete("'shop.Order', models.SET(0))"), "SET")
+
+    def test_keyword_still_wins_and_kwargs_are_not_positional(self) -> None:
+        self.assertEqual(
+            _extract_on_delete("Order, on_delete=models.SET_NULL, null=True)"),
+            "SET_NULL",
+        )
+        self.assertIsNone(_extract_on_delete("Order, verbose_name='x')"))
+        self.assertIsNone(_extract_on_delete("Order)"))
+
+    def test_m2m_second_positional_is_not_on_delete(self) -> None:
+        # ManyToManyField(to, related_name=None, ...): never read it as a policy.
+        self.assertIsNone(_extract_on_delete("Tag, 'TAGGED')", positional=False))
+
+    def test_regex_fallback_reads_positional_too(self) -> None:
+        # Unparseable args (a stray `=`) take the regex path.
+        self.assertEqual(
+            _extract_on_delete("Order, models.CASCADE, default=)"), "CASCADE"
+        )
+
+    def test_end_to_end_fk_o2o_and_m2m(self) -> None:
+        models = parse_models_file(
+            "shop/models.py",
+            "from django.db import models\n"
+            "class Order(models.Model):\n"
+            "    pass\n"
+            "class Line(models.Model):\n"
+            "    order = models.ForeignKey(Order, models.CASCADE)\n"
+            "    receipt = models.OneToOneField(\n"
+            "        'shop.Order',\n"
+            "        models.PROTECT,\n"
+            "        related_name='receipt_line',\n"
+            "    )\n"
+            "    tags = models.ManyToManyField(Order, 'TAGGED')\n",
+        )
+        line = next(m for m in models if m.name == "Line")
+        by_name = {f.name: f for f in line.fields}
+        self.assertEqual(by_name["order"].on_delete, "CASCADE")
+        self.assertEqual(by_name["receipt"].on_delete, "PROTECT")
+        self.assertIsNone(by_name["tags"].on_delete)
+
+    def test_cascade_no_longer_calls_the_delete_isolated(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        from django_orm_lens.models import cascade_preview
+        from django_orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
+
+        with TemporaryDirectory() as tmp:
+            app = Path(tmp) / "shop"
+            app.mkdir()
+            (app / "models.py").write_text(
+                "from django.db import models\n"
+                "class Order(models.Model):\n"
+                "    pass\n"
+                "class Line(models.Model):\n"
+                "    order = models.ForeignKey(Order, models.CASCADE)\n"
+                "class Note(models.Model):\n"
+                "    order = models.ForeignKey('Order', models.SET_NULL, null=True)\n"
+                "class Invoice(models.Model):\n"
+                "    order = models.OneToOneField(Order, models.PROTECT)\n",
+                encoding="utf-8",
+            )
+            out = cascade_preview(scan_workspace(tmp, DEFAULT_EXCLUDES), "shop.Order")
+        self.assertEqual([e["model"] for e in out["cascade_kills"]], ["shop.Line"])
+        self.assertEqual([e["model"] for e in out["set_null"]], ["shop.Note"])
+        self.assertEqual([e["model"] for e in out["protected"]], ["shop.Invoice"])
+
+
 class ExtractRelatedNameKwargOrderTest(unittest.TestCase):
     def test_related_name_last(self) -> None:
         self.assertEqual(

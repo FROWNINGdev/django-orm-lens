@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A positional `on_delete` was read as missing:
+  `ForeignKey(Order, models.CASCADE)`.** `ForeignKey` and `OneToOneField`
+  take `(to, on_delete, ...)`, and Django's own `contrib.auth` and
+  `contrib.admin` pass the policy positionally. Both parsers only looked for
+  `on_delete=`, so `cascade` and the `blast-radius` counts left such
+  relations out and could call the delete isolated, and in the extension
+  DOL013 reported an error-severity "ForeignKey without on_delete" on valid
+  code — with a quick fix that added a second `on_delete=` and made the call
+  raise for real. The second positional argument now counts for FK and O2O,
+  with any dotted prefix and `SET(...)`; `ManyToManyField`, whose second
+  positional is `related_name`, is left alone.
+
 - **`cascade` called a delete isolated when Django 6.1 would cascade in the
   database.** Django 6.1 added `on_delete=models.DB_CASCADE`, `DB_SET_NULL`
   and `DB_SET_DEFAULT`, where the FK constraint carries `ON DELETE` and the

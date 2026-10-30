@@ -256,16 +256,24 @@ def _extract_related(args_block: str) -> str | None:
     return raw
 
 
-def _extract_on_delete(args_block: str) -> str | None:
+def _extract_on_delete(args_block: str, positional: bool = True) -> str | None:
     """``on_delete`` policy tail (``CASCADE`` / ``SET_NULL`` / ...).
 
     Handles bare identifiers, ``models.`` prefixed forms, and the callable
     ``SET(default)`` form — all return the last dotted segment.
+
+    With ``positional`` (ForeignKey, OneToOneField and their subclasses) the
+    second positional argument counts as well: the signature is
+    ``(to, on_delete, ...)``, and Django's own contrib apps write
+    ``ForeignKey(ContentType, models.CASCADE)``. ManyToManyField has no
+    ``on_delete``; its second positional is ``related_name``.
     """
     posargs, kwargs = _parse_call_args(args_block)
     if posargs is None or kwargs is None:
-        return _extract_on_delete_regex(args_block)
+        return _extract_on_delete_regex(args_block, positional)
     od = kwargs.get("on_delete")
+    if od is None and positional and len(posargs) >= 2:
+        od = posargs[1]
     if od is None:
         return None
     if isinstance(od, ast.Call):
@@ -322,13 +330,27 @@ def _extract_related_regex(args_block: str) -> str | None:
     return raw.strip("'\"")
 
 
-def _extract_on_delete_regex(args_block: str) -> str | None:
+def _extract_on_delete_regex(args_block: str, positional: bool = True) -> str | None:
     m = re.search(r"on_delete\s*=\s*(?:models\.)?([A-Z][A-Z_]+)", args_block)
     if m:
         return m.group(1)
     if re.search(r"on_delete\s*=\s*(?:models\.)?SET\s*\(", args_block):
         return "SET"
+    if not positional:
+        return None
+    # ForeignKey(to, on_delete, ...): same shape as the TS parser accepts.
+    m = _POSITIONAL_ON_DELETE_RE.match(args_block)
+    if m:
+        return m.group(1)
+    if _POSITIONAL_SET_RE.match(args_block):
+        return "SET"
     return None
+
+
+_POSITIONAL_ON_DELETE_RE = re.compile(
+    r"\s*[^,=()\[\]]+,\s*(?:[\w.]+\.)?([A-Z][A-Z_]*)\s*(?:[,)]|$)"
+)
+_POSITIONAL_SET_RE = re.compile(r"\s*[^,=()\[\]]+,\s*(?:[\w.]+\.)?SET\s*\(")
 
 
 def _extract_related_name_regex(args_block: str) -> str | None:
@@ -577,7 +599,9 @@ def _collect_defs(file_path: str, content: str) -> list[ParsedModel]:
                         if ftype == "TaggableManager"
                         else _extract_related(inner)
                     )
-                    field.on_delete = _extract_on_delete(inner)
+                    field.on_delete = _extract_on_delete(
+                        inner, positional=relation_kind != "ManyToManyField"
+                    )
                     field.related_name = _extract_related_name(inner)
                     if relation_kind == "ManyToManyField":
                         explicit_through = _extract_through_model(inner)
