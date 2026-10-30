@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [py-1.14.0] - 2026-10-31
+
 ### Fixed
 
 - **`nplusone` reported writes and test code as N+1 reads.** Checked against
@@ -27,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     This also halves the scan time on large repositories (PostHog: 80 s to
     39 s).
 
-- **`migration-risk` raised 405 false criticals on six large Django codebases.**
+- **`migration-risk`: 407 criticals on six big Django codebases, 2 real.**
   Run over NetBox, PostHog, authentik, Plane, paperless-ngx and Healthchecks,
   it reported 407 critical findings, and 2 of them were real. The rules now
   follow what Django actually does to existing rows:
