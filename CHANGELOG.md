@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`cascade` ignored `on_delete=DO_NOTHING`.** Those relations fell out of
+  every bucket, so `cascade` could call a delete isolated that the FK
+  constraint rejects: Django leaves the referencing rows, and the database
+  raises `IntegrityError`. They now land in a new `unhandled` bucket (CLI JSON
+  and the MCP `cascade_preview` tool, additive), the text output lists them
+  as "left as-is by DO_NOTHING" with one line on what happens, and
+  `blast-radius` adds "N left by DO_NOTHING" to its cascade line when there
+  are any. With `db_constraint=False` there is no constraint to trip, so the
+  entry carries `"db_constraint": false` and the text says the rows keep an id
+  that points nowhere.
+
 - **A positional `on_delete` was read as missing:
   `ForeignKey(Order, models.CASCADE)`.** `ForeignKey` and `OneToOneField`
   take `(to, on_delete, ...)`, and Django's own `contrib.auth` and

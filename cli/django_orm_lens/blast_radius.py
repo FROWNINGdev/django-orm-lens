@@ -299,7 +299,11 @@ def _cascade_line(cascade: dict[str, Any]) -> str:
     kills = len(cascade.get("cascade_kills", []))
     nulls = len(cascade.get("set_null", []))
     prot = len(cascade.get("protected", []))
-    return f"cascade: {kills} deleted, {nulls} nulled, {prot} blocked by PROTECT"
+    line = f"cascade: {kills} deleted, {nulls} nulled, {prot} blocked by PROTECT"
+    left = len(cascade.get("unhandled", []))
+    if left:
+        line += f", {left} left by DO_NOTHING"
+    return line
 
 
 def format_text(report: BlastRadiusReport, root: str | Path = ".") -> str:

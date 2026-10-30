@@ -199,6 +199,16 @@ to see. Also check `find_relations` for self-referential foreign keys
 (`parent = ForeignKey("self", on_delete=CASCADE)`): they delete whole
 subtrees and are easy to miss.
 
+From py-1.13.7 two more things show up. `unhandled` lists `DO_NOTHING`
+relations: Django leaves those rows, so the FK constraint fails the delete
+with `IntegrityError`, unless the entry says `"db_constraint": false`, in
+which case the delete succeeds and leaves ids pointing nowhere. Entries with
+`"db_level": true` come from Django 6.1's `DB_CASCADE` / `DB_SET_NULL` /
+`DB_SET_DEFAULT`: the database does the work, so no `pre_delete` /
+`post_delete` handler runs for those rows. Say so when the user relies on
+signals for audit logs or file cleanup. On older releases, read the
+`on_delete` values from `find_relations` yourself.
+
 ### F. Wiring and history
 
 - `signal_graph` — sender → signal → handler graph, custom signal send-sites,

@@ -19,7 +19,7 @@ Contents: 1. MCP tools · 2. CLI commands · 3. Installing the MCP server ·
 | `list_models` | `app` (optional) | flat `app.Model` list |
 | `describe_model` | `model` (`app.Model` or `Model`) | fields, relations, Meta, bases, file path and line |
 | `find_relations` | `model` | outbound and inbound relations; inbound carry `on_delete` |
-| `cascade_preview` | `app_label`, `model_name` | `cascade_kills`, `set_null`, `protected` — one level |
+| `cascade_preview` | `app_label`, `model_name` | `cascade_kills`, `set_null`, `protected`, `unhandled` (DO_NOTHING, py-1.13.7+) — one level |
 | `er_diagram` | `diagram_format`: `mermaid` (default), `dbml`, `d2`, `plantuml`, `dot` | diagram source |
 | `describe_migration_dependency` | `app_label` | migration DAG: dependencies, roots, leaves, cross-app deps |
 | `suggest_indexes` | `app_label`, `model_name` | field-usage frequency from filter/exclude/get/order_by, proposed `Meta.indexes` |

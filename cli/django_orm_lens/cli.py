@@ -558,6 +558,7 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
     kills = result["cascade_kills"]
     nulls = result["set_null"]
     prot = result["protected"]
+    left = result["unhandled"]
     print(f"deleting one {result['target']} row:")
     if kills:
         print(f"  CASCADE-deletes rows in ({len(kills)}):")
@@ -571,18 +572,35 @@ def _cmd_cascade(args: argparse.Namespace) -> int:
         print(f"  BLOCKED by PROTECT/RESTRICT from ({len(prot)}):")
         for e in prot:
             print(f"    - {e['model']}  via {e['via_field']}{_cascade_suffix(e)}")
-    if not (kills or nulls or prot):
+    if left:
+        print(f"  left as-is by DO_NOTHING in ({len(left)}):")
+        for e in left:
+            print(f"    - {e['model']}  via {e['via_field']}{_cascade_suffix(e)}")
+    if not (kills or nulls or prot or left):
         print("  no inbound relations — the delete is isolated.")
     if any(e.get("db_level") for e in kills + nulls):
         print(
             "  (db) = on_delete=DB_*: the database applies it, so Django "
             "sends no delete signals for those rows."
         )
+    if any(e.get("db_constraint") is not False for e in left):
+        print(
+            "  DO_NOTHING: Django leaves those rows, so their FK constraint "
+            "fails the delete with IntegrityError unless the database "
+            "cascades on its own."
+        )
+    if any(e.get("db_constraint") is False for e in left):
+        print(
+            "  (no constraint) = db_constraint=False: the delete goes "
+            "through and those rows keep an id that points nowhere."
+        )
     return 0
 
 
 def _cascade_suffix(entry: dict) -> str:
     tags = [tag for key, tag in (("self", "self"), ("db_level", "db")) if entry.get(key)]
+    if entry.get("db_constraint") is False:
+        tags.append("no constraint")
     return f" ({', '.join(tags)})" if tags else ""
 
 
