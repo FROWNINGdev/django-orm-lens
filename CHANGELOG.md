@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the workspace, or the call passes `sender=`.
   ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183))
 
+- **`nplusone` read assignments and instance methods as relation reads.**
+  Two more patterns from the real-world census:
+  - `device.cluster = cluster` inside a loop (NetBox) assigns the attribute
+    and loads nothing. `device.cluster.name = x` still loads
+    `device.cluster`, so that one is still reported.
+  - `check.matches_tag_set(tags)` (Healthchecks) is a method on the loop
+    variable, but its name matched the `<model>_set` reverse-manager
+    heuristic. A call made directly on the loop variable is never a
+    relation read; managers are always one attribute deeper.
+
 ## [py-1.14.0] - 2026-10-31
 
 ### Fixed
