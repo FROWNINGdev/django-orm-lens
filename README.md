@@ -390,6 +390,7 @@ django-orm-lens er -f d2 > schema.d2         # …or D2 / plantuml / dot
 django-orm-lens diff before.json after.json  # what a PR changes structurally
 django-orm-lens nplusone --format github     # N+1 findings as PR annotations
 django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
+django-orm-lens migration-risk --path api/   # Alembic revisions too (FastAPI, Flask)
 django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
 django-orm-lens signals                      # sender→signal→handler graph
 django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
@@ -401,6 +402,8 @@ django-orm-lens stats-sql                    # read-only SQL for --stats
 ```
 
 > `impact`, `blast-radius`, `drift` and `stats-sql` ship in **py-1.7.0** and later.
+
+> **Alembic (preview):** `migration-risk` also checks Alembic revisions — NOT NULL without `server_default`, indexes without `CONCURRENTLY`, multiple heads and [ten more rules](docs/rules/alembic.md) — so SQLAlchemy projects without Django (FastAPI, Flask) get the same static migration review.
 
 > **Django 6.1:** `on_delete=models.DB_CASCADE` deletes child rows in the database, so their `post_delete` handlers never run. Since **py-1.13.8**, `cascade` names the handlers each `DB_CASCADE` relation skips — [why that matters and what to do](docs/articles/django-6-1-db-cascade-signals.md).
 
