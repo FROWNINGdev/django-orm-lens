@@ -62,6 +62,43 @@ def test_schema_less_scan_never_suggests_both_clauses_for_one_field(tmp_path: Pa
         assert 'prefetch_related("user")' not in finding.suggested_fix
 
 
+def test_assigning_a_relation_is_not_reading_it(tmp_path: Path) -> None:
+    # NetBox virtualization/views.py: `device.cluster = cluster` in a loop.
+    _write(
+        tmp_path / "views.py",
+        "def assign(cluster, pks):\n"
+        "    for post in Post.objects.filter(pk__in=pks):\n"
+        "        post.author = cluster\n"
+        "        post.save()\n",
+    )
+    assert scan_for_nplusone(str(tmp_path), SCHEMA) == []
+
+
+def test_writing_through_a_relation_still_loads_it(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "views.py",
+        "def rename(pks):\n"
+        "    for post in Post.objects.filter(pk__in=pks):\n"
+        "        post.author.name = 'x'\n",
+    )
+    (finding,) = scan_for_nplusone(str(tmp_path), SCHEMA)
+    assert finding.suggested_fix == '.select_related("author")'
+
+
+def test_method_call_on_the_instance_is_not_a_relation(tmp_path: Path) -> None:
+    # Healthchecks api/views.py: `check.matches_tag_set(tags)` matched the
+    # `<model>_set` reverse-manager heuristic.
+    _write(
+        tmp_path / "views.py",
+        "def listing(tags):\n"
+        "    for post in Post.objects.all():\n"
+        "        if post.matches_tag_set(tags):\n"
+        "            print(post.to_dict())\n",
+    )
+    assert scan_for_nplusone(str(tmp_path), SCHEMA) == []
+    assert scan_for_nplusone(str(tmp_path), None) == []
+
+
 def test_test_modules_are_skipped_unless_asked(tmp_path: Path) -> None:
     loop = (
         "def check():\n"
