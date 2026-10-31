@@ -16,6 +16,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `on_delete=models.CASCADE` to either. `ManyToManyField` has no `on_delete` and
   is still left alone.
 
+- **DOL013 missed a `ForeignKey` with a call in its arguments.** The rule's
+  regex stopped at the first inner `(`, so
+  `ForeignKey(Author, verbose_name=_("author"))` or
+  `ForeignKey(Author, default=get_default_author())` was never checked, which
+  took the rule away from most relations in translated projects. The argument
+  list is now read with balanced brackets and quotes. A comma inside a nested
+  call is not a second positional argument, and the QuickFix inserts
+  `on_delete=` before the call's own closing `)`. The rule still checks one
+  line at a time. ([#182](https://github.com/FROWNINGdev/django-orm-lens/issues/182))
+
+- **`signals` / MCP `signal_graph` missed receivers registered with
+  `.connect()`.** Only `@receiver(...)` decorators were read, so
+  `post_delete.connect(delete_file, sender=Attachment)` in an `AppConfig.ready()`
+  was invisible, and `cascade` left it out of the `DB_CASCADE`
+  `skipped_receivers` list. `signal.connect(handler, sender=Model)` is now an
+  edge like a decorator, with a bare or dotted signal (`post_delete`,
+  `models.signals.post_delete`), `receiver=` as a keyword, and no `sender`
+  meaning every model. To keep sockets and database clients out, a `.connect()`
+  call only counts when the signal is a Django built-in, a `Signal()` defined in
+  the workspace, or the call passes `sender=`.
+  ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183))
+
+- **`nplusone` read assignments and instance methods as relation reads.**
+  Two more patterns from the real-world census:
+  - `device.cluster = cluster` inside a loop (NetBox) assigns the attribute
+    and loads nothing. `device.cluster.name = x` still loads
+    `device.cluster`, so that one is still reported.
+  - `check.matches_tag_set(tags)` (Healthchecks) is a method on the loop
+    variable, but its name matched the `<model>_set` reverse-manager
+    heuristic. A call made directly on the loop variable is never a
+    relation read; managers are always one attribute deeper.
+
 ## [py-1.14.0] - 2026-10-31
 
 ### Fixed

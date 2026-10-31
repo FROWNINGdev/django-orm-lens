@@ -168,5 +168,67 @@ class SignalGraphTest(unittest.TestCase):
             self.assertEqual(result["orphan_handlers"], [])
 
 
+class SignalConnectTest(unittest.TestCase):
+    """``signal.connect(handler, sender=Model)`` registers a receiver just
+    like ``@receiver`` does (issue #183)."""
+
+    def _edges(self, body: str) -> list[dict]:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _copy_miniapp(root)
+            _write(root / "orders" / "apps.py", body)
+            return signal_graph(str(root))["edges"]
+
+    def test_connect_with_sender(self) -> None:
+        edges = self._edges(
+            "from django.db.models.signals import post_delete\n"
+            "from orders.handlers import delete_file_from_storage\n"
+            "from orders.models import Order\n\n"
+            "def ready():\n"
+            "    post_delete.connect(delete_file_from_storage, sender=Order)\n"
+        )
+        self.assertEqual(
+            edges,
+            [
+                {
+                    "signal": "post_delete",
+                    "sender": "orders.Order",
+                    "handler": "delete_file_from_storage",
+                    "file": "orders/apps.py:6",
+                    "builtin": True,
+                }
+            ],
+        )
+
+    def test_connect_without_sender_fires_for_all_models(self) -> None:
+        edges = self._edges(
+            "from django.db.models.signals import post_delete\n\n"
+            "post_delete.connect(handlers.audit)\n"
+        )
+        self.assertEqual(len(edges), 1)
+        self.assertEqual(edges[0]["handler"], "handlers.audit")
+        self.assertIsNone(edges[0]["sender"])
+        self.assertEqual(edges[0]["note"], "no sender = fires for all models")
+
+    def test_connect_on_dotted_signal(self) -> None:
+        edges = self._edges(
+            "from django.db import models\n\n"
+            "models.signals.post_delete.connect(receiver=cleanup, sender='Order')\n"
+        )
+        self.assertEqual(len(edges), 1)
+        self.assertEqual(edges[0]["signal"], "models.signals.post_delete")
+        self.assertEqual(edges[0]["handler"], "cleanup")
+        self.assertEqual(edges[0]["sender"], "orders.Order")
+
+    def test_unrelated_connect_calls_are_ignored(self) -> None:
+        edges = self._edges(
+            "import socket\n\n"
+            "sock = socket.socket()\n"
+            "sock.connect(address)\n"
+            "db.connect(dsn)\n"
+        )
+        self.assertEqual(edges, [])
+
+
 if __name__ == "__main__":
     unittest.main()
