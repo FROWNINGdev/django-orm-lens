@@ -256,7 +256,12 @@ class _RevisionAnalyzer:
     def _table(self, call: ast.Call, batch_table: str | None, index: int = 0, name: str = "table_name") -> str | None:
         if batch_table is not None:
             return batch_table
-        return _name_of(_arg(call, index, name))
+        node = _arg(call, index, name)
+        resolved = _name_of(node)
+        if resolved is None and isinstance(node, ast.Name):
+            # TABLE_NAME = "orders"; op.drop_table(TABLE_NAME)
+            resolved = self.strings.get(node.id)
+        return resolved
 
     # -- rules ------------------------------------------------------------
     def _check_add_column(self, call: ast.Call, batch_table: str | None) -> None:
@@ -353,6 +358,17 @@ class _RevisionAnalyzer:
             f"Drops '{table}.{column}'; the previous release's models still select it until every "
             f"instance is replaced.",
             "Remove the column from the models and deploy first; drop it in a later release.",
+        )
+
+    def _check_drop_table(self, call: ast.Call, batch_table: str | None) -> None:
+        table = self._table(call, batch_table)
+        if not self._populated(table):
+            return
+        self._add(
+            call, "drop_table", "alembic_drop_table_breaks_running_code", table, None,
+            f"Drops table '{table}'; the previous release's models still query it, so every "
+            f"remaining instance fails until it is replaced.",
+            "Remove the table from the models and deploy first; drop it in a later release.",
         )
 
     def _check_rename_table(self, call: ast.Call, batch_table: str | None) -> None:

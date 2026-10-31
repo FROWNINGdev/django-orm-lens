@@ -110,6 +110,50 @@ def test_batch_operations_take_the_table_from_the_with_block(tmp_path: Path) -> 
     assert rules["alembic_drop_column_breaks_running_code"][0].field == "legacy"
 
 
+def test_drop_table_on_a_populated_table_is_flagged(tmp_path: Path) -> None:
+    rules = _rules(tmp_path, "    op.drop_table('orders')")
+    (f,) = rules["alembic_drop_table_breaks_running_code"]
+    assert (f.severity, f.confidence, f.model, f.field) == ("warning", "medium", "orders", None)
+
+
+def test_table_name_from_a_module_constant_is_resolved(tmp_path: Path) -> None:
+    versions = tmp_path / "alembic" / "versions"
+    versions.mkdir(parents=True)
+    (versions / "aaa_base.py").write_text(
+        HEADER.format(rev="aaa", down="None", labels="None")
+        + "    op.create_table('orders', sa.Column('id', sa.Integer()))\n",
+        encoding="utf-8",
+    )
+    (versions / "bbb_change.py").write_text(
+        "import sqlalchemy as sa\n"
+        "from alembic import op\n\n"
+        'revision = "bbb"\n'
+        'down_revision = "aaa"\n'
+        "branch_labels = None\n"
+        'TABLE_NAME = "orders"\n\n\n'
+        "def upgrade():\n"
+        "    op.drop_table(TABLE_NAME)\n",
+        encoding="utf-8",
+    )
+    out: dict[str, list] = {}
+    for f in analyze_alembic_risks(str(tmp_path)):
+        out.setdefault(f.rule, []).append(f)
+    (f,) = out["alembic_drop_table_breaks_running_code"]
+    assert f.model == "orders"
+    assert "'None'" not in f.description
+
+
+def test_drop_table_in_the_base_or_after_create_table_is_silent(tmp_path: Path) -> None:
+    assert "alembic_drop_table_breaks_running_code" not in _rules(
+        tmp_path / "base", "    op.drop_table('orders')", base=True
+    )
+    same_revision = (
+        "    op.create_table('lines', sa.Column('id', sa.Integer()))\n"
+        "    op.drop_table('lines')"
+    )
+    assert "alembic_drop_table_breaks_running_code" not in _rules(tmp_path / "same", same_revision)
+
+
 def test_index_concurrently_is_safe(tmp_path: Path) -> None:
     rules = _rules(tmp_path / "plain", "    op.create_index('ix_o', 'orders', ['status'])")
     assert rules["alembic_create_index_locks_table"][0].severity == "warning"
