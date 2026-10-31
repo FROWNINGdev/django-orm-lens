@@ -18,12 +18,12 @@ const DOCS_BASE =
 const RE_STRING_FIELD_LINE =
   /\b(?:models\.)?(CharField|TextField)\s*\(([^()]*)\)/g;
 /**
- * ForeignKey call opener — used to detect missing on_delete on the same line.
+ * ForeignKey / OneToOneField call opener: the relations that require on_delete.
  * The argument list is read by `readCallArgs`, so nested calls such as
  * `verbose_name=_("author")` don't hide the call.
  */
-const RE_FOREIGN_KEY_OPEN =
-  /\b(?:models\.)?ForeignKey\s*\(/g;
+const RE_ON_DELETE_FIELD_OPEN =
+  /\b(?:models\.)?(ForeignKey|OneToOneField)\s*\(/g;
 /** class Foo(models.Model): or class Foo(SomethingWithModel): */
 const RE_CLASS_HEAD =
   /^(\s*)class\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*:/;
@@ -242,10 +242,10 @@ const DOL012: Rule = {
 };
 
 /**
- * DOL013 — ForeignKey / OneToOneField / ManyToManyField called without an
- * explicit `on_delete=`. Django dropped the default in 2.0 — omitting it
- * on FK/1to1 is a hard TypeError, but on models still-being-written it's
- * easy to miss. Detect at author-time.
+ * DOL013 — ForeignKey / OneToOneField called without an explicit
+ * `on_delete=`. Django dropped the default in 2.0 — omitting it is a hard
+ * TypeError, but on models still-being-written it's easy to miss. Detect at
+ * author-time. ManyToManyField has no on_delete and is left alone.
  *
  * Applicability: suggestion (we insert `on_delete=models.CASCADE` as a
  * template — user must decide the real behaviour).
@@ -253,14 +253,14 @@ const DOL012: Rule = {
 const DOL013: Rule = {
   meta: {
     code: 'DOL013',
-    title: 'ForeignKey without on_delete',
+    title: 'ForeignKey or OneToOneField without on_delete',
     category: 'correctness',
     defaultSeverity: 'error',
     docsUrl: `${DOCS_BASE}/DOL013.md`,
     since: '0.8.0',
     messages: {
       default:
-        'ForeignKey requires on_delete — this raises TypeError at model-load time. Add on_delete=models.CASCADE (or PROTECT/SET_NULL/SET_DEFAULT/DO_NOTHING).',
+        '{field} requires on_delete — this raises TypeError at model-load time. Add on_delete=models.CASCADE (or PROTECT/SET_NULL/SET_DEFAULT/DO_NOTHING).',
     },
   },
   check(ctx: RuleContext): Finding[] {
@@ -268,20 +268,22 @@ const DOL013: Rule = {
     for (let i = 0; i < ctx.lineCount; i++) {
       const text = ctx.lineAt(i);
       if (isCommentLine(text)) continue;
-      RE_FOREIGN_KEY_OPEN.lastIndex = 0;
+      RE_ON_DELETE_FIELD_OPEN.lastIndex = 0;
       let m: RegExpExecArray | null;
-      while ((m = RE_FOREIGN_KEY_OPEN.exec(text)) !== null) {
+      while ((m = RE_ON_DELETE_FIELD_OPEN.exec(text)) !== null) {
         const call = readCallArgs(text, m.index + m[0].length);
         if (call === null) continue;
         const argBody = call.argBody;
         if (hasKwargName(argBody, 'on_delete')) continue;
         // ForeignKey(to, on_delete, ...): a second positional argument is
-        // on_delete. Django's own contrib apps write it that way, and the
-        // fixer would add a duplicate on_delete= that really does raise.
+        // on_delete (OneToOneField has the same signature). Django's own
+        // contrib apps write it that way, and the fixer would add a
+        // duplicate on_delete= that really does raise.
         if (positionalArgCount(argBody) >= 2) continue;
         out.push({
           code: 'DOL013',
           messageId: 'default',
+          args: { field: m[1] },
           range: { line: i, startCol: m.index, endCol: call.end },
           applicability: 'suggestion',
         });

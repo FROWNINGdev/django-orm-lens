@@ -34,7 +34,7 @@ Applicability follows Clippy's semantics. It is a property of each individual fi
 | [DOL008](DOL008.md) | Field name in a lookup looks misspelled | correctness | warning | suggestion |
 | [DOL011](DOL011.md) | `null=True` on CharField/TextField | model | warning | suggestion |
 | [DOL012](https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules/DOL012.md) | Model without `__str__` method | model | info | suggestion |
-| [DOL013](DOL013.md) | ForeignKey without `on_delete` | model | error | suggestion |
+| [DOL013](DOL013.md) | ForeignKey or OneToOneField without `on_delete` | model | error | suggestion |
 | [DOL014](DOL014.md) | CharField without `max_length` | model | error | suggestion |
 | [DOL015](DOL015.md) | TextField with `max_length` has no DB effect | model | hint | suggestion |
 | [DOL021](DOL021.md) | `datetime.now()` should be `timezone.now()` | datetime | warning | suggestion |

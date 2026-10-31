@@ -131,8 +131,8 @@ const FIX_DOL011: Fixer = {
 
 /**
  * DOL013: insert `on_delete=models.CASCADE` as the first kwarg of the
- * flagged `ForeignKey(...)` call. If there is only positional arg (the
- * to= target), append with a leading comma.
+ * flagged `ForeignKey(...)` or `OneToOneField(...)` call. If there is only
+ * positional arg (the to= target), append with a leading comma.
  */
 const FIX_DOL013: Fixer = {
   code: 'DOL013',
@@ -143,14 +143,17 @@ const FIX_DOL013: Fixer = {
       ctx.finding.range.startCol,
       ctx.finding.range.endCol,
     );
-    // slice looks like `models.ForeignKey(SomeModel)` or `ForeignKey("app.Foo")`
+    // slice looks like `models.ForeignKey(SomeModel)`, `ForeignKey("app.Foo")`
+    // or `models.OneToOneField(User)`
     // Insert `on_delete=models.CASCADE` before the closing `)`.
     const idx = slice.lastIndexOf(')');
     if (idx < 0) return null;
     const before = slice.slice(0, idx);
     const trimmed = before.replace(/\s+$/, '');
     const isEmpty = /\(\s*$/.test(trimmed);
-    const sep = isEmpty ? '' : ', ';
+    // `OneToOneField(User,)` already ends with a comma; another would be a
+    // syntax error.
+    const sep = isEmpty ? '' : trimmed.endsWith(',') ? ' ' : ', ';
     const newSlice = `${trimmed}${sep}on_delete=models.CASCADE)`;
     return replaceRange(ctx.finding, newSlice);
   },

@@ -151,6 +151,23 @@ test('DOL013 still flags one positional plus keywords', () => {
   }
 });
 
+test('DOL013 flags OneToOneField without on_delete', () => {
+  const rule = ruleByCode('DOL013');
+  const findings = rule.check(makeCtx('profile = models.OneToOneField(User)'));
+  assert.equal(findings.length, 1);
+  assert.deepEqual(findings[0].args, { field: 'OneToOneField' });
+});
+
+test('DOL013 leaves OneToOneField with on_delete alone', () => {
+  const rule = ruleByCode('DOL013');
+  for (const src of [
+    'profile = models.OneToOneField(User, models.CASCADE)',
+    'profile = models.OneToOneField(User, on_delete=models.CASCADE)',
+  ]) {
+    assert.equal(rule.check(makeCtx(src)).length, 0, src);
+  }
+});
+
 test('DOL013 reads past nested calls in the arguments (#182)', () => {
   const rule = ruleByCode('DOL013');
   for (const src of [
@@ -169,6 +186,12 @@ test('DOL013 reads past nested calls in the arguments (#182)', () => {
   ]) {
     assert.equal(rule.check(makeCtx(src)).length, 0, src);
   }
+});
+
+test('DOL013 leaves ManyToManyField alone, it has no on_delete', () => {
+  const rule = ruleByCode('DOL013');
+  const findings = rule.check(makeCtx('tags = models.ManyToManyField(Tag)'));
+  assert.equal(findings.length, 0);
 });
 
 test('DOL013 range ends at the matching paren, so the fixer edits the right spot', () => {
