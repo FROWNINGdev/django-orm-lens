@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `on_delete=` before the call's own closing `)`. The rule still checks one
   line at a time. ([#182](https://github.com/FROWNINGdev/django-orm-lens/issues/182))
 
+- **`signals` / MCP `signal_graph` missed receivers registered with
+  `.connect()`.** Only `@receiver(...)` decorators were read, so
+  `post_delete.connect(delete_file, sender=Attachment)` in an `AppConfig.ready()`
+  was invisible, and `cascade` left it out of the `DB_CASCADE`
+  `skipped_receivers` list. `signal.connect(handler, sender=Model)` is now an
+  edge like a decorator, with a bare or dotted signal (`post_delete`,
+  `models.signals.post_delete`), `receiver=` as a keyword, and no `sender`
+  meaning every model. To keep sockets and database clients out, a `.connect()`
+  call only counts when the signal is a Django built-in, a `Signal()` defined in
+  the workspace, or the call passes `sender=`.
+  ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183))
+
 - **`nplusone` read assignments and instance methods as relation reads.**
   Two more patterns from the real-world census:
   - `device.cluster = cluster` inside a loop (NetBox) assigns the attribute

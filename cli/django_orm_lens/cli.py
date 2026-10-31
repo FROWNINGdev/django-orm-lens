@@ -11,7 +11,7 @@ Zero-dep argparse CLI. Commands mirror what the VS Code extension does:
   django-orm-lens nplusone   — static N+1 detector (text/json/sarif/github)
   django-orm-lens migration-risk  — flag risky migration operations
   django-orm-lens suggest-indexes — propose Meta.indexes from QuerySet usage
-  django-orm-lens signals    — sender→signal→handler graph from @receiver
+  django-orm-lens signals    — sender→signal→handler graph from @receiver + .connect()
   django-orm-lens migration-deps  — per-app migration dependency DAG
   django-orm-lens cascade    — what delete() cascades to, by on_delete
   django-orm-lens mcp        — start the MCP stdio server (extras required)
@@ -829,7 +829,7 @@ def build_parser() -> argparse.ArgumentParser:
     signals = sub.add_parser(
         "signals",
         aliases=["signal-graph"],
-        help="Sender→signal→handler graph from @receiver decorators",
+        help="Sender→signal→handler graph from @receiver and .connect()",
     )
     _add_scan_flags(signals)
     signals.add_argument(
@@ -993,7 +993,7 @@ def _cmd_hello(_args: argparse.Namespace) -> int:
     print("  nplusone           Detect N+1 anti-patterns in views/tasks")
     print("  migration-risk     Flag risky migration operations")
     print("  suggest-indexes <model>   Propose Meta.indexes from QuerySet usage")
-    print("  signals            Sender→signal→handler graph from @receiver")
+    print("  signals            Sender→signal→handler graph from @receiver + .connect()")
     print("  migration-deps <app>      Migration dependency DAG (text/json/mermaid)")
     print("  cascade <model>    What delete() cascades to, grouped by on_delete")
     print("  impact <name>      What still references a model or field, by layer")
