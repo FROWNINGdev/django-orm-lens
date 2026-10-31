@@ -1,5 +1,5 @@
 # Jekyll config for the GitHub Pages preview at
-# https://frowningdev.github.io/django-orm-lens/
+# https://frowningdev.github.io/orm-lens/
 #
 # Without this file GitHub Pages falls back to its legacy default
 # renderer that does NOT process markdown inside HTML blocks. Because
@@ -17,16 +17,17 @@ theme: jekyll-theme-primer
 # Search metadata for the GitHub Pages homepage, consumed by jekyll-seo-tag.
 # Without a `title`/`tagline`/`description` the homepage `<title>` and
 # `<meta name="description">` fell back to the bare repo name — so the page
-# ranked only for the brand name "django-orm-lens", never for the problems
-# people actually search ("django er diagram", "django n+1", "django migration
-# linter"). `tagline` puts those keywords into the homepage `<title>`
+# ranked only for the brand name, never for the problems people actually
+# search ("django er diagram", "sqlalchemy n+1", "alembic migration linter").
+# `tagline` puts those keywords into the homepage `<title>`
 # ("<title> | <tagline>"); `description` carries them into the meta description.
-title: Django ORM Lens
-tagline: Django ER diagram, N+1 and migration-risk linter — no database, no Django boot
+title: ORM Lens
+tagline: ER diagrams, N+1 and migration-risk linter for Django and SQLAlchemy
 description: >-
-  Static analysis for Django models and migrations: ER diagrams, N+1 detection,
-  schema drift and migration-risk checks across a VS Code extension, a CLI, and
-  an MCP server. No database, no django.setup(). Free and MIT.
+  Static analysis for Django and SQLAlchemy models, Django migrations and
+  Alembic revisions: ER diagrams, N+1 detection, schema drift and
+  migration-risk checks across a VS Code extension, a CLI, and an MCP server.
+  No database, no app boot. Free and MIT. Formerly django-orm-lens.
 
 # Social card, consumed by jekyll-seo-tag. Without it the homepage unfurled
 # as a bare `summary` card with no image anywhere it was shared.
@@ -42,14 +43,14 @@ defaults:
   - scope:
       path: ""
     values:
-      image: https://frowningdev.github.io/django-orm-lens/media/hero.png
+      image: https://frowningdev.github.io/orm-lens/media/hero.png
   # README.md is served twice: as the homepage and again as /README.html. Both
   # point their canonical at the homepage so search engines treat them as one
   # page instead of two competing duplicates.
   - scope:
       path: "README.md"
     values:
-      canonical_url: https://frowningdev.github.io/django-orm-lens/
+      canonical_url: https://frowningdev.github.io/orm-lens/
 
 # jekyll-sitemap publishes /sitemap.xml, the file search consoles take to
 # discover and recrawl the site. jekyll-seo-tag is named explicitly rather than

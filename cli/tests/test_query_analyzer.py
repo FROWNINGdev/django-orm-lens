@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.query_analyzer import suggest_indexes
+from orm_lens.query_analyzer import suggest_indexes
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "miniapp"
 

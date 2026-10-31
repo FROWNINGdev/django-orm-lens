@@ -26,11 +26,11 @@ Lệnh `migration-risk` chấm điểm mọi file migration trong dự án của
 ## Cách dùng
 
 ```bash
-django-orm-lens migration-risk --path .              # toàn bộ dự án
-django-orm-lens migration-risk --path apps/blog/migrations
-django-orm-lens migration-risk --format json         # định dạng máy đọc được
-django-orm-lens migration-risk --format github       # GitHub PR annotations
-django-orm-lens migration-risk --severity error      # chỉ các lỗi
+orm-lens migration-risk --path .              # toàn bộ dự án
+orm-lens migration-risk --path apps/blog/migrations
+orm-lens migration-risk --format json         # định dạng máy đọc được
+orm-lens migration-risk --format github       # GitHub PR annotations
+orm-lens migration-risk --severity error      # chỉ các lỗi
 ```
 
 - **`--path PATH`** — thư mục gốc để quét (mặc định: thư mục hiện tại).
@@ -43,7 +43,7 @@ django-orm-lens migration-risk --severity error      # chỉ các lỗi
 ## Trong CI
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@action-v1
+- uses: FROWNINGdev/orm-lens@action-v1
   with:
     command: migration-risk
     format: github

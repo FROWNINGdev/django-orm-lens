@@ -1,4 +1,4 @@
-"""Tests for the blast-radius composer (cli/django_orm_lens/blast_radius.py).
+"""Tests for the blast-radius composer (cli/orm_lens/blast_radius.py).
 
 Runs against tests/fixtures/blast_radius — a two-migration app whose second
 migration drops a field that models.py, views.py, serializers.py and a
@@ -15,17 +15,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from django_orm_lens.blast_radius import (
+from orm_lens.blast_radius import (
     COMMENT_MARKER,
     DESTRUCTIVE_OPERATIONS,
     analyze_blast_radius,
     format_markdown,
     format_text,
 )
-from django_orm_lens.ci_formats import blast_radius_github
-from django_orm_lens.impact import layer_of
-from django_orm_lens.mcp_server import _tool_blast_radius
-from django_orm_lens.parser import scan_workspace
+from orm_lens.ci_formats import blast_radius_github
+from orm_lens.impact import layer_of
+from orm_lens.mcp_server import _tool_blast_radius
+from orm_lens.parser import scan_workspace
 
 FIXTURE = Path(__file__).parent / "fixtures" / "blast_radius"
 
@@ -117,7 +117,7 @@ class RenderingTest(unittest.TestCase):
 
     def test_markdown_is_a_postable_pr_comment(self) -> None:
         out = format_markdown(self.report, FIXTURE)
-        self.assertIn("### Django ORM Lens — blast radius", out)
+        self.assertIn("### ORM Lens — blast radius", out)
         self.assertIn("<details>", out)
         self.assertIn("| Layer | Confidence | Location | Code |", out)
 

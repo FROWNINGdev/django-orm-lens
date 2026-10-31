@@ -1,26 +1,26 @@
-# Contributing to Django ORM Lens
+# Contributing to ORM Lens
 
 Thanks for wanting to help! This project ships across three surfaces (VS Code
 extension, Python CLI, MCP server) that all share one parser — so any
-improvement usually lands in both `src/` (TypeScript) and `cli/django_orm_lens/`
+improvement usually lands in both `src/` (TypeScript) and `cli/orm_lens/`
 (Python).
 
 ## How to become a contributor (all skill levels welcome)
 
 You do **not** need to write Python or TypeScript to contribute. Every merged
 PR — including documentation, translations, screenshots, or a one-line typo
-fix — lands you on the [Contributors graph](https://github.com/FROWNINGdev/django-orm-lens/graphs/contributors)
+fix — lands you on the [Contributors graph](https://github.com/FROWNINGdev/orm-lens/graphs/contributors)
 and (once the bot is enabled) in the auto-generated Contributors table at the
 bottom of the README.
 
-Concrete first-PR ideas (all labelled [`good first issue`](https://github.com/FROWNINGdev/django-orm-lens/labels/good%20first%20issue)):
+Concrete first-PR ideas (all labelled [`good first issue`](https://github.com/FROWNINGdev/orm-lens/labels/good%20first%20issue)):
 
 - **Translate the README** to your language (RU, ZH, ES already open —
   see issues #9-11). No code involved.
 - **Add a screenshot** of the sidebar / ER diagram in your editor. Issue #15.
 - **Fix a small CLI paper cut** — issues #8, #12, #14 each take under an hour.
 - **Add a golden fixture** from a real Django project (issue #13).
-- **Answer a question** on [Discussions](https://github.com/FROWNINGdev/django-orm-lens/discussions)
+- **Answer a question** on [Discussions](https://github.com/FROWNINGdev/orm-lens/discussions)
   — help others use the tool and get recognized as a `question` contributor.
 
 All contribution types recognized via the [All Contributors spec](https://allcontributors.org/docs/en/emoji-key):
@@ -40,7 +40,7 @@ in permanently.
 - 🐛 **Found a parser edge case?** Open an issue with the smallest `models.py`
   snippet that reproduces it. Bonus points for a failing test.
 - 💡 **Have a feature idea?** Start with a
-  [Discussion](https://github.com/FROWNINGdev/django-orm-lens/discussions)
+  [Discussion](https://github.com/FROWNINGdev/orm-lens/discussions)
   rather than a PR — quicker to align on scope.
 - 🛠️ **Want to fix something?** See "Development setup" below.
 
@@ -63,14 +63,14 @@ uncompiled extension loaded — the tree view and ER diagram render live.
 ```bash
 cd cli
 pip install -e ".[dev,mcp]"
-django-orm-lens scan --path /some/django/project
+orm-lens scan --path /some/django/project
 python -m pytest       # if tests added
 ```
 
 ## Parity rule
 
 The TS parser (`src/parser.ts`) and the Python parser
-(`cli/django_orm_lens/parser.py`) emit the same camelCase JSON schema. If you
+(`cli/orm_lens/parser.py`) emit the same camelCase JSON schema. If you
 add a field to one, add it to the other in the same PR — otherwise
 downstream consumers (VS Code extension, CLI, MCP tools) diverge.
 
@@ -91,19 +91,19 @@ Shared shapes:
 
 | Area | Files |
 |---|---|
-| Parser core (shared shape source of truth) | `src/parser.ts`, `cli/django_orm_lens/parser.py` |
+| Parser core (shared shape source of truth) | `src/parser.ts`, `cli/orm_lens/parser.py` |
 | VS Code tree view | `src/treeProvider.ts` |
 | VS Code hover cards | `src/hoverProvider.ts` |
 | VS Code CodeLens | `src/codeLensProvider.ts` |
-| Mermaid diagram builder | `src/graphWebview.ts`, `cli/django_orm_lens/cli.py::_build_mermaid` |
-| CLI subcommands | `cli/django_orm_lens/cli.py` |
-| MCP server | `cli/django_orm_lens/mcp_server.py` |
+| Mermaid diagram builder | `src/graphWebview.ts`, `cli/orm_lens/cli.py::_build_mermaid` |
+| CLI subcommands | `cli/orm_lens/cli.py` |
+| MCP server | `cli/orm_lens/mcp_server.py` |
 
 ## Areas that welcome help
 
 Marked with `good first issue` in the tracker:
-- Zoom + minimap in the ER diagram webview ([#4](https://github.com/FROWNINGdev/django-orm-lens/issues/4))
-- ORM query autocomplete inside `.filter() / .exclude() / .annotate()` ([#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3))
+- Zoom + minimap in the ER diagram webview ([#4](https://github.com/FROWNINGdev/orm-lens/issues/4))
+- ORM query autocomplete inside `.filter() / .exclude() / .annotate()` ([#3](https://github.com/FROWNINGdev/orm-lens/issues/3))
 
 ## Getting your PR merged
 

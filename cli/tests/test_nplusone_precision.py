@@ -11,8 +11,8 @@ import io
 import json
 from pathlib import Path
 
-from django_orm_lens.cli import main
-from django_orm_lens.query_analyzer import scan_for_nplusone
+from orm_lens.cli import main
+from orm_lens.query_analyzer import scan_for_nplusone
 from tests.test_nplusone_detector import BLOG_SCHEMA, _write
 
 SCHEMA = {

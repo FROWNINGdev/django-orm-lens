@@ -1,6 +1,6 @@
 # Alembic migration risk rules (preview)
 
-`django-orm-lens migration-risk --path .` also reads every Alembic revision in the workspace: any `.py` under a `versions/` directory that declares `revision = "..."` and an `upgrade()` function. That covers `alembic/versions/`, Flask-Migrate's `migrations/versions/` and nested layouts such as `versions/postgresql/`. Like the Django rules, it is static: revisions are parsed with `ast`, never imported or run, and no database is touched. Projects that use SQLAlchemy without Django (FastAPI, Flask, Litestar) get the same checks and the same output formats.
+`orm-lens migration-risk --path .` also reads every Alembic revision in the workspace: any `.py` under a `versions/` directory that declares `revision = "..."` and an `upgrade()` function. That covers `alembic/versions/`, Flask-Migrate's `migrations/versions/` and nested layouts such as `versions/postgresql/`. Like the Django rules, it is static: revisions are parsed with `ast`, never imported or run, and no database is touched. Projects that use SQLAlchemy without Django (FastAPI, Flask, Litestar) get the same checks and the same output formats.
 
 Usage and CI semantics are those of the [Django migration rules](migrations.md): exit code `1` on `critical` findings, `--severity critical|warning|info|all` (default `critical`), `--format text|json|sarif|github`. Findings carry `app = "alembic"`, the table in `model` and the column in `field`.
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from django_orm_lens.parser import scan_workspace
+from orm_lens.parser import scan_workspace
 
 FIXTURES = Path(__file__).parent / "fixtures" / "golden"
 

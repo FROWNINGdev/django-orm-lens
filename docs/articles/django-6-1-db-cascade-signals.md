@@ -67,13 +67,13 @@ Grepping for `post_delete` gets you the handlers, but not which ones a given
 `sender` against the models on the receiving end of the cascade, and remember
 that a sender-less receiver matches all of them.
 
-[django-orm-lens](https://github.com/FROWNINGdev/django-orm-lens) does that
+[orm-lens](https://github.com/FROWNINGdev/orm-lens) does that
 matching statically: it reads your source, so it needs no database and no
 `django.setup()`. Since py-1.13.8, `cascade` lists the delete handlers each
 `DB_CASCADE` relation skips:
 
 ```text
-$ uvx django-orm-lens cascade shop.Order
+$ uvx orm-lens cascade shop.Order
 deleting one shop.Order row:
   CASCADE-deletes rows in (1):
     - shop.Attachment  via order (db)
@@ -114,8 +114,8 @@ running.
 
 ---
 
-django-orm-lens is free and MIT: a VS Code extension, a CLI (`pip install
-django-orm-lens`) and an MCP server for AI agents, all working from your
+orm-lens is free and MIT: a VS Code extension, a CLI (`pip install
+orm-lens`) and an MCP server for AI agents, all working from your
 source. It also handles the older ways of writing a cascade. A positional
 `ForeignKey(Order, models.CASCADE)`, the way `django.contrib` writes it, and
 `DO_NOTHING`, which leaves rows for the constraint to reject, are both

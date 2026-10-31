@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import unittest
 
-from django_orm_lens.parser import parse_models_file
+from orm_lens.parser import parse_models_file
 
 OSCAR_SHAPE = '''
 from oscar.apps.catalogue.abstract_models import *

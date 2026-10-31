@@ -1,5 +1,5 @@
 ---
-name: django-orm-lens
+name: orm-lens
 description: >-
   Static analysis for Django codebases: real answers about models, relations,
   N+1 queries, migration safety, schema drift and "what breaks if I remove
@@ -13,21 +13,21 @@ description: >-
   "static analysis" or name this tool.
 license: MIT
 compatibility: >-
-  Python 3.9+. Works through the django-orm-lens MCP server when it is
-  connected, otherwise through the django-orm-lens CLI (uvx, pipx or pip).
+  Python 3.9+. Works through the orm-lens MCP server when it is
+  connected, otherwise through the orm-lens CLI (uvx, pipx or pip).
   Read-only: never imports the project, never touches a database.
 metadata:
   author: FROWNINGdev
-  version: 1.3.1
-  homepage: https://github.com/FROWNINGdev/django-orm-lens
+  version: 1.4.0
+  homepage: https://github.com/FROWNINGdev/orm-lens
 ---
 
-# Django ORM Lens
+# ORM Lens
 
 Guessing about a Django schema is how agents ship broken migrations. Reading
 `models.py` by eye misses abstract bases in other files, reverse accessors,
 `related_name`s, cross-app foreign keys and the migration history; grepping
-for a field name drowns in false matches. `django-orm-lens` parses the whole
+for a field name drowns in false matches. `orm-lens` parses the whole
 project with Python's AST and answers from facts: which models exist, what
 points at what, which loops issue N+1 queries, which migration operations
 lock tables or drop data, and which lines of code still read a column you are
@@ -46,9 +46,9 @@ Check whether MCP tools named `list_apps`, `describe_model`, `blast_radius`,
 If they are not, use the CLI. Pick the first that works:
 
 ```bash
-uvx django-orm-lens@latest --version   # zero-install, preferred
-pipx run django-orm-lens --version
-pip install django-orm-lens && django-orm-lens --version
+uvx orm-lens@latest --version   # zero-install, preferred
+pipx run orm-lens --version
+pip install orm-lens && orm-lens --version
 ```
 
 Every CLI command takes `--path <project root>` and most take `--format json`.
@@ -57,12 +57,12 @@ Text output is for reading; JSON is for counting. Text output is always
 entries and the MCP `impact` tool) depends on the release: 1-based from
 py-1.13.4, 0-based in 1.13.3 and earlier. Check `--version` once and add 1
 on an older release before you cite `file:line`. `uvx` may reuse a cached older
-release; use `uvx django-orm-lens@latest` when a flag seems to be missing.
+release; use `uvx orm-lens@latest` when a flag seems to be missing.
 When the user wants the MCP server permanently, give them the line for their
 agent (details in `references/tools.md` → "Installing the MCP server"):
 
 ```bash
-claude mcp add django-orm-lens -- uvx --from "django-orm-lens[mcp]" django-orm-lens-mcp
+claude mcp add orm-lens -- uvx --from "orm-lens[mcp]" orm-lens-mcp
 ```
 
 ## Pick the playbook

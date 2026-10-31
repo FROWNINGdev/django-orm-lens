@@ -1,4 +1,4 @@
-"""Tests for static schema-drift detection (django_orm_lens/drift.py).
+"""Tests for static schema-drift detection (orm_lens/drift.py).
 
 The replay has to be right in both directions, and the *blocking* decision has
 to stay narrow: only "code expects a column that will not exist" fails a
@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from django_orm_lens.drift import (
+from orm_lens.drift import (
     ADVISORY_MARK,
     BLOCKING_MARK,
     LEGEND_LINES,

@@ -19,7 +19,7 @@ import json as _json
 import unittest
 from pathlib import Path
 
-from django_orm_lens.cli import main
+from orm_lens.cli import main
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
 MINIAPP = FIXTURE_ROOT / "miniapp"

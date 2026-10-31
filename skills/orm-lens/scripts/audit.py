@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-shot Django audit with django-orm-lens.
+"""One-shot Django audit with orm-lens.
 
 Runs the four CLI analyzers (nplusone, migration-risk, drift, blast-radius)
 and prints one JSON document:
@@ -28,16 +28,16 @@ from pathlib import Path
 
 
 def find_cli() -> list[str] | None:
-    """First working way to run django-orm-lens, as an argv prefix."""
+    """First working way to run orm-lens, as an argv prefix."""
     candidates: list[list[str]] = []
-    if shutil.which("django-orm-lens"):
-        candidates.append(["django-orm-lens"])
+    if shutil.which("orm-lens"):
+        candidates.append(["orm-lens"])
     if shutil.which("uvx"):
-        # @latest: a bare `uvx django-orm-lens` can keep reusing an old cached release.
-        candidates.append(["uvx", "django-orm-lens@latest"])
+        # @latest: a bare `uvx orm-lens` can keep reusing an old cached release.
+        candidates.append(["uvx", "orm-lens@latest"])
     if shutil.which("pipx"):
-        candidates.append(["pipx", "run", "django-orm-lens"])
-    candidates.append([sys.executable, "-m", "django_orm_lens"])
+        candidates.append(["pipx", "run", "orm-lens"])
+    candidates.append([sys.executable, "-m", "orm_lens"])
     for argv in candidates:
         try:
             out = subprocess.run(
@@ -49,7 +49,7 @@ def find_cli() -> list[str] | None:
             )
         except (OSError, subprocess.TimeoutExpired):
             continue
-        if out.returncode == 0 and "django-orm-lens" in out.stdout:
+        if out.returncode == 0 and "orm-lens" in out.stdout:
             return argv
     return None
 
@@ -137,7 +137,7 @@ def main() -> int:
             json.dumps(
                 {
                     "error": "CLI_NOT_FOUND",
-                    "hint": "pip install django-orm-lens  (or install uv / pipx)",
+                    "hint": "pip install orm-lens  (or install uv / pipx)",
                 }
             )
         )

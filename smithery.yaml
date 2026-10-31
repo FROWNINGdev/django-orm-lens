@@ -1,21 +1,21 @@
-# Smithery deployment manifest for django-orm-lens MCP server.
+# Smithery deployment manifest for orm-lens MCP server.
 # Docs: https://smithery.ai/docs/build/project-config/smithery.yaml
 #
-# The server is a Python package published to PyPI as `django-orm-lens[mcp]`.
+# The server is a Python package published to PyPI as `orm-lens[mcp]`.
 # Smithery runs it via `uvx` so no user-side install / venv is required.
 
-name: "@FROWNINGdev/django-orm-lens"
-version: "1.15.0"
+name: "@FROWNINGdev/orm-lens"
+version: "1.16.0"
 description: >-
-  Django ORM static-analysis MCP. 13 read-only tools that expose Django
-  schema, relationships (FK / M2M / O2O, on_delete, related_name),
-  migration DAG, missing-index heuristics, and signal graphs. No DB,
-  no Django boot, no credentials.
+  Django and SQLAlchemy static-analysis MCP. 13 read-only tools that expose
+  the schema, relationships (FK / M2M / O2O, on_delete, related_name), the
+  migration DAG, missing-index heuristics, signal graphs and N+1 loops.
+  No DB, no app boot, no credentials.
 author:
   name: "FROWNINGdev"
   url: "https://github.com/FROWNINGdev"
 license: "MIT"
-homepage: "https://github.com/FROWNINGdev/django-orm-lens"
+homepage: "https://github.com/FROWNINGdev/orm-lens"
 keywords:
   - django
   - orm
@@ -36,7 +36,7 @@ dependencies:
 
 startCommand:
   type: stdio
-  # A user of the MCP client can point Django ORM Lens at any directory.
+  # A user of the MCP client can point ORM Lens at any directory.
   # If omitted, the server uses the client's CWD (typical for VS Code /
   # Cursor / Claude Desktop workspaces).
   configSchema:
@@ -51,8 +51,8 @@ startCommand:
   commandFunction: |-
     (config) => ({
       command: 'uvx',
-      args: ['--from', 'django-orm-lens[mcp]', 'django-orm-lens-mcp'],
+      args: ['--from', 'orm-lens[mcp]', 'orm-lens-mcp'],
       env: config.djangoOrmLensRoot
-        ? { DJANGO_ORM_LENS_ROOT: config.djangoOrmLensRoot }
+        ? { ORM_LENS_ROOT: config.djangoOrmLensRoot }
         : {}
     })

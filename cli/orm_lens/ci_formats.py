@@ -33,7 +33,7 @@ _SARIF_SCHEMA = (
     "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/"
     "Schemata/sarif-schema-2.1.0.json"
 )
-_INFO_URI = "https://github.com/FROWNINGdev/django-orm-lens"
+_INFO_URI = "https://github.com/FROWNINGdev/orm-lens"
 _RULES_DOCS = f"{_INFO_URI}/blob/main/docs/rules"
 
 # migration-risk severity → SARIF result level
@@ -84,6 +84,8 @@ def _sarif_doc(
             {
                 "tool": {
                     "driver": {
+                        # Pre-rename name on purpose: code scanning keys alerts on the
+                        # tool name, and a new one would orphan every open alert.
                         "name": "django-orm-lens",
                         "informationUri": _INFO_URI,
                         "version": __version__,
@@ -104,7 +106,7 @@ def _nplusone_message(f: NPlusOneFinding) -> str:
 
 
 def nplusone_sarif(findings: Iterable[NPlusOneFinding]) -> dict[str, Any]:
-    """SARIF 2.1.0 document for ``django-orm-lens nplusone`` findings."""
+    """SARIF 2.1.0 document for ``orm-lens nplusone`` findings."""
     rule = {
         "id": "nplusone",
         "name": "NPlusOneQuery",
@@ -137,7 +139,7 @@ def nplusone_sarif(findings: Iterable[NPlusOneFinding]) -> dict[str, Any]:
 def migration_risks_sarif(
     findings: Iterable[MigrationRisk], root: str | None = None
 ) -> dict[str, Any]:
-    """SARIF 2.1.0 document for ``django-orm-lens migration-risk`` findings."""
+    """SARIF 2.1.0 document for ``orm-lens migration-risk`` findings."""
     findings = list(findings)
     rules: list[dict[str, Any]] = []
     seen: set = set()
@@ -193,7 +195,7 @@ def nplusone_github(findings: Iterable[NPlusOneFinding]) -> str:
         cmd = _CONFIDENCE_CMD.get(f.confidence, "notice")
         lines.append(
             f"::{cmd} file={_esc_prop(f.file)},line={f.line},"
-            f"title={_esc_prop('django-orm-lens: N+1 query')}"
+            f"title={_esc_prop('orm-lens: N+1 query')}"
             f"::{_esc_data(_nplusone_message(f))}"
         )
     return "\n".join(lines)
@@ -210,7 +212,7 @@ def migration_risks_github(
         msg = f"{f.description} Mitigation: {f.mitigation}"
         lines.append(
             f"::{cmd} file={_esc_prop(path)},line={f.line_number},"
-            f"title={_esc_prop('django-orm-lens: ' + f.rule)}"
+            f"title={_esc_prop('orm-lens: ' + f.rule)}"
             f"::{_esc_data(msg)}"
         )
     return "\n".join(lines)
@@ -235,7 +237,7 @@ def blast_radius_github(report: Any, root: str | None = None) -> str:
             cmd = _SEVERITY_CMD.get(r.severity, "warning")
             path = _rel_posix(root, r.file_path)
             msg = f"{r.description} Mitigation: {r.mitigation}"
-            title = f"django-orm-lens: {r.rule}"
+            title = f"orm-lens: {r.rule}"
             if certain:
                 msg = (
                     f"{msg} Blast radius: {certain} certain reference(s) to "
@@ -252,6 +254,6 @@ def blast_radius_github(report: Any, root: str | None = None) -> str:
         msg = f"{r.description} Mitigation: {r.mitigation}"
         lines.append(
             f"::{cmd} file={_esc_prop(path)},line={r.line_number},"
-            f"title={_esc_prop('django-orm-lens: ' + r.rule)}::{_esc_data(msg)}"
+            f"title={_esc_prop('orm-lens: ' + r.rule)}::{_esc_data(msg)}"
         )
     return "\n".join(lines)

@@ -29,3 +29,6 @@ cli/*.egg-info/
 **/.pytest_cache/
 **/.mypy_cache/
 **/.ruff_cache/
+
+# Agent worktrees
+.claude/worktrees/

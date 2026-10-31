@@ -1,7 +1,7 @@
 ---
 title: "My Django migration linter raised 407 alarms on six big codebases. 405 were wrong"
 description: >-
-  Running django-orm-lens over NetBox, PostHog, authentik, Plane, paperless-ngx
+  Running orm-lens over NetBox, PostHog, authentik, Plane, paperless-ngx
   and Healthchecks produced 407 critical migration findings. Two were real. What
   the other 405 taught me about how Django really migrates a populated table.
 ---
@@ -10,8 +10,9 @@ description: >-
 
 *FROWNINGdev · 31 October 2026*
 
-I maintain [django-orm-lens](https://github.com/FROWNINGdev/django-orm-lens), a
-static analyzer for Django models and migrations. One of its checks,
+I maintain [orm-lens](https://github.com/FROWNINGdev/orm-lens) (until
+recently django-orm-lens), a static analyzer for Django models and
+migrations. One of its checks,
 `migration-risk`, reads every migration file and flags operations that break
 on a table that already has rows: a `NOT NULL` column with no default, a
 `UNIQUE` column that existing duplicates will violate, an index build that
@@ -153,11 +154,11 @@ can, and running against them is now part of how the rules are tested.
 All of the above shipped in py-1.14.0. Try it on your own history:
 
 ```bash
-uvx django-orm-lens migration-risk      # migration findings, critical by default
-uvx django-orm-lens nplusone            # N+1 loops, with the select_related to add
+uvx orm-lens migration-risk      # migration findings, critical by default
+uvx orm-lens nplusone            # N+1 loops, with the select_related to add
 ```
 
 It reads source only: no database, no settings module, no `django.setup()`.
 It is free and MIT. If it is wrong about your project, [open an
-issue](https://github.com/FROWNINGdev/django-orm-lens/issues). That is how
+issue](https://github.com/FROWNINGdev/orm-lens/issues). That is how
 this whole list came about.

@@ -1,6 +1,6 @@
 # Static N+1 detector
 
-`django-orm-lens nplusone --path .` (alias: `n-plus-one`) walks every `.py` file in the workspace — skipping `migrations/`, virtualenvs, `node_modules/`, hidden directories, `site-packages`, `dist`, `build`, `eggs` — parses each with `ast.parse`, and flags the classic Django N+1 shape: a `for` loop over a queryset whose body accesses a related object per iteration, with no matching `select_related` / `prefetch_related` on the source queryset. No Django boot, no database, no code execution.
+`orm-lens nplusone --path .` (alias: `n-plus-one`) walks every `.py` file in the workspace — skipping `migrations/`, virtualenvs, `node_modules/`, hidden directories, `site-packages`, `dist`, `build`, `eggs` — parses each with `ast.parse`, and flags the classic Django N+1 shape: a `for` loop over a queryset whose body accesses a related object per iteration, with no matching `select_related` / `prefetch_related` on the source queryset. No Django boot, no database, no code execution.
 
 ## What it detects
 
@@ -44,10 +44,10 @@ When the source model is known but the attribute is not a declared relation, the
 ## CLI usage
 
 ```bash
-django-orm-lens nplusone --path .                    # all findings, text output
-django-orm-lens nplusone --confidence high           # schema-confirmed findings only
-django-orm-lens nplusone --format sarif > npo.sarif  # SARIF 2.1.0 for GitHub Code Scanning
-django-orm-lens nplusone --format github             # ::warning workflow commands for PR annotations
+orm-lens nplusone --path .                    # all findings, text output
+orm-lens nplusone --confidence high           # schema-confirmed findings only
+orm-lens nplusone --format sarif > npo.sarif  # SARIF 2.1.0 for GitHub Code Scanning
+orm-lens nplusone --format github             # ::warning workflow commands for PR annotations
 ```
 
 - **`--confidence high|medium|all`** (default `all`) — minimum confidence to report; `medium` includes `high`. Use `high` in CI to keep the gate noise-free.

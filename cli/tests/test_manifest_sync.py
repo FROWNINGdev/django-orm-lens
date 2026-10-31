@@ -28,7 +28,8 @@ REPO_ROOT = CLI_DIR.parent
 PYPROJECT = CLI_DIR / "pyproject.toml"
 SERVER_JSON = CLI_DIR / "server.json"
 SMITHERY_YAML = REPO_ROOT / "smithery.yaml"
-MCP_SERVER_PY = CLI_DIR / "django_orm_lens" / "mcp_server.py"
+MCP_SERVER_PY = CLI_DIR / "orm_lens" / "mcp_server.py"
+COMPAT_PYPROJECT = REPO_ROOT / "compat" / "django-orm-lens" / "pyproject.toml"
 
 # Written-out numerals for the docstring phrase "Exposes <word> read-only
 # tools". Extend if the registry ever grows past fifteen.
@@ -96,7 +97,7 @@ def _registered_tool_count_and_docstring():
     package at import time), fall back to reading the source text.
     """
     try:
-        from django_orm_lens import mcp_server
+        from orm_lens import mcp_server
 
         return len(mcp_server.TOOLS), mcp_server.__doc__ or ""
     except ImportError:
@@ -139,7 +140,7 @@ def test_mcp_extra_pins_each_api_to_a_python_that_has_it() -> None:
     The extra used to carry `mcp>=1.0,<2; python_version < '3.10'` for 3.9.
     That line could never resolve: every mcp release, 1.x included, declares
     `requires-python >=3.10`, so pip and uv rejected the whole
-    `django-orm-lens[mcp]` install on 3.9. A requirement the resolver can
+    `orm-lens[mcp]` install on 3.9. A requirement the resolver can
     only fail on is worse than none, so no mcp line may reach below 3.10.
     """
     text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(
@@ -162,3 +163,16 @@ def test_mcp_extra_pins_each_api_to_a_python_that_has_it() -> None:
             assert (
                 "python_version < '3.10'" not in req
             ), f"{extra}: this can never resolve, mcp requires 3.10: {req}"
+
+
+def test_compat_package_pins_the_same_orm_lens_release() -> None:
+    """``pip install django-orm-lens==X`` must install ``orm-lens==X``."""
+    if not COMPAT_PYPROJECT.is_file():
+        pytest.skip("compat package not present (installed-package run)")
+    version = _pyproject_version()
+    text = COMPAT_PYPROJECT.read_text(encoding="utf-8")
+    m = re.search(r'(?m)^version\s*=\s*"([^"]+)"', text)
+    assert m and m.group(1) == version, "compat/django-orm-lens version != cli version"
+    pins = re.findall(r'"orm-lens(?:\[mcp\])?==([^"]+)"', text)
+    assert pins, "compat package does not pin orm-lens"
+    assert set(pins) == {version}, f"compat pins {sorted(set(pins))}, cli is {version}"

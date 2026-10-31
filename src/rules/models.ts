@@ -12,7 +12,7 @@ import { Finding, Rule, RuleContext } from './types';
  */
 
 const DOCS_BASE =
-  'https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules';
+  'https://github.com/FROWNINGdev/orm-lens/blob/main/docs/rules';
 
 /** `models.CharField(...)` or `models.TextField(...)` — string-based fields. */
 const RE_STRING_FIELD_LINE =

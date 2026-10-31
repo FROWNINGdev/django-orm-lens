@@ -1,4 +1,4 @@
-"""Integration tests for :mod:`django_orm_lens.mcp_server`.
+"""Integration tests for :mod:`orm_lens.mcp_server`.
 
 These validate the contract that FastMCP will expose to AI agents:
 
@@ -44,8 +44,8 @@ except ImportError:
         # Binding it once here keeps the name defined on all three paths.
         FastMCP = None  # type: ignore[assignment, misc]
 
-from django_orm_lens import __version__
-from django_orm_lens.mcp_server import (
+from orm_lens import __version__
+from orm_lens.mcp_server import (
     TOOLS,
     _advertise_our_version,
     _load_server_class,
@@ -64,7 +64,7 @@ from django_orm_lens.mcp_server import (
     _tool_signal_graph,
     _tool_suggest_indexes,
 )
-from django_orm_lens.workspace import WorkspaceError, clear_cache
+from orm_lens.workspace import WorkspaceError, clear_cache
 
 _MODELS_SOURCE = """from django.db import models
 
@@ -135,13 +135,13 @@ class ResolveHelperTest(unittest.TestCase):
     the bridge does not lose or corrupt the argument."""
 
     def setUp(self) -> None:
-        self._env = os.environ.get("DJANGO_ORM_LENS_ROOT")
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
+        self._env = os.environ.get("ORM_LENS_ROOT")
+        os.environ.pop("ORM_LENS_ROOT", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-server-"))
         _write_django_project(self.tmp)
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         if self._env is not None:
-            self.addCleanup(os.environ.__setitem__, "DJANGO_ORM_LENS_ROOT", self._env)
+            self.addCleanup(os.environ.__setitem__, "ORM_LENS_ROOT", self._env)
         clear_cache()
         self.addCleanup(clear_cache)
 
@@ -151,17 +151,17 @@ class ResolveHelperTest(unittest.TestCase):
         self.assertEqual(result, self.tmp.resolve())
 
     def test_missing_key_falls_through_to_env_or_cwd(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp)
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp)
         result = _resolve({})
         self.assertIsInstance(result, Path)
 
     def test_empty_string_falls_through(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp)
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp)
         result = _resolve({"workspace_root": ""})
         self.assertIsInstance(result, Path)
 
     def test_none_value_falls_through(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp)
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp)
         result = _resolve({"workspace_root": None})
         self.assertIsInstance(result, Path)
 
@@ -171,13 +171,13 @@ class ErrorEnvelopeTest(unittest.TestCase):
     envelope — never an empty list, never a raw exception."""
 
     def setUp(self) -> None:
-        self._env = os.environ.get("DJANGO_ORM_LENS_ROOT")
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
+        self._env = os.environ.get("ORM_LENS_ROOT")
+        os.environ.pop("ORM_LENS_ROOT", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-envelope-"))
         # Deliberately do NOT write a Django project — every tool must fail.
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         if self._env is not None:
-            self.addCleanup(os.environ.__setitem__, "DJANGO_ORM_LENS_ROOT", self._env)
+            self.addCleanup(os.environ.__setitem__, "ORM_LENS_ROOT", self._env)
         clear_cache()
         self.addCleanup(clear_cache)
 
@@ -258,13 +258,13 @@ class HappyPathTest(unittest.TestCase):
     equivalence check that guards the behavioural-neutral half of the fix."""
 
     def setUp(self) -> None:
-        self._env = os.environ.get("DJANGO_ORM_LENS_ROOT")
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
+        self._env = os.environ.get("ORM_LENS_ROOT")
+        os.environ.pop("ORM_LENS_ROOT", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-happy-"))
         _write_django_project(self.tmp)
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         if self._env is not None:
-            self.addCleanup(os.environ.__setitem__, "DJANGO_ORM_LENS_ROOT", self._env)
+            self.addCleanup(os.environ.__setitem__, "ORM_LENS_ROOT", self._env)
         clear_cache()
         self.addCleanup(clear_cache)
 
@@ -304,7 +304,7 @@ class HappyPathTest(unittest.TestCase):
         result = _tool_er_diagram(
             {"workspace_root": str(self.tmp), "diagram_format": "dot"}
         )
-        self.assertTrue(result.startswith("digraph django_orm_lens {"))
+        self.assertTrue(result.startswith("digraph orm_lens {"))
         self.assertIn('subgraph "cluster_myapp" {', result)
 
     def test_describe_model_returns_field_detail(self) -> None:
@@ -320,7 +320,7 @@ class HappyPathTest(unittest.TestCase):
     def test_env_var_is_still_honoured(self) -> None:
         # Backwards-compat guarantee: the historical env-var-only workflow
         # still works when no explicit arg is passed.
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp)
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp)
         raw = _tool_list_apps({})
         payload = json.loads(raw)
         self.assertIsInstance(payload, list)
@@ -362,7 +362,7 @@ def _registered_server():
     import contextlib
     import io
 
-    from django_orm_lens import mcp_server
+    from orm_lens import mcp_server
 
     loaded = _load_server_class()
     if loaded is None:
@@ -459,7 +459,7 @@ class AdvertisedVersionTest(unittest.TestCase):
     def test_sets_the_package_version_on_the_low_level_server(self) -> None:
         if FastMCP is None:
             self.skipTest("mcp extra not installed")
-        server = FastMCP("django-orm-lens")
+        server = FastMCP("orm-lens")
         self.assertEqual(_advertise_our_version(server), __version__)
         self.assertEqual(_lowlevel_handle(server).version, __version__)
 
@@ -472,11 +472,11 @@ class AdvertisedVersionTest(unittest.TestCase):
         """
         if FastMCP is None:
             self.skipTest("mcp extra not installed")
-        server = FastMCP("django-orm-lens")
+        server = FastMCP("orm-lens")
         _advertise_our_version(server)
         opts = _lowlevel_handle(server).create_initialization_options()
         self.assertEqual(opts.server_version, __version__)
-        self.assertEqual(opts.server_name, "django-orm-lens")
+        self.assertEqual(opts.server_name, "orm-lens")
 
     def test_unexpected_sdk_shape_is_survivable(self) -> None:
         """A stub without the private handle must not raise."""
@@ -603,7 +603,7 @@ class MissingSdkMessageTests(unittest.TestCase):
     """The no-SDK message must point at something that can work.
 
     On 3.9 the [mcp] extra resolves nothing, because no mcp release supports
-    that Python. Telling a 3.9 user to `pip install 'django-orm-lens[mcp]'`
+    that Python. Telling a 3.9 user to `pip install 'orm-lens[mcp]'`
     is a loop: they just did, and the server is still missing.
     """
 
@@ -617,14 +617,14 @@ class MissingSdkMessageTests(unittest.TestCase):
     def test_supported_python_still_points_at_the_extra(self) -> None:
         for vi in ((3, 10, 0), (3, 14, 1)):
             msg = _missing_sdk_message(vi)
-            self.assertIn("install with: pip install 'django-orm-lens[mcp]'", msg)
+            self.assertIn("install with: pip install 'orm-lens[mcp]'", msg)
             self.assertNotIn("needs Python 3.10+", msg)
 
     def test_main_prints_the_message_and_exits_3(self) -> None:
         import contextlib
         import io
 
-        from django_orm_lens import mcp_server
+        from orm_lens import mcp_server
 
         err = io.StringIO()
         with unittest.mock.patch.object(

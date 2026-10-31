@@ -27,13 +27,13 @@ Bản thân nơi khai báo sẽ không bị đếm — một field không báo c
 ## Cách dùng
 
 ```bash
-django-orm-lens blast-radius --path .                     # chỉ rủi ro mức critical
-django-orm-lens blast-radius --severity all               # mọi thứ
-django-orm-lens blast-radius --format markdown            # dùng làm PR-comment body
-django-orm-lens blast-radius --format github              # GitHub PR annotations
-django-orm-lens blast-radius --format json                # định dạng máy đọc được
-django-orm-lens blast-radius --no-cascade                 # bỏ qua phân tích cascade bổ sung
-django-orm-lens blast-radius --only blog/migrations/0002_drop_author.py
+orm-lens blast-radius --path .                     # chỉ rủi ro mức critical
+orm-lens blast-radius --severity all               # mọi thứ
+orm-lens blast-radius --format markdown            # dùng làm PR-comment body
+orm-lens blast-radius --format github              # GitHub PR annotations
+orm-lens blast-radius --format json                # định dạng máy đọc được
+orm-lens blast-radius --no-cascade                 # bỏ qua phân tích cascade bổ sung
+orm-lens blast-radius --only blog/migrations/0002_drop_author.py
 ```
 
 - **`--severity critical|warning|info|all`** (mặc định `critical`) — rủi ro tối thiểu, tương tự `migration-risk`.
@@ -46,7 +46,7 @@ django-orm-lens blast-radius --only blog/migrations/0002_drop_author.py
 Là một GitHub Action, các finding sẽ trở thành các PR annotation mà không yêu cầu thêm quyền (permissions) nào:
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@action-v1
+- uses: FROWNINGdev/orm-lens@action-v1
   with:
     command: blast-radius
     format: github
@@ -55,7 +55,7 @@ Là một GitHub Action, các finding sẽ trở thành các PR annotation mà k
 Các annotation sẽ trỏ thẳng vào **dòng trong migration** — dòng mã mà người duyệt có thể thao tác — và nêu rõ số lượng tham chiếu trong tiêu đề, để thấy rõ hậu quả mà không cần mở tab thứ hai:
 
 ```
-::error file=blog/migrations/0002_drop_author.py,line=7,title=django-orm-lens: remove_field_still_referenced (2 certain reference(s))::…
+::error file=blog/migrations/0002_drop_author.py,line=7,title=orm-lens: remove_field_still_referenced (2 certain reference(s))::…
 ```
 
 ### Dùng làm PR comment
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: FROWNINGdev/django-orm-lens@action-v1
+      - uses: FROWNINGdev/orm-lens@action-v1
         with:
           command: blast-radius
           only-changed: true
@@ -95,12 +95,12 @@ Một số lưu ý về cách hoạt động, để không có gì khiến bạn
 
 Tất cả những phân tích bên trên đều là tĩnh (static), điều này để lại một khoảng trống trung thực: mã nguồn không thể phân biệt được một bảng có bốn mươi triệu dòng với một bảng rỗng. Lệnh `migration-risk` tạm thời vượt qua điều này bằng một phương pháp ước lượng (heuristic) — *bất kỳ thứ gì được tạo ra sau file `0001_` đều được giả định là có dữ liệu* — đủ đúng để hữu ích, nhưng cũng đủ sai để gây phiền toái.
 
-Cờ `--stats` sẽ thu hẹp khoảng trống này, và **django-orm-lens vẫn sẽ không bao giờ kết nối tới một cơ sở dữ liệu**. Bạn tự chạy một câu truy vấn chỉ đọc (read-only) và đưa lại kết quả cho công cụ:
+Cờ `--stats` sẽ thu hẹp khoảng trống này, và **orm-lens vẫn sẽ không bao giờ kết nối tới một cơ sở dữ liệu**. Bạn tự chạy một câu truy vấn chỉ đọc (read-only) và đưa lại kết quả cho công cụ:
 
 ```bash
-django-orm-lens stats-sql > stats.sql
+orm-lens stats-sql > stats.sql
 psql -At -d "$DATABASE_URL" -f stats.sql > stats.json     # truy xuất trên bản replica là ổn
-django-orm-lens blast-radius --path . --stats stats.json
+orm-lens blast-radius --path . --stats stats.json
 ```
 
 Khi đó báo cáo sẽ mang theo kích thước thực tế:

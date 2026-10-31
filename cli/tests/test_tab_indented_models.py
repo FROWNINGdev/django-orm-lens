@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import unittest
 
-from django_orm_lens.parser import parse_models_file
+from orm_lens.parser import parse_models_file
 
 
 class TabIndentationTest(unittest.TestCase):

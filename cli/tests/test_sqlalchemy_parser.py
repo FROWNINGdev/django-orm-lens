@@ -15,18 +15,18 @@ import io
 import json
 from pathlib import Path
 
-from django_orm_lens.cli import _build_mermaid, main
-from django_orm_lens.er_formats import build_dbml
-from django_orm_lens.models import ParsedApp, WorkspaceIndex
-from django_orm_lens.parser import scan_workspace
-from django_orm_lens.sqlalchemy_parser import (
+from orm_lens.cli import _build_mermaid, main
+from orm_lens.er_formats import build_dbml
+from orm_lens.models import ParsedApp, WorkspaceIndex
+from orm_lens.parser import scan_workspace
+from orm_lens.sqlalchemy_parser import (
     declares_sqlalchemy,
     is_sqlalchemy_only_source,
     parse_source,
     parse_sqlalchemy_sources,
     scan_sqlalchemy_models,
 )
-from django_orm_lens.workspace import clear_cache, resolve_workspace
+from orm_lens.workspace import clear_cache, resolve_workspace
 
 
 def _models(*files: tuple[str, str]) -> dict:
@@ -490,9 +490,9 @@ def test_cli_scan_list_describe_include_sqlalchemy(tmp_path: Path) -> None:
 
 
 def test_mcp_accepts_sqlalchemy_projects_and_describes_models(tmp_path: Path, monkeypatch) -> None:
-    from django_orm_lens.mcp_server import _tool_describe_model, _tool_find_relations
+    from orm_lens.mcp_server import _tool_describe_model, _tool_find_relations
 
-    monkeypatch.delenv("DJANGO_ORM_LENS_ALLOWED_ROOTS", raising=False)
+    monkeypatch.delenv("ORM_LENS_ALLOWED_ROOTS", raising=False)
     _write(tmp_path, "src/db/models.py", MODERN)
     _write(tmp_path, "pyproject.toml", '[project]\ndependencies = ["sqlalchemy>=2"]\n')
     clear_cache()

@@ -16,7 +16,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.migrations_parser import (
+from orm_lens.migrations_parser import (
     MigrationRisk,
     analyze_migration_risks,
 )

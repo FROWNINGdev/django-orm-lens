@@ -27,11 +27,11 @@ Public issues let attackers weaponise the report before the patch ships.
 Please use one of these private channels instead:
 
 1. **Preferred — GitHub Private Security Advisory.** Open
-   [github.com/FROWNINGdev/django-orm-lens/security/advisories/new](https://github.com/FROWNINGdev/django-orm-lens/security/advisories/new).
+   [github.com/FROWNINGdev/orm-lens/security/advisories/new](https://github.com/FROWNINGdev/orm-lens/security/advisories/new).
    This gives us an encrypted thread, keeps the reporter credited, and
    lets us request a CVE once the fix is ready.
 2. **Alternative — email.** Send to `frowningdev@gmail.com` with
-   subject `[django-orm-lens SECURITY]`. Include a clear reproducer,
+   subject `[orm-lens SECURITY]`. Include a clear reproducer,
    the affected version, and a proof-of-concept if you have one.
 
 ## What to expect
@@ -48,7 +48,7 @@ Please use one of these private channels instead:
 
 In-scope: the code shipped as
 `frowningdev.django-orm-lens` (VS Code Marketplace + Open VSX),
-`django-orm-lens` (PyPI), and `ghcr.io/frowningdev/django-orm-lens`
+`orm-lens` (PyPI), and `ghcr.io/frowningdev/orm-lens`
 (GHCR image). This includes the MCP server, the static analysis
 parser, and the CLI.
 

@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`django_orm_lens.workspace`.
+"""Unit tests for :mod:`orm_lens.workspace`.
 
 These pin the exact behaviour of the professional workspace-resolution fix
 shipped in py-1.3.0. The pre-1.3.0 code silently dropped the
@@ -9,7 +9,7 @@ to a failure mode we want to keep surfaced rather than swallowed.
 Groupings:
     * ``HardenPathTest`` — one path in, one clean verdict out (unit).
     * ``ResolveWorkspaceTest`` — priority chain across arg, env, cwd.
-    * ``AllowlistTest`` — ``DJANGO_ORM_LENS_ALLOWED_ROOTS`` containment.
+    * ``AllowlistTest`` — ``ORM_LENS_ALLOWED_ROOTS`` containment.
     * ``CacheTest`` — TTL + mtime salt + LRU cap.
 """
 
@@ -23,7 +23,7 @@ import unittest
 from collections.abc import Iterable
 from pathlib import Path
 
-from django_orm_lens.workspace import (
+from orm_lens.workspace import (
     _CACHE_MAX,
     _INDEX_CACHE,
     WorkspaceError,
@@ -88,10 +88,10 @@ class HardenPathTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self._env = _env_snapshot(
-            ("DJANGO_ORM_LENS_ROOT", "DJANGO_ORM_LENS_ALLOWED_ROOTS")
+            ("ORM_LENS_ROOT", "ORM_LENS_ALLOWED_ROOTS")
         )
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
-        os.environ.pop("DJANGO_ORM_LENS_ALLOWED_ROOTS", None)
+        os.environ.pop("ORM_LENS_ROOT", None)
+        os.environ.pop("ORM_LENS_ALLOWED_ROOTS", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-harden-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.addCleanup(_env_restore, self._env)
@@ -176,7 +176,7 @@ class WindowsReservedTest(unittest.TestCase):
     real Windows device is touched."""
 
     def test_component_matching_reserved_name_is_rejected(self) -> None:
-        from django_orm_lens.workspace import _has_windows_reserved
+        from orm_lens.workspace import _has_windows_reserved
 
         self.assertTrue(_has_windows_reserved(Path("/tmp/CON/foo")))
         self.assertTrue(_has_windows_reserved(Path("/tmp/COM1/foo")))
@@ -196,23 +196,23 @@ class ResolveWorkspaceTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self._env = _env_snapshot(
-            ("DJANGO_ORM_LENS_ROOT", "DJANGO_ORM_LENS_ALLOWED_ROOTS")
+            ("ORM_LENS_ROOT", "ORM_LENS_ALLOWED_ROOTS")
         )
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
-        os.environ.pop("DJANGO_ORM_LENS_ALLOWED_ROOTS", None)
+        os.environ.pop("ORM_LENS_ROOT", None)
+        os.environ.pop("ORM_LENS_ALLOWED_ROOTS", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-resolve-"))
         _write_django_project(self.tmp)
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.addCleanup(_env_restore, self._env)
 
     def test_explicit_argument_wins(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp / "does-not-exist")
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp / "does-not-exist")
         result = resolve_workspace(str(self.tmp))
         self.assertIsInstance(result, Path)
         self.assertEqual(result, self.tmp.resolve())
 
     def test_env_var_used_when_no_argument(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp)
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp)
         result = resolve_workspace()
         self.assertIsInstance(result, Path)
         self.assertEqual(result, self.tmp.resolve())
@@ -236,7 +236,7 @@ class ResolveWorkspaceTest(unittest.TestCase):
         self.assertEqual(result.code, "WORKSPACE_NOT_FOUND")
 
     def test_env_failure_is_surfaced_not_silenced(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ROOT"] = str(self.tmp / "no-such-subdir")
+        os.environ["ORM_LENS_ROOT"] = str(self.tmp / "no-such-subdir")
         result = resolve_workspace()
         self.assertIsInstance(result, WorkspaceError)
         self.assertEqual(result.code, "WORKSPACE_NOT_FOUND")
@@ -248,14 +248,14 @@ class ResolveWorkspaceTest(unittest.TestCase):
 
 
 class AllowlistTest(unittest.TestCase):
-    """``DJANGO_ORM_LENS_ALLOWED_ROOTS`` — opt-in sandboxing for shared hosts."""
+    """``ORM_LENS_ALLOWED_ROOTS`` — opt-in sandboxing for shared hosts."""
 
     def setUp(self) -> None:
         self._env = _env_snapshot(
-            ("DJANGO_ORM_LENS_ROOT", "DJANGO_ORM_LENS_ALLOWED_ROOTS")
+            ("ORM_LENS_ROOT", "ORM_LENS_ALLOWED_ROOTS")
         )
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
-        os.environ.pop("DJANGO_ORM_LENS_ALLOWED_ROOTS", None)
+        os.environ.pop("ORM_LENS_ROOT", None)
+        os.environ.pop("ORM_LENS_ALLOWED_ROOTS", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-allow-"))
         self.inside = self.tmp / "projects" / "app"
         self.outside = self.tmp / "other" / "app"
@@ -265,24 +265,24 @@ class AllowlistTest(unittest.TestCase):
         self.addCleanup(_env_restore, self._env)
 
     def test_path_within_allowlist_passes(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ALLOWED_ROOTS"] = str(self.tmp / "projects")
+        os.environ["ORM_LENS_ALLOWED_ROOTS"] = str(self.tmp / "projects")
         result = harden_path(str(self.inside))
         self.assertIsInstance(result, Path)
 
     def test_path_outside_allowlist_rejected(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ALLOWED_ROOTS"] = str(self.tmp / "projects")
+        os.environ["ORM_LENS_ALLOWED_ROOTS"] = str(self.tmp / "projects")
         result = harden_path(str(self.outside))
         self.assertIsInstance(result, WorkspaceError)
         self.assertEqual(result.code, "WORKSPACE_NOT_ALLOWED")
 
     def test_empty_allowlist_env_is_unrestricted(self) -> None:
-        os.environ["DJANGO_ORM_LENS_ALLOWED_ROOTS"] = ""
+        os.environ["ORM_LENS_ALLOWED_ROOTS"] = ""
         result = harden_path(str(self.outside))
         self.assertIsInstance(result, Path)
 
     def test_multiple_allowlist_entries(self) -> None:
         sep = ";" if os.name == "nt" else ":"
-        os.environ["DJANGO_ORM_LENS_ALLOWED_ROOTS"] = (
+        os.environ["ORM_LENS_ALLOWED_ROOTS"] = (
             f"{self.tmp / 'projects'}{sep}{self.tmp / 'other'}"
         )
         self.assertIsInstance(harden_path(str(self.inside)), Path)
@@ -299,10 +299,10 @@ class CacheTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self._env = _env_snapshot(
-            ("DJANGO_ORM_LENS_ROOT", "DJANGO_ORM_LENS_ALLOWED_ROOTS")
+            ("ORM_LENS_ROOT", "ORM_LENS_ALLOWED_ROOTS")
         )
-        os.environ.pop("DJANGO_ORM_LENS_ROOT", None)
-        os.environ.pop("DJANGO_ORM_LENS_ALLOWED_ROOTS", None)
+        os.environ.pop("ORM_LENS_ROOT", None)
+        os.environ.pop("ORM_LENS_ALLOWED_ROOTS", None)
         self.tmp = Path(tempfile.mkdtemp(prefix="djol-cache-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.addCleanup(_env_restore, self._env)

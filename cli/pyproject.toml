@@ -3,16 +3,23 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "django-orm-lens"
-version = "1.15.0"
-description = "Static analysis + MCP server for Django models. Blast radius, schema drift, N+1 and migration risk for CI, ER diagrams for terminals and AI agents. No DB, no Django boot. Free and MIT."
+name = "orm-lens"
+version = "1.16.0"
+description = "Static analysis + MCP server for Django and SQLAlchemy models. ER diagrams, N+1, migration risk for Django migrations and Alembic, blast radius and schema drift for CI, terminals and AI agents. No DB, no app boot. Free and MIT."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "frowningdev" }]
 keywords = [
     "django",
+    "sqlalchemy",
+    "alembic",
+    "fastapi",
+    "flask",
+    "sqlmodel",
     "orm",
+    "n+1",
+    "migrations",
     "models",
     "er-diagram",
     "mermaid",
@@ -35,6 +42,8 @@ classifiers = [
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
     "Framework :: Django :: 6.1",
+    "Framework :: FastAPI",
+    "Framework :: Flask",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -59,7 +68,7 @@ dependencies = []
 
 # Default install is zero-dependency. Add [mcp] or [full] to enable MCP server for AI agents.
 # Every mcp release (1.x included) requires Python 3.10, so on 3.9 the extras
-# install nothing and `django-orm-lens-mcp` explains the floor. A requirement
+# install nothing and `orm-lens-mcp` explains the floor. A requirement
 # gated to 3.9 would make the whole install unresolvable there.
 [project.optional-dependencies]
 mcp = ["mcp>=2.0,<3; python_version >= '3.10'"]
@@ -67,22 +76,28 @@ full = ["mcp>=2.0,<3; python_version >= '3.10'"]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "build>=1.2", "twine>=5.1"]
 
 [project.scripts]
-django-orm-lens = "django_orm_lens.cli:main"
-django-orm-lens-mcp = "django_orm_lens.mcp_server:main"
+orm-lens = "orm_lens.cli:main"
+orm-lens-mcp = "orm_lens.mcp_server:main"
+# The pre-rename `django-orm-lens` / `django-orm-lens-mcp` commands and the
+# `django_orm_lens` import path ship in the django-orm-lens compat package
+# (compat/django-orm-lens), not here. Upgrading django-orm-lens uninstalls
+# the old release's files, and anything of the same name this package had
+# just installed would be deleted with them.
 
 [project.urls]
-Homepage = "https://github.com/FROWNINGdev/django-orm-lens"
-Repository = "https://github.com/FROWNINGdev/django-orm-lens"
-"Bug Tracker" = "https://github.com/FROWNINGdev/django-orm-lens/issues"
-Changelog = "https://github.com/FROWNINGdev/django-orm-lens/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/FROWNINGdev/orm-lens"
+Documentation = "https://frowningdev.github.io/orm-lens/"
+Repository = "https://github.com/FROWNINGdev/orm-lens"
+"Bug Tracker" = "https://github.com/FROWNINGdev/orm-lens/issues"
+Changelog = "https://github.com/FROWNINGdev/orm-lens/blob/main/CHANGELOG.md"
 "VS Code Marketplace" = "https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["django_orm_lens*"]
+include = ["orm_lens*"]
 
 [tool.setuptools.package-data]
-django_orm_lens = ["py.typed"]
+orm_lens = ["py.typed"]
 
 [tool.ruff]
 line-length = 100

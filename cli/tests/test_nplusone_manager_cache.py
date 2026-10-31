@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from django_orm_lens.query_analyzer import _collect_target_accesses, scan_for_nplusone
+from orm_lens.query_analyzer import _collect_target_accesses, scan_for_nplusone
 from tests.test_nplusone_detector import BLOG_SCHEMA, SHOP_SCHEMA, _write
 
 

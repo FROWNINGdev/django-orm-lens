@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from django_orm_lens.cli import main
+from orm_lens.cli import main
 
 MODELS_SOURCE = """from django.db import models
 

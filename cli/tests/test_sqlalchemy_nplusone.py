@@ -14,14 +14,14 @@ from pathlib import Path
 
 import pytest
 
-from django_orm_lens.cli import main
-from django_orm_lens.models import ParsedApp, WorkspaceIndex
-from django_orm_lens.sqlalchemy_nplusone import (
+from orm_lens.cli import main
+from orm_lens.models import ParsedApp, WorkspaceIndex
+from orm_lens.sqlalchemy_nplusone import (
     scan_all_nplusone,
     scan_source,
     scan_sqlalchemy_nplusone,
 )
-from django_orm_lens.sqlalchemy_parser import parse_sqlalchemy_sources
+from orm_lens.sqlalchemy_parser import parse_sqlalchemy_sources
 
 MODELS = '''
 from sqlalchemy import ForeignKey
@@ -265,7 +265,7 @@ def _project(tmp_path: Path) -> Path:
 
 
 def test_project_scan_skips_tests_and_revisions(tmp_path: Path) -> None:
-    from django_orm_lens.parser import scan_workspace
+    from orm_lens.parser import scan_workspace
 
     root = _project(tmp_path)
     index = scan_workspace(str(root), include_sqlalchemy=True)

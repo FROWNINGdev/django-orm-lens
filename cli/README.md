@@ -1,22 +1,30 @@
-# django-orm-lens
+# orm-lens
 
-<!-- mcp-name: io.github.FROWNINGdev/django-orm-lens -->
+<!-- mcp-name: io.github.FROWNINGdev/orm-lens -->
 
-[![PyPI](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
-[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/django-orm-lens/)
+[![PyPI](https://img.shields.io/pypi/v/orm-lens?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/orm-lens/)
+[![Python](https://img.shields.io/pypi/pyversions/orm-lens?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/orm-lens/)
 [![Downloads](https://img.shields.io/pepy/dt/django-orm-lens?color=3775a9&label=downloads&logo=pypi&logoColor=white)](https://pepy.tech/project/django-orm-lens)
-[![License](https://img.shields.io/github/license/FROWNINGdev/django-orm-lens?color=16a34a)](https://github.com/FROWNINGdev/django-orm-lens/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/FROWNINGdev/orm-lens?color=16a34a)](https://github.com/FROWNINGdev/orm-lens/blob/main/LICENSE)
 
-**Static analysis + MCP server for Django models.** Terminal- and AI-agent-friendly.
+**Static analysis + MCP server for Django and SQLAlchemy models.** Terminal- and AI-agent-friendly.
 
-Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.FROWNINGdev/django-orm-lens`.
+Formerly **django-orm-lens**: `pip install django-orm-lens` still works, installs
+this package and keeps the old `django-orm-lens` command and `import django_orm_lens`.
+
+SQLAlchemy (preview): `scan`, `er` and `nplusone` read SQLAlchemy 2.0 / 1.x,
+Flask-SQLAlchemy and SQLModel models, and `migration-risk` reads Alembic
+revisions — see [SQLAlchemy models](https://github.com/FROWNINGdev/orm-lens/blob/main/docs/rules/sqlalchemy.md)
+and [Alembic rules](https://github.com/FROWNINGdev/orm-lens/blob/main/docs/rules/alembic.md).
+
+Listed in the official [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.FROWNINGdev/orm-lens`.
 
 Ships with a zero-dependency parser, a JSON/Markdown/table CLI, and an optional
 MCP (Model Context Protocol) server so any AI coding agent — Cursor, Aider,
 Continue, and any other MCP client — can navigate your Django schema without
 importing Django or spinning up your app.
 
-Companion to the [Django ORM Lens VS Code
+Companion to the [ORM Lens VS Code
 extension](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens).
 
 ## Paid-tier capabilities, free and MIT
@@ -47,10 +55,10 @@ and no telemetry:
 
 ```bash
 # Core CLI (zero third-party deps)
-pip install django-orm-lens
+pip install orm-lens
 
 # With the MCP server (adds the `mcp` package)
-pip install "django-orm-lens[mcp]"
+pip install "orm-lens[mcp]"
 ```
 
 Requires Python **3.9+**; the MCP server needs **3.10+**, like the `mcp` SDK. Works on Linux, macOS, and Windows.
@@ -61,36 +69,36 @@ Requires Python **3.9+**; the MCP server needs **3.10+**, like the `mcp` SDK. Wo
 
 ```bash
 # Scan a Django project for models (JSON, Markdown, or table)
-django-orm-lens scan -f json
-django-orm-lens scan -f markdown
-django-orm-lens scan -f table
+orm-lens scan -f json
+orm-lens scan -f markdown
+orm-lens scan -f table
 
 # Describe one model
-django-orm-lens describe blog.Post
-django-orm-lens describe Post -f json
+orm-lens describe blog.Post
+orm-lens describe Post -f json
 
 # Compact hover card (great for pipeing into your editor)
-django-orm-lens hover blog.Post
+orm-lens hover blog.Post
 
 # Flat list — pipes into fzf, grep, etc.
-django-orm-lens list | fzf
+orm-lens list | fzf
 
 # ER diagram — Mermaid (default), DBML, D2, or PlantUML
-django-orm-lens er > schema.mmd
-django-orm-lens er -f dbml > schema.dbml     # paste into dbdiagram.io
-django-orm-lens er -f d2 > schema.d2         # render: d2 schema.d2 schema.svg
-django-orm-lens er -f plantuml > schema.puml
+orm-lens er > schema.mmd
+orm-lens er -f dbml > schema.dbml     # paste into dbdiagram.io
+orm-lens er -f d2 > schema.d2         # render: d2 schema.d2 schema.svg
+orm-lens er -f plantuml > schema.puml
 
 # Diff two schema dumps (exit 1 on changes — CI-friendly)
-django-orm-lens diff before.json after.json
+orm-lens diff before.json after.json
 
 # Static analyzers — text, json, sarif, or github annotation output
-django-orm-lens nplusone --format github     # N+1 findings as PR annotations
-django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
-django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
-django-orm-lens signals                      # sender→signal→handler graph
-django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
-django-orm-lens cascade blog.Author          # delete blast radius by on_delete
+orm-lens nplusone --format github     # N+1 findings as PR annotations
+orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
+orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
+orm-lens signals                      # sender→signal→handler graph
+orm-lens migration-deps blog -f mermaid   # per-app migration DAG
+orm-lens cascade blog.Author          # delete blast radius by on_delete
 ```
 
 Every command accepts `--path <dir>` and repeatable `--exclude <glob>`. Defaults
@@ -119,19 +127,19 @@ call while it edits your Django project:
 ### Start the server manually
 
 ```bash
-django-orm-lens-mcp     # dedicated entry point
+orm-lens-mcp     # dedicated entry point
 # or
-django-orm-lens mcp     # subcommand
+orm-lens mcp     # subcommand
 ```
 
 **Workspace resolution (py-1.3.0+).** Priority: explicit `workspace_root`
-argument on the tool call → `DJANGO_ORM_LENS_ROOT` env var → current working
+argument on the tool call → `ORM_LENS_ROOT` env var → current working
 directory. If none resolves to a Django project (`manage.py`, `django` in
 `pyproject.toml`, or any `models.py`) you get a structured error envelope
 back — `{"error": "WORKSPACE_NOT_DJANGO", "hint": "…"}` — instead of an
 empty list, so the agent knows what to do next.
 
-Optional sandbox: set `DJANGO_ORM_LENS_ALLOWED_ROOTS` (`;`-separated on
+Optional sandbox: set `ORM_LENS_ALLOWED_ROOTS` (`;`-separated on
 Windows, `:`-separated elsewhere) to a whitelist of prefixes; any path
 outside them is rejected with `WORKSPACE_NOT_ALLOWED`.
 
@@ -142,19 +150,19 @@ outside them is rejected with `WORKSPACE_NOT_ALLOWED`.
 ```json
 {
   "mcpServers": {
-    "django-orm-lens": {
-      "command": "django-orm-lens-mcp",
-      "env": { "DJANGO_ORM_LENS_ROOT": "/abs/path/to/your/project" }
+    "orm-lens": {
+      "command": "orm-lens-mcp",
+      "env": { "ORM_LENS_ROOT": "/abs/path/to/your/project" }
     }
   }
 }
 ```
 
 **Any MCP client** — same shape, generic tool. Point `command` at the
-installed `django-orm-lens-mcp` binary. Two ways to tell it which Django
+installed `orm-lens-mcp` binary. Two ways to tell it which Django
 project to scan:
 
-1. **Set `DJANGO_ORM_LENS_ROOT` in `env`** — the whole session uses one
+1. **Set `ORM_LENS_ROOT` in `env`** — the whole session uses one
    project. Simplest for single-repo workflows.
 2. **Pass `workspace_root` on each tool call** — the agent switches
    projects per call. Useful for mono-repos and multi-workspace setups.
@@ -176,15 +184,15 @@ pre-commit users get two ready-made hooks:
 
 ```yaml
 repos:
-  - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.15.0
+  - repo: https://github.com/FROWNINGdev/orm-lens
+    rev: py-v1.16.0
     hooks:
-      - id: django-orm-lens-nplusone
-      - id: django-orm-lens-migration-risk
+      - id: orm-lens-nplusone
+      - id: orm-lens-migration-risk
 ```
 
 GitHub Actions users get a composite action:
-`uses: FROWNINGdev/django-orm-lens@action-v1` with `command:` / `format:` inputs.
+`uses: FROWNINGdev/orm-lens@action-v1` with `command:` / `format:` inputs.
 
 ---
 
@@ -198,7 +206,7 @@ Django's ORM is Python, and Python is dynamic. AI agents that only see
 * what `Meta.ordering`, `unique_together`, and `constraints` actually contain;
 * which app owns which model when the project uses split `models/` packages.
 
-`django-orm-lens` gives them a **static, deterministic, JSON view** of the
+`orm-lens` gives them a **static, deterministic, JSON view** of the
 schema — no Django boot, no database, no side effects. And you get a nice CLI
 for humans too.
 
@@ -207,7 +215,7 @@ for humans too.
 ## Programmatic API
 
 ```python
-from django_orm_lens import scan_workspace
+from orm_lens import scan_workspace
 
 index = scan_workspace(".")
 for app in index.apps:
@@ -224,9 +232,9 @@ json.dumps(index.to_dict(), indent=2)
 
 ## Links
 
-* Repo: <https://github.com/FROWNINGdev/django-orm-lens>
-* Issues: <https://github.com/FROWNINGdev/django-orm-lens/issues>
-* Changelog: <https://github.com/FROWNINGdev/django-orm-lens/blob/main/CHANGELOG.md>
+* Repo: <https://github.com/FROWNINGdev/orm-lens>
+* Issues: <https://github.com/FROWNINGdev/orm-lens/issues>
+* Changelog: <https://github.com/FROWNINGdev/orm-lens/blob/main/CHANGELOG.md>
 * VS Code extension: <https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens>
 
 MIT licensed.

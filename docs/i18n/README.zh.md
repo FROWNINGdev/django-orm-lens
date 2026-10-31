@@ -2,12 +2,12 @@
 
 <div align="center" markdown="1">
 
-<img src="../../media/hero.png" alt="Django ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
+<img src="../../media/hero.png" alt="ORM Lens — live sidebar and ER diagram for your Django models" width="100%"/>
 
 <br/>
 <br/>
 
-# Django ORM Lens
+# ORM Lens
 
 ### Django 的 ER 图、N+1 检测与迁移风险检查 —— 无需启动项目。
 
@@ -19,12 +19,12 @@
 
 <!-- Hero — LIVE badges only, minimal (FastAPI / Rich pattern) -->
 
-[![PyPI](https://img.shields.io/pypi/v/django-orm-lens?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/django-orm-lens/)
-[![Python](https://img.shields.io/pypi/pyversions/django-orm-lens?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/django-orm-lens/)
-[![Django versions](https://img.shields.io/pypi/djversions/django-orm-lens?color=092e20&label=Django&logo=django&logoColor=white)](https://pypi.org/project/django-orm-lens/)
-[![CI](https://img.shields.io/github/actions/workflow/status/FROWNINGdev/django-orm-lens/ci.yml?branch=main&label=CI&logo=github)](https://github.com/FROWNINGdev/django-orm-lens/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/orm-lens?color=3775a9&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/orm-lens/)
+[![Python](https://img.shields.io/pypi/pyversions/orm-lens?color=3775a9&logo=python&logoColor=white)](https://pypi.org/project/orm-lens/)
+[![Django versions](https://img.shields.io/pypi/djversions/orm-lens?color=092e20&label=Django&logo=django&logoColor=white)](https://pypi.org/project/orm-lens/)
+[![CI](https://img.shields.io/github/actions/workflow/status/FROWNINGdev/orm-lens/ci.yml?branch=main&label=CI&logo=github)](https://github.com/FROWNINGdev/orm-lens/actions/workflows/ci.yml)
 [![Downloads](https://img.shields.io/pepy/dt/django-orm-lens?color=3775a9&label=downloads&logo=pypi&logoColor=white)](https://pepy.tech/project/django-orm-lens)
-[![License](https://img.shields.io/github/license/FROWNINGdev/django-orm-lens?color=16a34a)](../../LICENSE)
+[![License](https://img.shields.io/github/license/FROWNINGdev/orm-lens?color=16a34a)](../../LICENSE)
 
 <br/>
 
@@ -32,7 +32,7 @@
 
 [![Install on VS Code](https://img.shields.io/badge/VS_Code-Install-0c4b33?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens)
 [![Install on Open VSX](https://img.shields.io/badge/Open_VSX-Install-c160ef?style=for-the-badge&logo=eclipseide&logoColor=white)](https://open-vsx.org/extension/frowningdev/django-orm-lens)
-[![Docker GHCR](https://img.shields.io/badge/Docker-GHCR-2496ed?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/FROWNINGdev/django-orm-lens/pkgs/container/django-orm-lens)
+[![Docker GHCR](https://img.shields.io/badge/Docker-GHCR-2496ed?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/FROWNINGdev/orm-lens/pkgs/container/orm-lens)
 
 <br/>
 
@@ -45,9 +45,9 @@
 ## ⚡ 10 秒获得第一份洞察
 
 ```bash
-uvx django-orm-lens scan -f table   # every app and model at a glance
-uvx django-orm-lens nplusone        # N+1 loops, with the select_related to add
-uvx django-orm-lens migration-risk  # migrations that lock tables or fail on existing rows
+uvx orm-lens scan -f table   # every app and model at a glance
+uvx orm-lens nplusone        # N+1 loops, with the select_related to add
+uvx orm-lens migration-risk  # migrations that lock tables or fail on existing rows
 ```
 
 冷克隆、坏掉的 venv、没有 settings 模块 —— 你依然能在终端里看到项目的每个 app 和模型，以及其中的 N+1 循环和高风险迁移。（`uvx` 来自 [uv](https://docs.astral.sh/uv/)；`pipx run` 用法相同。）
@@ -57,10 +57,10 @@ uvx django-orm-lens migration-risk  # migrations that lock tables or fail on exi
 | 你是谁 | 安装 | 你将得到 |
 |---|---|---|
 | **编辑器用户** —— VS Code / Cursor / Windsurf / VSCodium | `code --install-extension frowningdev.django-orm-lens` | 侧边栏树形视图、实时 ER 图、悬停卡片、16 条 QuickFix 规则 |
-| **终端 / CI 用户** | `pip install django-orm-lens` | 13 个子命令、SARIF + PR 注解、pre-commit 钩子、一个 GitHub Action |
-| **AI agent 用户** —— Cursor / Claude Code / Aider / Zed / Continue | `pip install "django-orm-lens[mcp]"` | 10 个只读 MCP 工具，基于确凿事实回答数据结构问题 |
+| **终端 / CI 用户** | `pip install orm-lens` | 13 个子命令、SARIF + PR 注解、pre-commit 钩子、一个 GitHub Action |
+| **AI agent 用户** —— Cursor / Claude Code / Aider / Zed / Continue | `pip install "orm-lens[mcp]"` | 10 个只读 MCP 工具，基于确凿事实回答数据结构问题 |
 
-MCP 配置只需一段 JSON —— 参见 [Integrations](#-integrations)。将 `DJANGO_ORM_LENS_ROOT` 指向你的 Django 项目的绝对路径。
+MCP 配置只需一段 JSON —— 参见 [Integrations](#-integrations)。将 `ORM_LENS_ROOT` 指向你的 Django 项目的绝对路径。
 
 
 ---
@@ -92,36 +92,36 @@ MCP 配置只需一段 JSON —— 参见 [Integrations](#-integrations)。将 `
 
 <!-- Traction — LIVE counters only, no hardcoded numbers -->
 
-[![GitHub stars](https://img.shields.io/github/stars/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=eab308&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/stargazers)
-[![Forks](https://img.shields.io/github/forks/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/network/members)
-[![PyPI monthly](https://img.shields.io/pypi/dm/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI%2Fmonth&color=3775a9&labelColor=1e293b)](https://pypi.org/project/django-orm-lens/)
+[![GitHub stars](https://img.shields.io/github/stars/FROWNINGdev/orm-lens?style=for-the-badge&logo=github&logoColor=white&color=eab308&labelColor=1e293b)](https://github.com/FROWNINGdev/orm-lens/stargazers)
+[![Forks](https://img.shields.io/github/forks/FROWNINGdev/orm-lens?style=for-the-badge&logo=github&logoColor=white&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/orm-lens/network/members)
+[![PyPI monthly](https://img.shields.io/pypi/dm/orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI%2Fmonth&color=3775a9&labelColor=1e293b)](https://pypi.org/project/orm-lens/)
 [![Total downloads](https://img.shields.io/pepy/dt/django-orm-lens?style=for-the-badge&logo=pypi&logoColor=white&label=total%20downloads&color=3775a9&labelColor=1e293b)](https://pepy.tech/project/django-orm-lens)
 [![Marketplace rating](https://img.shields.io/visual-studio-marketplace/r/frowningdev.django-orm-lens?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=rating&color=c160ef&labelColor=1e293b)](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)
-[![Contributors](https://img.shields.io/github/contributors/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=contributors&color=8b5cf6&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/graphs/contributors)
-[![Last commit](https://img.shields.io/github/last-commit/FROWNINGdev/django-orm-lens?style=for-the-badge&logo=github&logoColor=white&label=last%20commit&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/django-orm-lens/commits/main)
+[![Contributors](https://img.shields.io/github/contributors/FROWNINGdev/orm-lens?style=for-the-badge&logo=github&logoColor=white&label=contributors&color=8b5cf6&labelColor=1e293b)](https://github.com/FROWNINGdev/orm-lens/graphs/contributors)
+[![Last commit](https://img.shields.io/github/last-commit/FROWNINGdev/orm-lens?style=for-the-badge&logo=github&logoColor=white&label=last%20commit&color=64748b&labelColor=1e293b)](https://github.com/FROWNINGdev/orm-lens/commits/main)
 
 <br/>
 
 <!-- Directory presence — one row per registry, no duplicates -->
 
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-official-6f42c1?style=for-the-badge&labelColor=1e293b)](https://registry.modelcontextprotocol.io/)
-[![Smithery](https://img.shields.io/badge/Smithery-listed-8b5cf6?style=for-the-badge&labelColor=1e293b)](https://smithery.ai/server/@frowningdev/django-orm-lens)
-[![Glama](https://img.shields.io/badge/Glama.ai-listed-64748b?style=for-the-badge&labelColor=1e293b)](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+[![Smithery](https://img.shields.io/badge/Smithery-listed-8b5cf6?style=for-the-badge&labelColor=1e293b)](https://smithery.ai/server/@FROWNINGdev/orm-lens)
+[![Glama](https://img.shields.io/badge/Glama.ai-listed-64748b?style=for-the-badge&labelColor=1e293b)](https://glama.ai/mcp/servers/FROWNINGdev/orm-lens)
 [![awesome-mcp-servers](https://img.shields.io/badge/awesome--mcp--servers-listed-16a34a?style=for-the-badge&logo=github&logoColor=white&labelColor=1e293b)](https://github.com/punkpeye/awesome-mcp-servers)
-[![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge&labelColor=1e293b)](https://mcp.so/servers/django-orm-lens)
+[![mcp.so](https://img.shields.io/badge/mcp.so-listed-1f2937?style=for-the-badge&labelColor=1e293b)](https://mcp.so/servers/orm-lens)
 
 </div>
 
-> 如果这个工具下次帮你在一个陌生的 Django 项目里省掉一次 `grep` —— **[一颗 star 能帮助更多人发现它](https://github.com/FROWNINGdev/django-orm-lens/stargazers)**。
+> 如果这个工具下次帮你在一个陌生的 Django 项目里省掉一次 `grep` —— **[一颗 star 能帮助更多人发现它](https://github.com/FROWNINGdev/orm-lens/stargazers)**。
 
 ### 📈 Star 增长
 
 <div align="center">
-  <a href="https://www.star-history.com/?repos=FROWNINGdev%2Fdjango-orm-lens&type=date&legend=top-left">
+  <a href="https://www.star-history.com/?repos=FROWNINGdev%2Form-lens&type=date&legend=top-left">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&theme=dark&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
-      <img alt="Star history of FROWNINGdev/django-orm-lens" src="https://api.star-history.com/chart?repos=FROWNINGdev/django-orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/orm-lens&type=date&theme=dark&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=FROWNINGdev/orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
+      <img alt="Star history of FROWNINGdev/orm-lens" src="https://api.star-history.com/chart?repos=FROWNINGdev/orm-lens&type=date&legend=top-left&sealed_token=Bt09MbOICQzMe0Yzud5Up9GEQwXZReJEx6n5AS5Sl2GB3UtfipcUjyojd3g8PEfAkOFiZgy5uJel_LoNeLy_r7I4pyGhnYdUyQIbJDQzKlx1oA3BLRkxlAgby995WLgF7Ze1fdg2TlS6EJH0aRozsCZnwP1rtqXbMCWRMu1c9qpFrPcKxgFNd1G9fWMT" />
     </picture>
   </a>
 </div>
@@ -142,13 +142,13 @@ code --install-extension frowningdev.django-orm-lens
 codium --install-extension frowningdev.django-orm-lens
 ```
 
-或者在扩展视图中搜索 **`Django ORM Lens`** —— 两个市场上的发布者都是同一个 `frowningdev`。
+或者在扩展视图中搜索 **`ORM Lens`** —— 两个市场上的发布者都是同一个 `frowningdev`。
 
 **终端与 AI 编码 agent：**
 
 ```bash
-pip install django-orm-lens              # CLI only
-pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
+pip install orm-lens              # CLI only
+pip install "orm-lens[mcp]"       # + MCP server for AI agents
 ```
 
 需要 Python 3.9+（MCP 服务器需要 3.10+）。CLI 运行时零依赖。
@@ -156,7 +156,7 @@ pip install "django-orm-lens[mcp]"       # + MCP server for AI agents
 **Docker（v0.6+）：**
 
 ```bash
-docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/django-orm-lens scan --path .
+docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/orm-lens scan --path .
 ```
 
 多架构（amd64 + arm64）。宿主机无需 Python。适合 CI 与一次性审计。
@@ -177,7 +177,7 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/django-orm-lens scan --
 
 <br/>
 
-## ✨ 有了 Django ORM Lens
+## ✨ 有了 ORM Lens
 
 <table>
 <tr>
@@ -246,7 +246,7 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/frowningdev/django-orm-lens scan --
 
 对 `.py` 文件做静态分析：Ruff 风格的规则码（`DOL001`..`DOL032`）、Clippy 风格的 `Applicability`，以及按规则覆盖的严重级别。`.count() > 0` → `.exists()`、`CharField` 上的 `null=True`、缺失的 `on_delete`、`datetime.now()` → `timezone.now()`，以及另外十几条。
 
-用 `# django-orm-lens-disable-next-line DOL007` 即可行内抑制。
+用 `# orm-lens-disable-next-line DOL007` 即可行内抑制。
 
 </td>
 <td width="50%" valign="top">
@@ -306,10 +306,10 @@ FK 上的 `.filter(field=?)` 自动追加 `.select_related(...)`，`.annotate(po
 ## 📸 界面预览
 
 <div align="center" markdown="1">
-<img src="../../media/screenshot-vscode.png" alt="VS Code with Django ORM Lens: the model tree, ORM diagnostics in views.py and the live ER diagram" width="100%"/>
+<img src="../../media/screenshot-vscode.png" alt="VS Code with ORM Lens: the model tree, ORM diagnostics in views.py and the live ER diagram" width="100%"/>
 </div>
 
-**实时示例** — `django-orm-lens er` 的真实输出，GitHub 会直接在此渲染：
+**实时示例** — `orm-lens er` 的真实输出，GitHub 会直接在此渲染：
 ```mermaid
 erDiagram
   User {
@@ -348,19 +348,19 @@ erDiagram
 ### CLI
 
 ```bash
-django-orm-lens scan -f json                 # every app, every model, every field
-django-orm-lens describe blog.Post           # one model in Markdown
-django-orm-lens list | fzf                   # flat app.Model — pipes anywhere
-django-orm-lens er > schema.mmd              # ER diagram — Mermaid (default)
-django-orm-lens er -f dbml > schema.dbml     # …or DBML: paste into dbdiagram.io
-django-orm-lens er -f d2 > schema.d2         # …or D2 / plantuml
-django-orm-lens diff before.json after.json  # what a PR changes structurally
-django-orm-lens nplusone --format github     # N+1 findings as PR annotations
-django-orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
-django-orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
-django-orm-lens signals                      # sender→signal→handler graph
-django-orm-lens migration-deps blog -f mermaid   # per-app migration DAG
-django-orm-lens cascade blog.Author          # what one delete() takes down
+orm-lens scan -f json                 # every app, every model, every field
+orm-lens describe blog.Post           # one model in Markdown
+orm-lens list | fzf                   # flat app.Model — pipes anywhere
+orm-lens er > schema.mmd              # ER diagram — Mermaid (default)
+orm-lens er -f dbml > schema.dbml     # …or DBML: paste into dbdiagram.io
+orm-lens er -f d2 > schema.d2         # …or D2 / plantuml
+orm-lens diff before.json after.json  # what a PR changes structurally
+orm-lens nplusone --format github     # N+1 findings as PR annotations
+orm-lens migration-risk -f sarif      # SARIF for GitHub Code Scanning
+orm-lens suggest-indexes blog.Post    # Meta.indexes proposals from usage
+orm-lens signals                      # sender→signal→handler graph
+orm-lens migration-deps blog -f mermaid   # per-app migration DAG
+orm-lens cascade blog.Author          # what one delete() takes down
 ```
 
 每个命令都接受 `--path <dir>` 与 `--exclude <glob>`。`nplusone` / `migration-risk` / `diff` 在有发现时以退出码 `1` 结束 —— 把它们放进 CI，即可在出现回归时拦下 PR。
@@ -384,13 +384,13 @@ django-orm-lens cascade blog.Author          # what one delete() takes down
 
 ```bash
 # Start it directly
-django-orm-lens-mcp
+orm-lens-mcp
 
 # Or via the CLI subcommand
-django-orm-lens mcp
+orm-lens mcp
 ```
 
-**工作区解析（py-1.3.0+）。** 每个工具在调用时都接受可选的 `workspace_root` 参数。解析优先级：显式参数 → `$DJANGO_ORM_LENS_ROOT` → 当前工作目录。无效或非 Django 路径会返回结构化响应（`{"error": "WORKSPACE_NOT_DJANGO", "hint": "…"}`）而不是空结果，agent 因此可以自我纠正。可选沙箱通过 `DJANGO_ORM_LENS_ALLOWED_ROOTS` 设置（Windows 上以 `;` 分隔，其他平台以 `:` 分隔）。
+**工作区解析（py-1.3.0+）。** 每个工具在调用时都接受可选的 `workspace_root` 参数。解析优先级：显式参数 → `$ORM_LENS_ROOT` → 当前工作目录。无效或非 Django 路径会返回结构化响应（`{"error": "WORKSPACE_NOT_DJANGO", "hint": "…"}`）而不是空结果，agent 因此可以自我纠正。可选沙箱通过 `ORM_LENS_ALLOWED_ROOTS` 设置（Windows 上以 `;` 分隔，其他平台以 `:` 分隔）。
 
 <br/>
 
@@ -403,8 +403,8 @@ django-orm-lens mcp
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/FROWNINGdev/django-orm-lens
-    rev: py-v1.15.0
+  - repo: https://github.com/FROWNINGdev/orm-lens
+    rev: py-v1.16.0
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk
@@ -413,7 +413,7 @@ repos:
 **GitHub Action** —— 检出的问题以 PR 注解呈现，无需任何额外权限：
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@action-v1
+- uses: FROWNINGdev/orm-lens@action-v1
   with:
     command: migration-risk      # or: nplusone
     format: github               # ::error / ::warning annotations on the diff
@@ -423,8 +423,8 @@ repos:
 
 ```yaml
 - run: |
-    pip install django-orm-lens
-    django-orm-lens migration-risk --format sarif --exit-zero > lens.sarif
+    pip install orm-lens
+    orm-lens migration-risk --format sarif --exit-zero > lens.sarif
 - uses: github/codeql-action/upload-sarif@v3
   with:
     sarif_file: lens.sarif
@@ -440,24 +440,24 @@ repos:
 |---|---|:-:|
 | **VS Code** | `code --install-extension frowningdev.django-orm-lens` | ✅ |
 | **Cursor** | 相同的 VSIX + 可选地在 `~/.cursor/mcp.json` 中添加 MCP 条目 | ✅ |
-| **Windsurf / VSCodium / 任意 Code 派生版** | 从 [Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) 或 [GitHub Releases](https://github.com/FROWNINGdev/django-orm-lens/releases) 安装 VSIX | ✅ |
-| **Aider** | 将 `django-orm-lens-mcp` 添加到你的 `mcp.json` | ✅ (via MCP) |
+| **Windsurf / VSCodium / 任意 Code 派生版** | 从 [Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) 或 [GitHub Releases](https://github.com/FROWNINGdev/orm-lens/releases) 安装 VSIX | ✅ |
+| **Aider** | 将 `orm-lens-mcp` 添加到你的 `mcp.json` | ✅ (via MCP) |
 | **Continue.dev** | 在 `~/.continue/config.json` 中注册 MCP 服务器 | ✅ (via MCP) |
 | **Zed** | 在 Zed 设置中注册 MCP 服务器 | ✅ (via MCP) |
-| **任意兼容 MCP 的客户端** | 将 `command` 指向 `django-orm-lens-mcp`，并设置 `DJANGO_ORM_LENS_ROOT` | ✅ |
-| **pre-commit** | `repo: https://github.com/FROWNINGdev/django-orm-lens` + 两个 hook id | ✅ |
-| **GitHub Actions** | `uses: FROWNINGdev/django-orm-lens@action-v1` —— 注解或 SARIF | ✅ |
+| **任意兼容 MCP 的客户端** | 将 `command` 指向 `orm-lens-mcp`，并设置 `ORM_LENS_ROOT` | ✅ |
+| **pre-commit** | `repo: https://github.com/FROWNINGdev/orm-lens` + 两个 hook id | ✅ |
+| **GitHub Actions** | `uses: FROWNINGdev/orm-lens@action-v1` —— 注解或 SARIF | ✅ |
 | **可在 [MCP Registry](https://registry.modelcontextprotocol.io/) 中发现** | 官方 Model Context Protocol 服务器目录 | ✅ |
-| **纯终端 / CI** | `pip install django-orm-lens && django-orm-lens scan` | ✅ |
+| **纯终端 / CI** | `pip install orm-lens && orm-lens scan` | ✅ |
 
 ### 示例：Cursor / 任意 MCP 客户端
 
 ```jsonc
 {
   "mcpServers": {
-    "django-orm-lens": {
-      "command": "django-orm-lens-mcp",
-      "env": { "DJANGO_ORM_LENS_ROOT": "/abs/path/to/your/project" }
+    "orm-lens": {
+      "command": "orm-lens-mcp",
+      "env": { "ORM_LENS_ROOT": "/abs/path/to/your/project" }
     }
   }
 }
@@ -472,7 +472,7 @@ repos:
 自己复现一下：
 
 ```bash
-git clone https://github.com/FROWNINGdev/django-orm-lens && cd django-orm-lens/cli
+git clone https://github.com/FROWNINGdev/orm-lens && cd orm-lens/cli
 pip install -e . && python -m pytest tests/test_golden_fixtures.py tests/test_golden_snapshots.py -q
 ```
 
@@ -491,7 +491,7 @@ pip install -e . && python -m pytest tests/test_golden_fixtures.py tests/test_go
 
 ## 🗺️ 市场定位
 
-Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地带 —— 一个现有软件包都没有覆盖的位置：
+ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地带 —— 一个现有软件包都没有覆盖的位置：
 
 | 细分 | 现有方案 | 代价 |
 |---|---|---|
@@ -501,13 +501,13 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 | 编辑器插件 | PyCharm 的 Django Structure | 锁定 PyCharm；没有 CLI，没有 AI agent 入口 |
 | MCP 服务器 | （此前没有） | AI agent 只能从源码里靠猜来理解你的数据结构，不完美 |
 
-**Django ORM Lens 是唯一一个基于同一个解析器同时提供三种形态的工具：** 一个 VS Code 扩展（任意 Code 派生版）、一个零依赖 CLI（终端 + CI），以及一个 MCP 服务器（AI agent）。全部静态。全部免费。全部 MIT。
+**ORM Lens 是唯一一个基于同一个解析器同时提供三种形态的工具：** 一个 VS Code 扩展（任意 Code 派生版）、一个零依赖 CLI（终端 + CI），以及一个 MCP 服务器（AI agent）。全部静态。全部免费。全部 MIT。
 
 <br/>
 
 ## 🤔 它与众不同在哪里？
 
-| | **Django ORM Lens** | `django-extensions graph_models` | `django-schema-graph` | Django Admin | PyCharm Django Structure |
+| | **ORM Lens** | `django-extensions graph_models` | `django-schema-graph` | Django Admin | PyCharm Django Structure |
 |---|:-:|:-:|:-:|:-:|:-:|
 | 无需可启动的 Django 项目也能工作 | ✅ | ❌ | ❌ | ❌ | ⚠️ |
 | 零安装（无 graphviz、无服务器） | ✅ | ❌ | ❌ | ❌ | ❌（需要 PyCharm） |
@@ -527,7 +527,7 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 
 ### 当你需要别的东西时
 
-坦诚的边界：剖析一个在线请求 → **django-debug-toolbar**。历史请求剖析 → **django-silk**。测试套件内的查询计数断言 → **django-perf-rec**。真实流量上的生产 APM → **Scout / Sentry**。Django ORM Lens 刻意保持静态 —— 它是在应用还无法启动之前就能工作的那一层，也是你的 CI 和 AI agent 在任何 checkout 上都能用的唯一一层。
+坦诚的边界：剖析一个在线请求 → **django-debug-toolbar**。历史请求剖析 → **django-silk**。测试套件内的查询计数断言 → **django-perf-rec**。真实流量上的生产 APM → **Scout / Sentry**。ORM Lens 刻意保持静态 —— 它是在应用还无法启动之前就能工作的那一层，也是你的 CI 和 AI agent 在任何 checkout 上都能用的唯一一层。
 
 <br/>
 
@@ -578,13 +578,13 @@ Django ORM Lens 处在 **编辑器工具** 与 **AI agent 工具** 的交叉地�
 ### 行内抑制
 
 ```python
-# django-orm-lens-disable-next-line DOL007
+# orm-lens-disable-next-line DOL007
 for user in User.objects.all():
     print(user.profile)  # not flagged
 
-qs.count() > 0  # django-orm-lens-disable-line DOL001
+qs.count() > 0  # orm-lens-disable-line DOL001
 
-# django-orm-lens-disable DOL011  ← on its own line, kills DOL011 for the rest of the file
+# orm-lens-disable DOL011  ← on its own line, kills DOL011 for the rest of the file
 ```
 
 Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix All"），**suggestion** 修复以 QuickFix 的形式提供但需人工确认，**unsafe** 发现绝不自动应用。修复器与分析器相互分离（Roslyn 风格），因此一条规则可以随时间生长出多个修复器，而无需触碰检测逻辑。
@@ -593,20 +593,20 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 
 ## 🧭 命令
 
-打开命令面板（`Ctrl+Shift+P` / `Cmd+Shift+P`），输入 "Django ORM Lens"：
+打开命令面板（`Ctrl+Shift+P` / `Cmd+Shift+P`），输入 "ORM Lens"：
 
 | 命令 | 作用 |
 |---|---|
-| `Django ORM Lens: Refresh` | 强制重新扫描工作区 |
-| `Django ORM Lens: Show ER Diagram` | 在代码旁边打开 Mermaid ER 图 |
-| `Django ORM Lens: Filter Models` | 按 app / 模型 / 字段名过滤树形视图 |
-| `Django ORM Lens: Clear Filter` | 恢复完整的树形视图 |
-| `Django ORM Lens: Jump to Model` | 程序化触发 —— 由树中点击与悬停卡片调用 |
-| `Django ORM Lens: Find Reverse References` | 右键模型 —— QuickPick 列出指向它的每个 FK |
-| `Django ORM Lens: Generate factory_boy Factory` | 右键模型或使用 CodeLens —— 生成 `DjangoModelFactory` 脚手架 |
-| `Django ORM Lens: Schema Diff (Time-Travel)` | 选两个 commit —— 在 markdown 缓冲区中得到类型化 diff |
-| `Django ORM Lens: Find Impact (What Uses This?)` | 右键字段或模型 —— 全工作区引用扫描 |
-| `Django ORM Lens: Build Query (Insert Snippet)` | 右键字段或模型 —— 选择一个 ORM 模板 |
+| `ORM Lens: Refresh` | 强制重新扫描工作区 |
+| `ORM Lens: Show ER Diagram` | 在代码旁边打开 Mermaid ER 图 |
+| `ORM Lens: Filter Models` | 按 app / 模型 / 字段名过滤树形视图 |
+| `ORM Lens: Clear Filter` | 恢复完整的树形视图 |
+| `ORM Lens: Jump to Model` | 程序化触发 —— 由树中点击与悬停卡片调用 |
+| `ORM Lens: Find Reverse References` | 右键模型 —— QuickPick 列出指向它的每个 FK |
+| `ORM Lens: Generate factory_boy Factory` | 右键模型或使用 CodeLens —— 生成 `DjangoModelFactory` 脚手架 |
+| `ORM Lens: Schema Diff (Time-Travel)` | 选两个 commit —— 在 markdown 缓冲区中得到类型化 diff |
+| `ORM Lens: Find Impact (What Uses This?)` | 右键字段或模型 —— 全工作区引用扫描 |
+| `ORM Lens: Build Query (Insert Snippet)` | 右键字段或模型 —— 选择一个 ORM 模板 |
 
 <br/>
 
@@ -627,22 +627,22 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 - [x] **v0.3.0** —— 图表上的连线标签（`CASCADE`、`SET_NULL`、`PROTECT`、`related_name`）
 - [x] **v0.3.0** —— 命名的颜色主题（`auto` / `default` / `dark` / `forest` / `neutral`）
 - [x] **v0.3.1** —— M2M 连线上的 `through_model`（由 [@kingrubic](https://github.com/kingrubic) 贡献）
-- [x] **v0.3.1** —— 收录到 [官方 MCP Registry](https://registry.modelcontextprotocol.io/) 与 [Glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/django-orm-lens)
+- [x] **v0.3.1** —— 收录到 [官方 MCP Registry](https://registry.modelcontextprotocol.io/) 与 [Glama.ai](https://glama.ai/mcp/servers/FROWNINGdev/orm-lens)
 - [x] **v0.6.0** —— CLI `nplusone` —— 静态 N+1 检测器（循环内访问 FK/M2M 而未用 `select_related`/`prefetch_related`）
 - [x] **v0.6.0** —— CLI `migration-risk` —— 标记 `migrations/*.py` 中的危险操作（目前 15 条规则）
 - [x] **v0.6.0** —— CLI `diff` —— 比较两份 schema JSON 导出，用于 PR 评审
 - [x] **v0.6.0** —— ER 图缩略图按 Django app 为节点着色
 - [x] **v0.6.0** —— README 翻译：🇷🇺 俄语、🇪🇸 西班牙语、🇨🇳 中文
-- [x] **v0.6.0** —— GHCR 上的 Docker 镜像：`docker run ghcr.io/frowningdev/django-orm-lens`
+- [x] **v0.6.0** —— GHCR 上的 Docker 镜像：`docker run ghcr.io/frowningdev/orm-lens`
 - [x] **v0.7.0** —— `settings.AUTH_USER_MODEL` 在所有位置都能解析：n+1 反向关系、信号 sender、Mermaid ER、VS Code webview、入向关系面板、React ER
 - [x] **v0.7.0** —— 基于 AST 的字段解析器：`ForeignKey(on_delete=CASCADE, to='User')` 无论 kwarg 顺序如何都能解析（Python 与 TS 行为一致）
 - [x] **v0.7.0** —— 公开的共享辅助函数：`find_user_model`、`resolve_related_tail`、`find_model`、`iter_workspace_py_files`（Python）+ `findUserModel`、`resolveRelatedTail`（TS）
 - [x] **v0.7.0** —— `--verbose` 不再把目录树遍历两遍；文件计数由 `WorkspaceIndex.scanned_files` 提供
-- [x] **v0.7.3** —— 字段上的 PEP-526 类型注解（`jti: CharField[str] = models.CharField(...)`）现在可以解析 —— 由 [@jsabater](https://github.com/jsabater) 报告（[#25](https://github.com/FROWNINGdev/django-orm-lens/issues/25)），并附上了干净的 Django Ninja 1.6 复现
+- [x] **v0.7.3** —— 字段上的 PEP-526 类型注解（`jti: CharField[str] = models.CharField(...)`）现在可以解析 —— 由 [@jsabater](https://github.com/jsabater) 报告（[#25](https://github.com/FROWNINGdev/orm-lens/issues/25)），并附上了干净的 Django Ninja 1.6 复现
 - [x] **v0.7.4** —— PEP-695 泛型类头（Python 3.12+）：`class Container[T](models.Model):` 现在可以解析
 - [x] **v0.7.5** —— 现在能检测别名化的 models 模块（`from django.db import models as m`）与第三方字段包（`jsonfield.JSONField`）
 - [x] **v0.7.6** —— Tab 缩进的模型体现在可以解析（默认使用 tab 的编辑器不再显示空模型）
-- [x] **v0.8.0** —— 行内 QuickFix：16 条规则（`DOL001`..`DOL032`），支持按规则的严重级别 + Ruff 风格 select/ignore + 行内 `# django-orm-lens-disable-next-line`
+- [x] **v0.8.0** —— 行内 QuickFix：16 条规则（`DOL001`..`DOL032`），支持按规则的严重级别 + Ruff 风格 select/ignore + 行内 `# orm-lens-disable-next-line`
 - [x] **v0.8.0** —— Factory 生成器：从任意模型生成 `factory_boy` 脚手架，Faker provider 按字段类型匹配
 - [x] **v0.8.0** —— 时间旅行 Schema Diff：选两个 commit → 类型化 markdown diff，重命名检测为一等公民
 - [x] **v0.8.0** —— 影响分析：跨每个 Django 层级的全工作区字段引用扫描，带 Certain/Likely/Possibly 置信标签
@@ -662,7 +662,7 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 
 **下一步**
 
-- [ ] `.filter()` / `.exclude()` / `.annotate()` 内的 ORM 查询自动补全（[#3](https://github.com/FROWNINGdev/django-orm-lens/issues/3)）
+- [ ] `.filter()` / `.exclude()` / `.annotate()` 内的 ORM 查询自动补全（[#3](https://github.com/FROWNINGdev/orm-lens/issues/3)）
 - [ ] app / 模型显隐勾选框，为庞大的数据结构化繁为简
 - [ ] DOL 规则引擎移植到 Python CLI —— 一份规则目录，三种使用面
 
@@ -671,7 +671,7 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 - [ ] 第三方字段支持（`django-mptt`、`django-taggit`、`django-model-utils`）
 - [ ] JetBrains / PyCharm 插件（如有需求）
 
-用 👍 为对应的 [issue](https://github.com/FROWNINGdev/django-orm-lens/issues) 投票。
+用 👍 为对应的 [issue](https://github.com/FROWNINGdev/orm-lens/issues) 投票。
 
 <br/>
 
@@ -704,13 +704,13 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 <details>
 <summary><b>哪些 AI agent 可以使用 MCP 服务器？</b></summary>
 <br/>
-任何兼容 MCP 的客户端 —— Cursor、Aider、Continue.dev、Zed，以及任何其他支持该协议的工具。只需将 <code>command</code> 指向已安装的 <code>django-orm-lens-mcp</code> 可执行文件即可。详见 <a href="#-integrations">Integrations</a> 章节。
+任何兼容 MCP 的客户端 —— Cursor、Aider、Continue.dev、Zed，以及任何其他支持该协议的工具。只需将 <code>command</code> 指向已安装的 <code>orm-lens-mcp</code> 可执行文件即可。详见 <a href="#-integrations">Integrations</a> 章节。
 </details>
 
 <details>
 <summary><b>如何在 CI 中拦截数据结构回归？</b></summary>
 <br/>
-三种方式，全部零配置：两个 <a href="#%EF%B8%8F-gate-your-ci">pre-commit 钩子</a>、复合 GitHub Action（<code>uses: FROWNINGdev/django-orm-lens@action-v1</code> 配合 <code>format: github</code> 输出 PR 注解），或将 <code>--format sarif</code> 管道到 <code>github/codeql-action/upload-sarif</code> 送入 Security 标签页。<code>diff</code> / <code>nplusone</code> 在有发现时退出 1，<code>migration-risk</code> 在有严重发现时退出 1。
+三种方式，全部零配置：两个 <a href="#%EF%B8%8F-gate-your-ci">pre-commit 钩子</a>、复合 GitHub Action（<code>uses: FROWNINGdev/orm-lens@action-v1</code> 配合 <code>format: github</code> 输出 PR 注解），或将 <code>--format sarif</code> 管道到 <code>github/codeql-action/upload-sarif</code> 送入 Security 标签页。<code>diff</code> / <code>nplusone</code> 在有发现时退出 1，<code>migration-risk</code> 在有严重发现时退出 1。
 </details>
 
 <details>
@@ -723,10 +723,10 @@ Applicability 沿用 Rust 的 Clippy：**safe** 修复可以自动应用（"Fix 
 
 ## 🆘 支持
 
-- 🐛 **Bug 反馈** —— [GitHub Issues](https://github.com/FROWNINGdev/django-orm-lens/issues)（请附上最小可复现的 `models.py` 片段）
-- 💡 **功能建议 / 想法** —— [GitHub Discussions](https://github.com/FROWNINGdev/django-orm-lens/discussions)
+- 🐛 **Bug 反馈** —— [GitHub Issues](https://github.com/FROWNINGdev/orm-lens/issues)（请附上最小可复现的 `models.py` 片段）
+- 💡 **功能建议 / 想法** —— [GitHub Discussions](https://github.com/FROWNINGdev/orm-lens/discussions)
 - 📝 **Marketplace 评价** —— [为扩展打分](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens&ssr=false#review-details)（推动项目前进最快的信号）
-- 🐍 **PyPI 页面** —— [pypi.org/project/django-orm-lens](https://pypi.org/project/django-orm-lens/)
+- 🐍 **PyPI 页面** —— [pypi.org/project/orm-lens](https://pypi.org/project/orm-lens/)
 - 💚 **赞助** —— [github.com/sponsors/FROWNINGdev](https://github.com/sponsors/FROWNINGdev)
 
 <br/>
@@ -741,6 +741,6 @@ MIT © [FROWNINGdev](https://github.com/FROWNINGdev)
 
 **为在意自己代码库的开发者而生。**
 
-[Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) · [PyPI](https://pypi.org/project/django-orm-lens/) · [GitHub](https://github.com/FROWNINGdev/django-orm-lens) · [Issues](https://github.com/FROWNINGdev/django-orm-lens/issues) · [Discussions](https://github.com/FROWNINGdev/django-orm-lens/discussions) · [Sponsor](https://github.com/sponsors/FROWNINGdev)
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=frowningdev.django-orm-lens) · [PyPI](https://pypi.org/project/orm-lens/) · [GitHub](https://github.com/FROWNINGdev/orm-lens) · [Issues](https://github.com/FROWNINGdev/orm-lens/issues) · [Discussions](https://github.com/FROWNINGdev/orm-lens/discussions) · [Sponsor](https://github.com/sponsors/FROWNINGdev)
 
 </div>

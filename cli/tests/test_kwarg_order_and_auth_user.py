@@ -17,20 +17,20 @@ from __future__ import annotations
 
 import unittest
 
-from django_orm_lens.models import (
+from orm_lens.models import (
     find_user_model,
     find_user_model_from_dict,
     resolve_related_tail,
 )
-from django_orm_lens.parser import (
+from orm_lens.parser import (
     _extract_on_delete,
     _extract_related,
     _extract_related_name,
     _extract_through_model,
     parse_models_file,
 )
-from django_orm_lens.query_analyzer import _build_schema_from_index
-from django_orm_lens.signals_parser import _resolve_sender
+from orm_lens.query_analyzer import _build_schema_from_index
+from orm_lens.signals_parser import _resolve_sender
 
 # ---------------------------------------------------------------------------
 # Fix #1 — AST-based extractors are kwarg-order-independent
@@ -174,8 +174,8 @@ class ExtractOnDeletePositionalTest(unittest.TestCase):
         from pathlib import Path
         from tempfile import TemporaryDirectory
 
-        from django_orm_lens.models import cascade_preview
-        from django_orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
+        from orm_lens.models import cascade_preview
+        from orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
 
         with TemporaryDirectory() as tmp:
             app = Path(tmp) / "shop"

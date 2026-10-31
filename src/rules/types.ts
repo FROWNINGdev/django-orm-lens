@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WorkspaceIndex } from '../types';
 
 /**
- * Django ORM Lens — rules engine core types.
+ * ORM Lens — rules engine core types.
  *
  * The architecture is a hybrid distilled from the mainstream lint ecosystems:
  *
@@ -31,7 +31,7 @@ import { WorkspaceIndex } from '../types';
  */
 
 /** Diagnostic.source shown in Problems panel and hover. Stable. */
-export const DIAGNOSTIC_SOURCE = 'Django ORM Lens';
+export const DIAGNOSTIC_SOURCE = 'ORM Lens';
 
 /** Prefix for every rule code. Codes are strings like `DOL001`. */
 export const DOL_CODE_PREFIX = 'DOL';

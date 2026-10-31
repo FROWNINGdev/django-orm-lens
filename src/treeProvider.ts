@@ -9,7 +9,7 @@ import {
 } from './decorations';
 
 /**
- * Django ORM Lens — sidebar tree.
+ * ORM Lens — sidebar tree.
  *
  * v0.8 UX overhaul distilled from the top-tier extensions (GitLens,
  * Todo Tree, Docker, GitHub PRs) and community forum feedback:

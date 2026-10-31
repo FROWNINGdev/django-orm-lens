@@ -15,14 +15,14 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.ci_formats import (
+from orm_lens.ci_formats import (
     migration_risks_github,
     migration_risks_sarif,
     nplusone_github,
     nplusone_sarif,
 )
-from django_orm_lens.migrations_parser import MigrationRisk
-from django_orm_lens.query_analyzer import NPlusOneFinding
+from orm_lens.migrations_parser import MigrationRisk
+from orm_lens.query_analyzer import NPlusOneFinding
 
 
 def _nplusone_finding(**overrides) -> NPlusOneFinding:
@@ -201,10 +201,10 @@ class NPlusOneGithubTest(unittest.TestCase):
     def test_title_colon_is_escaped(self) -> None:
         out = nplusone_github([_nplusone_finding()])
 
-        # 'django-orm-lens: N+1 query' — the colon must become %3A inside
+        # 'orm-lens: N+1 query' — the colon must become %3A inside
         # the title= property or GitHub truncates the annotation.
-        self.assertIn("title=django-orm-lens%3A N+1 query", out)
-        self.assertNotIn("title=django-orm-lens: ", out)
+        self.assertIn("title=orm-lens%3A N+1 query", out)
+        self.assertNotIn("title=orm-lens: ", out)
 
     def test_percent_and_newline_in_message_are_escaped(self) -> None:
         finding = _nplusone_finding(
@@ -247,7 +247,7 @@ class MigrationRisksGithubTest(unittest.TestCase):
 
         self.assertIn("file=orders/migrations/0002_add_status.py", out)
         self.assertIn(",line=7,", out)
-        self.assertIn("title=django-orm-lens%3A add_field_not_null_no_default", out)
+        self.assertIn("title=orm-lens%3A add_field_not_null_no_default", out)
 
     def test_comma_in_property_value_is_escaped(self) -> None:
         # A comma inside file= would split the property list — must be %2C.
