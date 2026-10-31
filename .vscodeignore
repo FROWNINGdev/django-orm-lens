@@ -22,3 +22,25 @@ test/**
 .marketplace-*
 .env
 scripts/**
+# The Python package, its compat shim and repo tooling are not used by the
+# extension at runtime (it only shells out to git). cli/ alone carried the
+# whole test suite and its vendored fixture projects into every VSIX.
+cli/**
+compat/**
+skills/**
+_includes/**
+_config.yml
+pyproject.toml
+smithery.yaml
+glama.json
+action.yml
+Dockerfile
+.pre-commit-hooks.yaml
+*.egg-info/**
+**/__pycache__/**
+.mypy_cache/**
+.ruff_cache/**
+.pytest_cache/**
+.claude/**
+.outreach/**
+6d56af8988112c3ec83123927b593002.txt

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The extension package no longer carries the Python CLI.** Every VSIX
+  shipped the whole `cli/` directory, test suite and vendored fixture
+  projects included, though the extension never runs it. The package drops
+  from 1.8 MB to 1.3 MB and from hundreds of files to 40. The packaging
+  tool's `minimatch` is pinned to 11.0.1+ for a denial-of-service advisory
+  (development dependency only; nothing of it reaches the extension).
+
 ## [0.20.0] - 2026-10-31
 
 ### Changed
