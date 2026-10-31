@@ -1483,6 +1483,15 @@ def _walk_for_accesses(
         return
 
     if isinstance(node, ast.Call):
+        # target.method(...): a call on the instance itself (save(),
+        # snapshot(), check.matches_tag_set(tags)) never reads a relation.
+        # Relation managers are always one attribute deeper, target.rel.op().
+        if isinstance(node.func, ast.Attribute):
+            own = _attr_chain(node.func)
+            if own and own[0] == loop_var and len(own) == 2:
+                for argument in (*node.args, *node.keywords):
+                    _walk_for_accesses(argument, loop_var, hits)
+                return
         # Method call: check if it's target.<attr>.<method>(...)
         method_name = _call_method_name(node)
         if method_name in _RELATED_WRITE_METHODS and isinstance(node.func, ast.Attribute):
@@ -1521,6 +1530,11 @@ def _walk_for_accesses(
 
     if isinstance(node, ast.Attribute):
         chain = _attr_chain(node)
+        if chain and isinstance(node.ctx, (ast.Store, ast.Del)):
+            # ``device.cluster = c`` writes the attribute and loads nothing.
+            # ``device.cluster.name = x`` still loads ``device.cluster``, so
+            # what remains is the chain without the stored name.
+            chain = chain[:-1]
         if chain and chain[0] == loop_var and len(chain) >= 2:
             first_attr = chain[1]
             if _REVERSE_MANAGER_SUFFIX.search(first_attr):
