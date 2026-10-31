@@ -256,7 +256,12 @@ class _RevisionAnalyzer:
     def _table(self, call: ast.Call, batch_table: str | None, index: int = 0, name: str = "table_name") -> str | None:
         if batch_table is not None:
             return batch_table
-        return _name_of(_arg(call, index, name))
+        node = _arg(call, index, name)
+        resolved = _name_of(node)
+        if resolved is None and isinstance(node, ast.Name):
+            # TABLE_NAME = "orders"; op.drop_table(TABLE_NAME)
+            resolved = self.strings.get(node.id)
+        return resolved
 
     # -- rules ------------------------------------------------------------
     def _check_add_column(self, call: ast.Call, batch_table: str | None) -> None:
