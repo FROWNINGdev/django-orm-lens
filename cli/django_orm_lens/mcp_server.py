@@ -46,10 +46,10 @@ from .models import (
     find_user_model,
     resolve_related_tail,
 )
-from .query_analyzer import scan_for_nplusone as _scan_for_nplusone
 from .query_analyzer import suggest_indexes as _suggest_indexes
 from .signals_parser import signal_graph as _signal_graph
 from .signals_parser import skipped_delete_receivers
+from .sqlalchemy_nplusone import scan_all_nplusone
 from .workspace import WorkspaceError, get_index, resolve_workspace
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def _tool_list_apps(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
-    idx = get_index(ws)
+    idx = get_index(ws, include_sqlalchemy=True)
     return json.dumps(
         [
             {"name": a.name, "path": a.path, "models": len(a.models)}
@@ -132,7 +132,7 @@ def _tool_list_models(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
-    idx = get_index(ws)
+    idx = get_index(ws, include_sqlalchemy=True)
     only_app = (args or {}).get("app")
     if only_app and not any(a.name == only_app for a in idx.apps):
         available = ", ".join(sorted(a.name for a in idx.apps)) or "(none)"
@@ -153,7 +153,7 @@ def _tool_describe_model(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
-    idx = get_index(ws)
+    idx = get_index(ws, include_sqlalchemy=True)
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
@@ -165,12 +165,14 @@ def _tool_find_relations(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
-    idx = get_index(ws)
+    idx = get_index(ws, include_sqlalchemy=True)
     ref = (args or {}).get("model", "")
     m = _find(idx, ref)
     if not m:
         raise ValueError(f"model {ref!r} not found")
     out: dict[str, Any] = {"outbound": [], "inbound": []}
+    if m.orm == "sqlalchemy":
+        out["relationships"] = [r.to_dict() for r in m.relationships]
     for f in m.fields:
         if f.is_relation:
             out["outbound"].append(
@@ -222,7 +224,7 @@ def _tool_er_diagram(args: dict[str, Any]) -> str:
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
-    idx = get_index(ws)
+    idx = get_index(ws, include_sqlalchemy=True)
     fmt = ((args or {}).get("diagram_format") or "mermaid").lower()
     if fmt == "mermaid":
         return _build_mermaid(idx)
@@ -298,12 +300,13 @@ def _tool_nplusone_scan(args: dict[str, Any]) -> str:
     ``select_related`` / ``prefetch_related`` clause on the source queryset.
     Uses the parsed WorkspaceIndex to classify relations; falls back to
     a schema-less heuristic when a model is unknown. Zero-runtime, no DB.
+    SQLAlchemy loops over query results are checked the same way.
     """
     ws = _resolve(args)
     if isinstance(ws, WorkspaceError):
         return _error_json(ws)
-    index = get_index(ws)
-    findings = _scan_for_nplusone(str(ws), index)
+    index = get_index(ws, include_sqlalchemy=True)
+    findings = scan_all_nplusone(str(ws), index)
     return json.dumps([f.to_dict() for f in findings], indent=2)
 
 
@@ -401,7 +404,8 @@ TOOLS: dict[str, dict[str, Any]] = {
     "list_apps": {
         "handler": _tool_list_apps,
         "description": (
-            "List every Django app in the workspace with model counts." + _WORKSPACE_HINT
+            "List every Django app (and every package holding SQLAlchemy models) "
+            "in the workspace with model counts." + _WORKSPACE_HINT
         ),
     },
     "list_models": {
@@ -414,7 +418,8 @@ TOOLS: dict[str, dict[str, Any]] = {
         "handler": _tool_describe_model,
         "description": (
             "Full JSON detail for one model: fields, relations, Meta, base "
-            "classes, file path." + _WORKSPACE_HINT
+            "classes, file path. SQLAlchemy models also carry orm, tableName "
+            "and relationships (with their lazy loader)." + _WORKSPACE_HINT
         ),
     },
     "find_relations": {
@@ -514,7 +519,9 @@ TOOLS: dict[str, dict[str, Any]] = {
             "Static scan for Django ORM N+1 anti-patterns. Walks every .py "
             "file, finds 'for x in <queryset>:' loops that touch related "
             "objects (FK/O2O/M2M/reverse) without matching select_related "
-            "or prefetch_related. Returns findings with file, line, "
+            "or prefetch_related. SQLAlchemy loops that read a lazy "
+            "relationship() without selectinload/joinedload are reported the "
+            "same way. Returns findings with file, line, "
             "queryset_var, accessed relations, suggested_fix, and confidence "
             "(high/medium). Zero-runtime, no DB, no Django boot." + _WORKSPACE_HINT
         ),

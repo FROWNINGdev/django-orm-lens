@@ -24,6 +24,12 @@ Primary keys: Django adds an implicit ``id`` when no field declares
 ``primary_key=True``. The emitters mirror that — an explicit PK field is
 used when present, otherwise an ``id (AutoField)`` row is synthesized so
 refs always point at a declared column.
+
+SQLAlchemy models (``orm = "sqlalchemy"``) are drawn with every column of
+their table, including those from mixins and abstract bases: there is no
+implicit primary key to fall back on, and a mixin's ``id`` is often the
+only one. A model whose key could not be found still gets an
+``id (Integer)`` row so its refs resolve.
 """
 
 from __future__ import annotations
@@ -74,9 +80,30 @@ def _short_source(app_path: str, app_name: str, model: ParsedModel) -> str:
 _PK_RE = re.compile(r"\bprimary_key\s*=\s*True\b")
 
 
+def _columns(model: ParsedModel) -> list[ParsedField]:
+    """Fields drawn for ``model``: what a Django class declares, the whole
+    table for a SQLAlchemy one."""
+    if model.orm == "sqlalchemy":
+        return model.all_fields()
+    return model.fields
+
+
+def _implicit_pk_type(model: ParsedModel) -> str:
+    return "Integer" if model.orm == "sqlalchemy" else "AutoField"
+
+
+def _schema_label(index: WorkspaceIndex) -> str:
+    orms = {m.orm for app in index.apps for m in app.models}
+    if orms == {"sqlalchemy"}:
+        return "SQLAlchemy"
+    if "sqlalchemy" in orms:
+        return "Django + SQLAlchemy"
+    return "Django"
+
+
 def _pk_field(model: ParsedModel) -> ParsedField | None:
     """Field declaring ``primary_key=True``, else ``None`` (implicit id)."""
-    for f in model.fields:
+    for f in _columns(model):
         if _PK_RE.search(f.args or ""):
             return f
     return None
@@ -108,7 +135,7 @@ def _collect_edges(index: WorkspaceIndex) -> list[_Edge]:
     edges: list[_Edge] = []
     for app in index.apps:
         for model in app.models:
-            for f in model.fields:
+            for f in _columns(model):
                 if not f.is_relation or not f.related_model:
                     continue
                 tail = (
@@ -149,13 +176,15 @@ _DBML_ON_DELETE = {
     "DB_CASCADE": "cascade",
     "DB_SET_NULL": "set null",
     "DB_SET_DEFAULT": "set default",
+    # SQLAlchemy ``ForeignKey(ondelete=...)`` spells the SQL keywords.
+    "NO_ACTION": "no action",
 }
 
 
 def build_dbml(index: WorkspaceIndex) -> str:
     """DBML document — paste into https://dbdiagram.io/d."""
     lines: list[str] = [
-        "// Django schema exported by django-orm-lens",
+        f"// {_schema_label(index)} schema exported by django-orm-lens",
         "// Paste into https://dbdiagram.io/d — apps map to DBML schemas.",
         "",
     ]
@@ -164,13 +193,13 @@ def build_dbml(index: WorkspaceIndex) -> str:
             pk = _pk_field(model)
             lines.append(f"Table {app.name}.{model.name} {{")
             if pk is None:
-                lines.append("  id AutoField [pk]")
-            for f in model.fields:
+                lines.append(f"  id {_implicit_pk_type(model)} [pk]")
+            for f in _columns(model):
                 if f.is_relation:
                     continue
                 marker = " [pk]" if pk is not None and f.name == pk.name else ""
                 lines.append(f"  {f.name} {f.type}{marker}")
-            for f in model.fields:
+            for f in _columns(model):
                 if f.is_relation:
                     lines.append(f"  {f.name} {f.relation_kind or 'ForeignKey'}")
             src = _short_source(app.path, app.name, model).replace("'", "\\'")
@@ -210,7 +239,7 @@ def build_d2(index: WorkspaceIndex) -> str:
     keeps multi-app schemas legible without manual layout.
     """
     lines: list[str] = [
-        "# Django schema exported by django-orm-lens",
+        f"# {_schema_label(index)} schema exported by django-orm-lens",
         "# Render: d2 schema.d2 schema.svg   (https://d2lang.com)",
         "",
         "direction: right",
@@ -222,8 +251,10 @@ def build_d2(index: WorkspaceIndex) -> str:
             lines.append(f"{app.name}.{model.name}: {{")
             lines.append("  shape: sql_table")
             if pk is None:
-                lines.append("  id: AutoField {constraint: primary_key}")
-            for f in model.fields:
+                lines.append(
+                    f"  id: {_implicit_pk_type(model)} {{constraint: primary_key}}"
+                )
+            for f in _columns(model):
                 if f.is_relation:
                     continue
                 constraint = (
@@ -232,7 +263,7 @@ def build_d2(index: WorkspaceIndex) -> str:
                     else ""
                 )
                 lines.append(f"  {f.name}: {f.type}{constraint}")
-            for f in model.fields:
+            for f in _columns(model):
                 if f.is_relation:
                     lines.append(
                         f"  {f.name}: {f.relation_kind or 'ForeignKey'} "
@@ -265,7 +296,7 @@ def build_plantuml(index: WorkspaceIndex) -> str:
     """PlantUML entity diagram with crow's-foot cardinality."""
     lines: list[str] = [
         "@startuml",
-        "' Django schema exported by django-orm-lens",
+        f"' {_schema_label(index)} schema exported by django-orm-lens",
         "hide circle",
         "skinparam linetype ortho",
         "skinparam roundCorner 8",
@@ -278,17 +309,17 @@ def build_plantuml(index: WorkspaceIndex) -> str:
             pk = _pk_field(model)
             lines.append(f'entity "{qualified}" as {_puml_alias(qualified)} {{')
             if pk is None:
-                lines.append("  * id : AutoField")
+                lines.append(f"  * id : {_implicit_pk_type(model)}")
             else:
                 lines.append(f"  * {pk.name} : {pk.type}")
             lines.append("  --")
-            for f in model.fields:
+            for f in _columns(model):
                 if f.is_relation:
                     continue
                 if pk is not None and f.name == pk.name:
                     continue
                 lines.append(f"  {f.name} : {f.type}")
-            for f in model.fields:
+            for f in _columns(model):
                 if f.is_relation:
                     lines.append(f"  {f.name} : {f.relation_kind or 'ForeignKey'}")
             lines.append("}")
@@ -336,8 +367,10 @@ def _dot_table(model: ParsedModel) -> str:
         ),
     ]
     if pk is None:
-        rows.append("<TR><TD ALIGN=\"LEFT\"><B>id</B></TD><TD>AutoField · PK</TD></TR>")
-    for field in model.fields:
+        rows.append(
+            f"<TR><TD ALIGN=\"LEFT\"><B>id</B></TD><TD>{_implicit_pk_type(model)} · PK</TD></TR>"
+        )
+    for field in _columns(model):
         if field.is_relation:
             continue
         name = html.escape(field.name)
@@ -348,7 +381,7 @@ def _dot_table(model: ParsedModel) -> str:
         rows.append(
             f'<TR><TD ALIGN="LEFT">{name}</TD><TD>{field_type}</TD></TR>'
         )
-    for field in model.fields:
+    for field in _columns(model):
         if not field.is_relation:
             continue
         rows.append(

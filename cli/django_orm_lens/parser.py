@@ -35,6 +35,7 @@ from .models import (
     ParsedModel,
     WorkspaceIndex,
 )
+from .sqlalchemy_parser import declares_sqlalchemy, is_sqlalchemy_only_source
 
 RELATION_TYPES: tuple[str, ...] = ("ForeignKey", "ManyToManyField", "OneToOneField")
 
@@ -858,8 +859,11 @@ def _pull_imported_bases(
         try:
             content = path.read_text(encoding="utf-8", errors="replace")
             defs: dict[str, ParsedModel] = {}
-            for d in _collect_defs(str(path), content):
-                defs.setdefault(d.name, d)
+            # A SQLAlchemy base (``class CoreModel(Model)`` on
+            # Flask-AppBuilder) must not turn its importers into Django models.
+            if not is_sqlalchemy_only_source(content):
+                for d in _collect_defs(str(path), content):
+                    defs.setdefault(d.name, d)
         except Exception:
             return None
         loaded[path] = (defs, _parse_imports(content))
@@ -984,7 +988,9 @@ def iter_workspace_py_files(
 
 
 def scan_workspace(
-    root: str, exclude_globs: Sequence[str] = DEFAULT_EXCLUDES
+    root: str,
+    exclude_globs: Sequence[str] = DEFAULT_EXCLUDES,
+    include_sqlalchemy: bool = False,
 ) -> WorkspaceIndex:
     """Walk ``root``, parse every ``models.py`` (or ``models/*.py``), return an index.
 
@@ -993,6 +999,13 @@ def scan_workspace(
     base class is defined in a *different* scanned file (e.g. a shared
     abstract base in ``common/models.py``) is still recognized, instead of
     only bases found within the same file (see issue #20).
+
+    ``include_sqlalchemy`` adds the workspace's SQLAlchemy mapped classes
+    (``orm = "sqlalchemy"``), found anywhere in the tree by
+    :mod:`.sqlalchemy_parser`. Off by default: the Django-only analyses
+    (drift, blast radius, cascade, signals, ...) must never see them. A
+    ``models.py`` that is SQLAlchemy code without a Django import is never
+    read as Django models, whichever way the flag is set.
     """
     root_path = Path(root).resolve()
     all_defs: list[ParsedModel] = []
@@ -1002,6 +1015,8 @@ def scan_workspace(
         try:
             content = py.read_text(encoding="utf-8", errors="replace")
         except OSError:
+            continue
+        if is_sqlalchemy_only_source(content):
             continue
         try:
             all_defs.extend(_collect_defs(str(py), content))
@@ -1013,8 +1028,19 @@ def scan_workspace(
             continue
     all_defs.extend(_pull_imported_bases(all_defs, root_path, exclude_globs))
 
+    found = _resolve_and_filter(all_defs)
+    # Finding SQLAlchemy models means reading every file, which a big Django
+    # project should not pay for: look only when there are no Django models
+    # or the project declares SQLAlchemy.
+    if include_sqlalchemy and (not found or declares_sqlalchemy(root_path)):
+        from .sqlalchemy_parser import scan_sqlalchemy_models
+
+        sa_models, sa_files = scan_sqlalchemy_models(root_path, exclude_globs)
+        found = [*found, *sa_models]
+        scanned_files += sa_files
+
     apps: dict = {}
-    for model in _resolve_and_filter(all_defs):
+    for model in found:
         app_dir, app_name = _app_dir_for(model.file_path)
         app = apps.get(app_dir)
         if app is None:

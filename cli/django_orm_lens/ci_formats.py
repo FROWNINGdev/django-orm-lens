@@ -110,8 +110,8 @@ def nplusone_sarif(findings: Iterable[NPlusOneFinding]) -> dict[str, Any]:
         "name": "NPlusOneQuery",
         "shortDescription": {
             "text": (
-                "Related-object access inside a loop without "
-                "select_related/prefetch_related"
+                "Related-object access inside a loop without eager loading "
+                "(select_related/prefetch_related, selectinload/joinedload)"
             )
         },
         "helpUri": f"{_RULES_DOCS}/nplusone.md",

@@ -33,14 +33,28 @@ def format_model(model: ParsedModel, fmt: str = "markdown") -> str:
     raise ValueError(f"Unknown format: {fmt!r}. Use json | markdown | table.")
 
 
+def _shown_fields(model: ParsedModel) -> list:
+    """A SQLAlchemy table's every column; what a Django class declares."""
+    return model.all_fields() if model.orm == "sqlalchemy" else model.fields
+
+
+def _relationship_line(r) -> str:
+    shape = "many" if r.collection else "one" if r.collection is False else "?"
+    extra = f", through {r.secondary}" if r.secondary else ""
+    return f"`{r.name}` → **{r.target or '?'}** _({shape}, lazy={r.lazy}{extra})_"
+
+
 def format_hover(model: ParsedModel) -> str:
     """Compact hover-card markdown — identical spirit to the VS Code hover."""
     lines: list[str] = []
     bases = ", ".join(model.base_classes) or "models.Model"
     lines.append(f"**{model.app_name}.{model.name}**")
     lines.append(f"_{bases}_")
-    scalars = [f for f in model.fields if not f.is_relation]
-    relations = [f for f in model.fields if f.is_relation]
+    if model.orm == "sqlalchemy" and model.table_name:
+        lines.append(f"table `{model.table_name}`")
+    fields = _shown_fields(model)
+    scalars = [f for f in fields if not f.is_relation]
+    relations = [f for f in fields if f.is_relation]
     if scalars:
         lines.append("")
         lines.append("**Fields**")
@@ -55,13 +69,19 @@ def format_hover(model: ParsedModel) -> str:
             lines.append(
                 f"- `{f.name}` → **{f.related_model or '?'}** _({f.relation_kind})_"
             )
+    if model.relationships:
+        lines.append("")
+        lines.append("**Relationships**")
+        for r in model.relationships:
+            lines.append(f"- {_relationship_line(r)}")
     return "\n".join(lines)
 
 
 def _index_markdown(index: WorkspaceIndex) -> str:
     if not index.apps:
         return "_No Django models found._"
-    out: list[str] = ["# Django models\n"]
+    title = "Models" if index.has_orm("sqlalchemy") else "Django models"
+    out: list[str] = [f"# {title}\n"]
     for app in index.apps:
         out.append(
             f"## {app.name} ({len(app.models)} model{'s' if len(app.models) != 1 else ''})"
@@ -79,8 +99,11 @@ def _model_markdown(model: ParsedModel) -> str:
         f"_class {model.name}({bases})_",
         f"`{model.file_path}:{model.line_number + 1}`",
     ]
-    scalars = [f for f in model.fields if not f.is_relation]
-    relations = [f for f in model.fields if f.is_relation]
+    if model.orm == "sqlalchemy":
+        rows.append(f"SQLAlchemy, table `{model.table_name or '?'}`")
+    fields = _shown_fields(model)
+    scalars = [f for f in fields if not f.is_relation]
+    relations = [f for f in fields if f.is_relation]
     if scalars:
         rows.append("\n**Fields**\n")
         rows.append("| Field | Type | Args |")
@@ -96,6 +119,13 @@ def _model_markdown(model: ParsedModel) -> str:
             rows.append(
                 f"| `{f.name}` | {f.relation_kind} | **{f.related_model or '?'}** |"
             )
+    if model.relationships:
+        rows.append("\n**Relationships**\n")
+        rows.append("| Name | Target | Shape | Loader |")
+        rows.append("| --- | --- | --- | --- |")
+        for r in model.relationships:
+            shape = "many" if r.collection else "one" if r.collection is False else "?"
+            rows.append(f"| `{r.name}` | **{r.target or '?'}** | {shape} | {r.lazy} |")
     if model.meta:
         rows.append("\n**Meta**\n")
         for k, v in model.meta.items():
@@ -108,8 +138,9 @@ def _index_table(index: WorkspaceIndex) -> str:
     rows: list[tuple] = []
     for app in index.apps:
         for m in app.models:
-            scalars = sum(1 for f in m.fields if not f.is_relation)
-            rels = sum(1 for f in m.fields if f.is_relation)
+            fields = _shown_fields(m)
+            scalars = sum(1 for f in fields if not f.is_relation)
+            rels = sum(1 for f in fields if f.is_relation)
             rows.append(
                 (
                     app.name,
@@ -125,7 +156,7 @@ def _index_table(index: WorkspaceIndex) -> str:
 def _model_table(model: ParsedModel) -> str:
     header = ("Field", "Type", "Rel", "Target")
     rows: list[tuple] = []
-    for f in model.fields:
+    for f in _shown_fields(model):
         rows.append(
             (
                 f.name,
