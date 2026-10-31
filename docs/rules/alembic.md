@@ -78,6 +78,14 @@ The previous release's models still select the column until every instance is re
 
 **Mitigation:** Remove the column from the models and deploy first; drop it in a later release.
 
+## alembic_drop_table_breaks_running_code
+
+**Operation:** `drop_table` · **Severity:** warning · **Confidence:** medium · *populated tables only*
+
+The previous release's models still query the table, so every remaining instance fails until it is replaced.
+
+**Mitigation:** Remove the table from the models and deploy first; drop it in a later release.
+
 ## alembic_add_unique_constraint_locks_and_may_fail
 
 **Operation:** `create_unique_constraint` · **Severity:** warning · **Confidence:** medium · *populated tables only*

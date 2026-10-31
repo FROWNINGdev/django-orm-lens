@@ -355,6 +355,17 @@ class _RevisionAnalyzer:
             "Remove the column from the models and deploy first; drop it in a later release.",
         )
 
+    def _check_drop_table(self, call: ast.Call, batch_table: str | None) -> None:
+        table = self._table(call, batch_table)
+        if not self._populated(table):
+            return
+        self._add(
+            call, "drop_table", "alembic_drop_table_breaks_running_code", table, None,
+            f"Drops table '{table}'; the previous release's models still query it, so every "
+            f"remaining instance fails until it is replaced.",
+            "Remove the table from the models and deploy first; drop it in a later release.",
+        )
+
     def _check_rename_table(self, call: ast.Call, batch_table: str | None) -> None:
         old = _name_of(_arg(call, 0, "old_table_name"))
         new = _name_of(_arg(call, 1, "new_table_name"))

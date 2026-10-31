@@ -110,6 +110,23 @@ def test_batch_operations_take_the_table_from_the_with_block(tmp_path: Path) -> 
     assert rules["alembic_drop_column_breaks_running_code"][0].field == "legacy"
 
 
+def test_drop_table_on_a_populated_table_is_flagged(tmp_path: Path) -> None:
+    rules = _rules(tmp_path, "    op.drop_table('orders')")
+    (f,) = rules["alembic_drop_table_breaks_running_code"]
+    assert (f.severity, f.confidence, f.model, f.field) == ("warning", "medium", "orders", None)
+
+
+def test_drop_table_in_the_base_or_after_create_table_is_silent(tmp_path: Path) -> None:
+    assert "alembic_drop_table_breaks_running_code" not in _rules(
+        tmp_path / "base", "    op.drop_table('orders')", base=True
+    )
+    same_revision = (
+        "    op.create_table('lines', sa.Column('id', sa.Integer()))\n"
+        "    op.drop_table('lines')"
+    )
+    assert "alembic_drop_table_breaks_running_code" not in _rules(tmp_path / "same", same_revision)
+
+
 def test_index_concurrently_is_safe(tmp_path: Path) -> None:
     rules = _rules(tmp_path / "plain", "    op.create_index('ix_o', 'orders', ['status'])")
     assert rules["alembic_create_index_locks_table"][0].severity == "warning"
