@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`migration-risk` reads Alembic revisions (preview).** SQLAlchemy projects
+  without Django (FastAPI, Flask) get the same static migration review: any
+  `versions/` revision is parsed with `ast` and never run. Eleven rules cover
+  a NOT NULL `add_column` without `server_default` (SQLAlchemy's `default=` only
+  applies on INSERT), `create_index` without `CONCURRENTLY`, `alter_column` to NOT
+  NULL or to a new type, renamed and dropped columns and tables, unique,
+  foreign-key and check constraints, and multiple heads. `batch_alter_table`
+  blocks and Flask-Migrate layouts are covered. The populated-table rules
+  learned from the Django census apply too: a same-revision `create_table` or
+  the base revision means an empty table, and a data operation first makes the
+  finding a warning. Over ~1170 revisions from Superset, Airflow, Prefect,
+  Polar, Dispatch, Mealie and the FastAPI template there are 9 critical
+  findings, each a NOT NULL column that fails on a populated table. Rules:
+  `docs/rules/alembic.md`.
+
 ### Fixed
 
 - **DOL013 missed `OneToOneField` without `on_delete` (#181).**
@@ -47,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     variable, but its name matched the `<model>_set` reverse-manager
     heuristic. A call made directly on the loop variable is never a
     relation read; managers are always one attribute deeper.
+
 
 ## [py-1.14.0] - 2026-10-31
 

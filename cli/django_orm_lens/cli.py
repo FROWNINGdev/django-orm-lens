@@ -28,6 +28,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from . import __version__
+from .alembic_risk import analyze_alembic_risks
 from .blast_radius import analyze_blast_radius, format_blast_radius
 from .ci_formats import (
     migration_risks_github,
@@ -264,8 +265,9 @@ _SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
 
 
 def _cmd_migration_risk(args: argparse.Namespace) -> int:
-    """Analyze <app>/migrations/*.py for operations dangerous in production."""
-    findings = analyze_migration_risks(args.path)
+    """Analyze Django migrations and Alembic revisions for operations dangerous in production."""
+    findings = analyze_migration_risks(args.path) + analyze_alembic_risks(args.path)
+    findings.sort(key=lambda r: (_SEVERITY_ORDER.get(r.severity, 99), r.file_path, r.line_number))
     if args.severity != "all":
         threshold = _SEVERITY_ORDER[args.severity]
         findings = [
@@ -788,7 +790,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     mrisk = sub.add_parser(
         "migration-risk",
-        help="Flag risky migration operations (NOT NULL without default, missing CONCURRENTLY, etc.)",
+        help=(
+            "Flag risky migration operations in Django migrations and Alembic "
+            "revisions (NOT NULL without default, missing CONCURRENTLY, etc.)"
+        ),
     )
     _add_scan_flags(mrisk)
     mrisk.add_argument(
