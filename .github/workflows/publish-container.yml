@@ -50,16 +50,23 @@ jobs:
             VER="${{ inputs.version }}"
           fi
           echo "PKG_VERSION=${VER}" >> $GITHUB_OUTPUT
-          if [ -n "$VER" ]; then
-            echo "TAGS=ghcr.io/frowningdev/django-orm-lens:${VER},ghcr.io/frowningdev/django-orm-lens:latest" >> $GITHUB_OUTPUT
-          else
-            echo "TAGS=ghcr.io/frowningdev/django-orm-lens:latest" >> $GITHUB_OUTPUT
-          fi
+          # The image moved to ghcr.io/frowningdev/orm-lens with the rename.
+          # The old name keeps getting the same build, so anyone still
+          # pulling ghcr.io/frowningdev/django-orm-lens is not left on a
+          # stale image.
+          TAGS=""
+          for IMAGE in ghcr.io/frowningdev/orm-lens ghcr.io/frowningdev/django-orm-lens; do
+            if [ -n "$VER" ]; then
+              TAGS="${TAGS}${IMAGE}:${VER},"
+            fi
+            TAGS="${TAGS}${IMAGE}:latest,"
+          done
+          echo "TAGS=${TAGS%,}" >> $GITHUB_OUTPUT
 
       - name: Wait for PyPI to index the version
         # This workflow runs in parallel with publish-pypi.yml, so a fresh
         # tag push often races: GHCR starts before PyPI has indexed the new
-        # version and `pip install django-orm-lens==X` in the Dockerfile
+        # version and `pip install orm-lens==X` in the Dockerfile
         # errors with "No matching distribution found".
         #
         # Poll the SIMPLE index (pypi.org/simple/*) — this is what pip
@@ -74,10 +81,10 @@ jobs:
         if: steps.ver.outputs.PKG_VERSION != ''
         run: |
           VER="${{ steps.ver.outputs.PKG_VERSION }}"
-          echo "Waiting for django-orm-lens==$VER on the PyPI simple index..."
+          echo "Waiting for orm-lens==$VER on the PyPI simple index..."
           for i in $(seq 1 90); do
-            if curl -fsS "https://pypi.org/simple/django-orm-lens/" | grep -q "django_orm_lens-${VER}-\|django-orm-lens-${VER}.tar.gz"; then
-              echo "django-orm-lens==$VER is on the simple index (attempt $i)"
+            if curl -fsS "https://pypi.org/simple/orm-lens/" | grep -q "orm_lens-${VER}-\|orm-lens-${VER}.tar.gz"; then
+              echo "orm-lens==$VER is on the simple index (attempt $i)"
               exit 0
             fi
             echo "Not yet on simple index (attempt $i/90), sleeping 10s..."

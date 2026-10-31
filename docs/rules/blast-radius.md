@@ -1,6 +1,6 @@
 # Blast radius
 
-`django-orm-lens blast-radius --path .` answers the question a schema change actually raises in review: **what does this hit?**
+`orm-lens blast-radius --path .` answers the question a schema change actually raises in review: **what does this hit?**
 
 Three analyzers in this package each answer a third of it, and running them separately leaves the reviewer to join the results by hand — which in practice nobody does:
 
@@ -39,13 +39,13 @@ The definition site itself is not counted — a field does not report its own de
 ## Usage
 
 ```bash
-django-orm-lens blast-radius --path .                     # critical risks only
-django-orm-lens blast-radius --severity all               # everything
-django-orm-lens blast-radius --format markdown            # PR-comment body
-django-orm-lens blast-radius --format github              # PR annotations
-django-orm-lens blast-radius --format json                # machine-readable
-django-orm-lens blast-radius --no-cascade                 # skip the extra parse
-django-orm-lens blast-radius --only blog/migrations/0002_drop_author.py
+orm-lens blast-radius --path .                     # critical risks only
+orm-lens blast-radius --severity all               # everything
+orm-lens blast-radius --format markdown            # PR-comment body
+orm-lens blast-radius --format github              # PR annotations
+orm-lens blast-radius --format json                # machine-readable
+orm-lens blast-radius --no-cascade                 # skip the extra parse
+orm-lens blast-radius --only blog/migrations/0002_drop_author.py
 ```
 
 - **`--severity critical|warning|info|all`** (default `critical`) — minimum risk severity, matching `migration-risk`.
@@ -58,7 +58,7 @@ django-orm-lens blast-radius --only blog/migrations/0002_drop_author.py
 As a GitHub Action, findings become PR annotations with no extra permissions:
 
 ```yaml
-- uses: FROWNINGdev/django-orm-lens@action-v1
+- uses: FROWNINGdev/orm-lens@action-v1
   with:
     command: blast-radius
     format: github
@@ -67,7 +67,7 @@ As a GitHub Action, findings become PR annotations with no extra permissions:
 Annotations point at the **migration line** — the line a reviewer can act on — and name the reference count in the title, so the consequence is visible without opening a second tab:
 
 ```
-::error file=blog/migrations/0002_drop_author.py,line=7,title=django-orm-lens: remove_field_still_referenced (2 certain reference(s))::…
+::error file=blog/migrations/0002_drop_author.py,line=7,title=orm-lens: remove_field_still_referenced (2 certain reference(s))::…
 ```
 
 ### As a PR comment
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: FROWNINGdev/django-orm-lens@action-v1
+      - uses: FROWNINGdev/orm-lens@action-v1
         with:
           command: blast-radius
           only-changed: true
@@ -107,12 +107,12 @@ Notes on behaviour, so nothing surprises you in a live run:
 
 Everything above is static, which leaves one honest gap: source code cannot tell a table with forty million rows from an empty one. `migration-risk` papers over it with a heuristic — *anything after `0001_` is assumed populated* — right often enough to be useful, wrong often enough to be annoying.
 
-`--stats` closes the gap, and **django-orm-lens still never connects to a database**. You run one read-only query yourself and hand over the result:
+`--stats` closes the gap, and **orm-lens still never connects to a database**. You run one read-only query yourself and hand over the result:
 
 ```bash
-django-orm-lens stats-sql > stats.sql
+orm-lens stats-sql > stats.sql
 psql -At -d "$DATABASE_URL" -f stats.sql > stats.json     # a replica is fine
-django-orm-lens blast-radius --path . --stats stats.json
+orm-lens blast-radius --path . --stats stats.json
 ```
 
 The report then carries the real size:

@@ -23,11 +23,11 @@ Bases are followed across files by import, including an aliased import from a fi
 
 **Relationships** (`relationship()`, `db.relationship()`, SQLModel `Relationship()`, and `@declared_attr` functions returning one) are listed apart from the columns, with their target, `lazy` loader, and whether they hold one object or many. The shape comes from the annotation (`Mapped[list["Post"]]`), `uselist=`, `secondary=`, `remote_side=`, `foreign_keys=`, or which side holds the foreign key. A `backref=` adds the attribute on the other class. A relationship with `secondary=` is a many-to-many: it also appears in the model's fields as a `ManyToManyField` through the association table, once even when both sides declare it.
 
-`django-orm-lens scan --format json` marks these models with `"orm": "sqlalchemy"` and adds `tableName`, `inheritedFields` and `relationships`. Django models serialize exactly as before.
+`orm-lens scan --format json` marks these models with `"orm": "sqlalchemy"` and adds `tableName`, `inheritedFields` and `relationships`. Django models serialize exactly as before.
 
 ## ER diagrams
 
-`django-orm-lens er` draws SQLAlchemy models in every format (Mermaid, DBML, D2, PlantUML, Graphviz). Each table shows all of its columns, the ones from mixins and abstract bases included; edges are the foreign keys, plus one per many-to-many.
+`orm-lens er` draws SQLAlchemy models in every format (Mermaid, DBML, D2, PlantUML, Graphviz). Each table shows all of its columns, the ones from mixins and abstract bases included; edges are the foreign keys, plus one per many-to-many.
 
 ```mermaid
 erDiagram
@@ -44,7 +44,7 @@ erDiagram
 
 ## N+1 in loops
 
-`django-orm-lens nplusone` reports a loop over query results that reads a lazily loaded relationship of each row: one query for the list, then one per row.
+`orm-lens nplusone` reports a loop over query results that reads a lazily loaded relationship of each row: one query for the list, then one per row.
 
 ```python
 users = session.scalars(select(User)).all()

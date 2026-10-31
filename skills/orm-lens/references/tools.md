@@ -1,7 +1,7 @@
 # Tools and commands
 
 Every MCP tool takes an optional `workspace_root` (absolute path of the
-directory with `manage.py`); without it the server uses `DJANGO_ORM_LENS_ROOT`
+directory with `manage.py`); without it the server uses `ORM_LENS_ROOT`
 or its working directory. Every CLI command takes `--path` (default: current
 directory) and `--exclude` (glob, repeatable). Tools return JSON; on a wrong
 root they return an envelope such as
@@ -34,7 +34,7 @@ only critical risks.
 
 ## 2. CLI commands
 
-Run as `django-orm-lens <command>` (or `uvx django-orm-lens <command>`).
+Run as `orm-lens <command>` (or `uvx orm-lens <command>`).
 
 | Command | Key options | Exit code |
 |---|---|---|
@@ -61,13 +61,13 @@ say "this table has 40M rows" instead of "probably large".
 
 ## 3. Installing the MCP server
 
-The server ships as an extra: `django-orm-lens[mcp]`. With `uv` installed no
+The server ships as an extra: `orm-lens[mcp]`. With `uv` installed no
 global install is needed.
 
 **Claude Code**
 
 ```bash
-claude mcp add django-orm-lens -- uvx --from "django-orm-lens[mcp]" django-orm-lens-mcp
+claude mcp add orm-lens -- uvx --from "orm-lens[mcp]" orm-lens-mcp
 ```
 
 **Cursor** (`~/.cursor/mcp.json`), **Claude Desktop**
@@ -77,10 +77,10 @@ claude mcp add django-orm-lens -- uvx --from "django-orm-lens[mcp]" django-orm-l
 ```json
 {
   "mcpServers": {
-    "django-orm-lens": {
+    "orm-lens": {
       "command": "uvx",
-      "args": ["--from", "django-orm-lens[mcp]", "django-orm-lens-mcp"],
-      "env": { "DJANGO_ORM_LENS_ROOT": "/abs/path/to/project" }
+      "args": ["--from", "orm-lens[mcp]", "orm-lens-mcp"],
+      "env": { "ORM_LENS_ROOT": "/abs/path/to/project" }
     }
   }
 }
@@ -91,10 +91,10 @@ claude mcp add django-orm-lens -- uvx --from "django-orm-lens[mcp]" django-orm-l
 ```json
 {
   "servers": {
-    "django-orm-lens": {
+    "orm-lens": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["--from", "django-orm-lens[mcp]", "django-orm-lens-mcp"]
+      "args": ["--from", "orm-lens[mcp]", "orm-lens-mcp"]
     }
   }
 }
@@ -103,26 +103,26 @@ claude mcp add django-orm-lens -- uvx --from "django-orm-lens[mcp]" django-orm-l
 **Codex CLI** (`~/.codex/config.toml`):
 
 ```toml
-[mcp_servers.django-orm-lens]
+[mcp_servers.orm-lens]
 command = "uvx"
-args = ["--from", "django-orm-lens[mcp]", "django-orm-lens-mcp"]
+args = ["--from", "orm-lens[mcp]", "orm-lens-mcp"]
 ```
 
-Without `uv`: `pip install "django-orm-lens[mcp]"` and use
-`"command": "django-orm-lens-mcp"` with no args. `DJANGO_ORM_LENS_ROOT` is
+Without `uv`: `pip install "orm-lens[mcp]"` and use
+`"command": "orm-lens-mcp"` with no args. `ORM_LENS_ROOT` is
 optional when the agent passes `workspace_root` on each call (useful for
-monorepos). `DJANGO_ORM_LENS_ALLOWED_ROOTS` restricts which paths the server
+monorepos). `ORM_LENS_ALLOWED_ROOTS` restricts which paths the server
 may read.
 
 ## 4. CI usage
 
 ```yaml
 # .github/workflows/django-lens.yml
-- run: pip install django-orm-lens
-- run: django-orm-lens migration-risk --format github     # PR annotations
-- run: django-orm-lens drift
-- run: django-orm-lens nplusone --format sarif > nplusone.sarif
+- run: pip install orm-lens
+- run: orm-lens migration-risk --format github     # PR annotations
+- run: orm-lens drift
+- run: orm-lens nplusone --format sarif > nplusone.sarif
 ```
 
 There is also a composite GitHub Action and pre-commit hooks — see the
-project README: https://github.com/FROWNINGdev/django-orm-lens
+project README: https://github.com/FROWNINGdev/orm-lens

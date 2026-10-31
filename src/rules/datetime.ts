@@ -18,7 +18,7 @@ import { Finding, Rule, RuleContext } from './types';
  */
 
 const DOCS_BASE =
-  'https://github.com/FROWNINGdev/django-orm-lens/blob/main/docs/rules';
+  'https://github.com/FROWNINGdev/orm-lens/blob/main/docs/rules';
 
 /** Detect `datetime.now()` (bare-module reference). Excludes attribute access. */
 const RE_DATETIME_NOW = /(?<![\w.])datetime\.now\s*\(\s*\)/g;

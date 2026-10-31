@@ -104,7 +104,7 @@ export function detectLayer(filePath: string): Layer {
  * root is the developer's machine layout, not the project's, so callers pass
  * the workspace-relative path here instead.
  *
- * Mirrors `layer_of()` in cli/django_orm_lens/impact.py. Change both together.
+ * Mirrors `layer_of()` in cli/orm_lens/impact.py. Change both together.
  */
 export function layerOf(relativePath: string): Layer {
   const rel = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');

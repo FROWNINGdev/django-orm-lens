@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 /**
- * Django ORM Lens — file decorations for the sidebar tree.
+ * ORM Lens — file decorations for the sidebar tree.
  *
  * VS Code's `FileDecorationProvider` lets a tree item show a single-letter
  * badge plus a semantic colour on the right side of its row, without

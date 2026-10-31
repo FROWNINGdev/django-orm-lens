@@ -2,7 +2,7 @@
  * End-to-end user-journey tests.
  *
  * Each test simulates a realistic workflow a Django engineer performs
- * with django-orm-lens installed. Fixture text is inlined so the whole
+ * with orm-lens installed. Fixture text is inlined so the whole
  * suite is self-contained and reviewable in one pass.
  *
  * Journeys covered:
@@ -163,13 +163,15 @@ test('Journey 4: model fixture surfaces DJ01/DJ08/DJ13 equivalents', () => {
 /* ==============================================================
  * Journey 5 — Inline noqa comment shape is accepted
  * ============================================================== */
-test('Journey 5: # django-orm-lens-disable-next-line comment shape is valid', () => {
+test('Journey 5: # orm-lens-disable-next-line comment shape is valid', () => {
   const src = [
-    '# django-orm-lens-disable-next-line DOL001',
+    '# orm-lens-disable-next-line DOL001',
     'if qs.count() > 0:',
   ].join('\n');
-  const suppressionRe = /#\s*django-orm-lens-disable-next-line(?:\s+([A-Z0-9,\s]+))?/i;
+  const suppressionRe = /#\s*(?:django-)?orm-lens-disable-next-line(?:\s+([A-Z0-9,\s]+))?/i;
   assert.match(src.split('\n')[0], suppressionRe);
+  // Suppressions written before the rename keep working.
+  assert.match('# django-orm-lens-disable-next-line DOL001', suppressionRe);
 });
 
 /* ==============================================================

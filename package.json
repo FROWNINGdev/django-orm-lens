@@ -1,6 +1,6 @@
 {
   "name": "django-orm-lens",
-  "displayName": "Django ORM Lens",
+  "displayName": "ORM Lens for Django",
   "description": "Autocomplete Django model fields and lookups inside .filter(), and see your entire schema in your editor. Live sidebar, ER diagrams, impact analysis, blast radius and schema drift. Static analysis - no DB, no Django boot. Free and MIT, no Pro tier.",
   "version": "0.19.6",
   "preview": false,
@@ -17,12 +17,12 @@
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FROWNINGdev/django-orm-lens.git"
+    "url": "https://github.com/FROWNINGdev/orm-lens.git"
   },
   "bugs": {
-    "url": "https://github.com/FROWNINGdev/django-orm-lens/issues"
+    "url": "https://github.com/FROWNINGdev/orm-lens/issues"
   },
-  "homepage": "https://github.com/FROWNINGdev/django-orm-lens#readme",
+  "homepage": "https://github.com/FROWNINGdev/orm-lens#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -87,7 +87,7 @@
       "activitybar": [
         {
           "id": "djangoOrmLens",
-          "title": "Django ORM Lens",
+          "title": "ORM Lens",
           "icon": "media/activitybar.svg"
         }
       ]
@@ -106,67 +106,67 @@
       {
         "view": "djangoOrmLens.models",
         "when": "workbenchState == empty",
-        "contents": "**Open a folder to get started.**\n\nDjango ORM Lens indexes every `models.py` in your project and gives you a live schema tree, an ER diagram, hover cards, and inline QuickFixes for common ORM anti-patterns.\n\n[Open Folder](command:vscode.openFolder)\n\n[Documentation](https://github.com/FROWNINGdev/django-orm-lens#readme)"
+        "contents": "**Open a folder to get started.**\n\nORM Lens indexes every `models.py` in your project and gives you a live schema tree, an ER diagram, hover cards, and inline QuickFixes for common ORM anti-patterns.\n\n[Open Folder](command:vscode.openFolder)\n\n[Documentation](https://github.com/FROWNINGdev/orm-lens#readme)"
       },
       {
         "view": "djangoOrmLens.models",
         "when": "workbenchState != empty && !djangoOrmLens.scanCompleted",
-        "contents": "**Scanning your workspace…**\n\nDjango ORM Lens is walking your project for `models.py` files. This usually takes under a second.\n\nIf the scan doesn't finish, click Refresh below.\n\n[Refresh scan](command:djangoOrmLens.refresh)"
+        "contents": "**Scanning your workspace…**\n\nORM Lens is walking your project for `models.py` files. This usually takes under a second.\n\nIf the scan doesn't finish, click Refresh below.\n\n[Refresh scan](command:djangoOrmLens.refresh)"
       },
       {
         "view": "djangoOrmLens.models",
         "when": "workbenchState != empty && djangoOrmLens.scanCompleted",
-        "contents": "**No Django models found in this workspace.**\n\nDjango ORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\n[Adjust excluded paths](command:workbench.action.openSettings?%22djangoOrmLens.excludeGlobs%22)\n\n[Documentation](https://github.com/FROWNINGdev/django-orm-lens#readme)"
+        "contents": "**No Django models found in this workspace.**\n\nORM Lens scans for `models.py` files and split `models/` package directories, skipping `migrations/`, `venv/`, and `node_modules/` by default.\n\n[Refresh scan](command:djangoOrmLens.refresh)\n\n[Adjust excluded paths](command:workbench.action.openSettings?%22djangoOrmLens.excludeGlobs%22)\n\n[Documentation](https://github.com/FROWNINGdev/orm-lens#readme)"
       }
     ],
     "commands": [
       {
         "command": "djangoOrmLens.refresh",
-        "title": "Django ORM Lens: Refresh",
+        "title": "ORM Lens: Refresh",
         "icon": "$(refresh)"
       },
       {
         "command": "djangoOrmLens.showGraph",
-        "title": "Django ORM Lens: Show ER Diagram",
+        "title": "ORM Lens: Show ER Diagram",
         "icon": "$(type-hierarchy)"
       },
       {
         "command": "djangoOrmLens.jumpToModel",
-        "title": "Django ORM Lens: Jump to Model"
+        "title": "ORM Lens: Jump to Model"
       },
       {
         "command": "djangoOrmLens.filter",
-        "title": "Django ORM Lens: Filter Models",
+        "title": "ORM Lens: Filter Models",
         "icon": "$(filter)"
       },
       {
         "command": "djangoOrmLens.clearFilter",
-        "title": "Django ORM Lens: Clear Filter",
+        "title": "ORM Lens: Clear Filter",
         "icon": "$(clear-all)"
       },
       {
         "command": "djangoOrmLens.findReverseRefs",
-        "title": "Django ORM Lens: Find Reverse References",
+        "title": "ORM Lens: Find Reverse References",
         "icon": "$(references)"
       },
       {
         "command": "djangoOrmLens.generateFactory",
-        "title": "Django ORM Lens: Generate factory_boy Factory",
+        "title": "ORM Lens: Generate factory_boy Factory",
         "icon": "$(beaker)"
       },
       {
         "command": "djangoOrmLens.showDiff",
-        "title": "Django ORM Lens: Schema Diff (Time-Travel)",
+        "title": "ORM Lens: Schema Diff (Time-Travel)",
         "icon": "$(diff)"
       },
       {
         "command": "djangoOrmLens.findImpact",
-        "title": "Django ORM Lens: Find Impact (What Uses This?)",
+        "title": "ORM Lens: Find Impact (What Uses This?)",
         "icon": "$(search)"
       },
       {
         "command": "djangoOrmLens.buildQuery",
-        "title": "Django ORM Lens: Build Query (Insert Snippet)",
+        "title": "ORM Lens: Build Query (Insert Snippet)",
         "icon": "$(zap)"
       }
     ],
@@ -227,7 +227,7 @@
       ]
     },
     "configuration": {
-      "title": "Django ORM Lens",
+      "title": "ORM Lens",
       "properties": {
         "djangoOrmLens.excludeGlobs": {
           "type": "array",

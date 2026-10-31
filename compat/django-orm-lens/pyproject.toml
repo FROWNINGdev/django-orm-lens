@@ -1,0 +1,38 @@
+# django-orm-lens was renamed to orm-lens in 1.16.0. This distribution keeps
+# `pip install django-orm-lens` (and the [mcp] extra) working: it ships no
+# code and installs the matching orm-lens release, which still provides the
+# `django-orm-lens` and `django-orm-lens-mcp` commands and the
+# `django_orm_lens` import path.
+#
+# The version and both pins below move with cli/pyproject.toml on every
+# release; cli/tests/test_packaging.py fails CI when they drift.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-orm-lens"
+version = "1.16.0"
+description = "Renamed to orm-lens. Installing this package installs orm-lens."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "frowningdev" }]
+dependencies = ["orm-lens==1.16.0"]
+classifiers = [
+    "Development Status :: 7 - Inactive",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+
+[project.optional-dependencies]
+mcp = ["orm-lens[mcp]==1.16.0"]
+full = ["orm-lens[mcp]==1.16.0"]
+
+[project.urls]
+Homepage = "https://github.com/FROWNINGdev/orm-lens"
+"New package" = "https://pypi.org/project/orm-lens/"
+
+[tool.setuptools]
+packages = []

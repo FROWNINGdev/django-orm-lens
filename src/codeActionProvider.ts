@@ -10,7 +10,7 @@ import { FixEdit, makeRuleContext } from './rules/types';
 import { WorkspaceIndex } from './types';
 
 /**
- * Django ORM Lens — code-action / diagnostics orchestrator.
+ * ORM Lens — code-action / diagnostics orchestrator.
  *
  * Historically this file owned regex, findings, message templates, and
  * severity mapping all in one. v0.8 splits those concerns into
@@ -20,7 +20,7 @@ import { WorkspaceIndex } from './types';
  *   ResolvedFinding    → vscode.Diagnostic
  *   diag.code (DOL###) → findFixersForCode(...) → vscode.CodeAction[]
  *
- * The public wire format is: `Diagnostic.source = "Django ORM Lens"` and
+ * The public wire format is: `Diagnostic.source = "ORM Lens"` and
  * `Diagnostic.code` is a `{ value, target }` pair with the Ruff-style
  * short code and a clickable link to the rule docs on hover.
  *
@@ -233,7 +233,7 @@ export function registerCodeFixes(
   return disposables;
 }
 
-/** Public export for the tree-badge feature: total Django-ORM-Lens issue count. */
+/** Public export for the tree-badge feature: total ORM Lens issue count. */
 export function getIssueCount(
   collection: vscode.DiagnosticCollection,
 ): number {
