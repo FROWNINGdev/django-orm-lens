@@ -1,7 +1,9 @@
-"""Data classes for parsed Django models.
+"""Data classes for parsed Django and SQLAlchemy models.
 
 Mirrors the TypeScript ``types.ts`` shape so the CLI and the VS Code
-extension emit the same camelCase JSON schema.
+extension emit the same camelCase JSON schema. SQLAlchemy models reuse the
+same classes with ``orm = "sqlalchemy"``; the keys only they carry are added
+to their JSON, so a Django model serializes exactly as before.
 """
 
 from __future__ import annotations
@@ -52,6 +54,58 @@ class ParsedField:
 
 
 @dataclass
+class ParsedRelationship:
+    """A SQLAlchemy ``relationship()`` attribute.
+
+    A navigation attribute, not a column: the foreign key lives on a
+    :class:`ParsedField`. Kept apart from :attr:`ParsedModel.fields` so the
+    ER emitters, which print every non-relation field as a column, never
+    draw one for it.
+    """
+
+    name: str
+    target: str | None
+    """Class name of the related model, as written (``"Address"``)."""
+    line_number: int
+    lazy: str = "select"
+    """Loader strategy: ``select`` (SQLAlchemy's default), ``selectin``,
+    ``joined``, ``subquery``, ``immediate``, ``raise``, ``raise_on_sql``,
+    ``noload``, ``dynamic`` or ``write_only``."""
+    collection: bool | None = None
+    """``True`` for a list/set of objects (one-to-many, many-to-many),
+    ``False`` for a single object, ``None`` when the source does not say."""
+    secondary: str | None = None
+    """Association table of a many-to-many relationship."""
+    back_populates: str | None = None
+    backref: str | None = None
+    via_backref: bool = False
+    """``True`` when the attribute was created by a ``backref=`` on the
+    other class rather than declared here."""
+    inherited_from: str | None = None
+
+    def to_dict(self) -> dict:
+        out: dict[str, Any] = {
+            "name": self.name,
+            "target": self.target,
+            "lineNumber": self.line_number,
+            "lazy": self.lazy,
+        }
+        if self.collection is not None:
+            out["collection"] = self.collection
+        if self.secondary is not None:
+            out["secondary"] = self.secondary
+        if self.back_populates is not None:
+            out["backPopulates"] = self.back_populates
+        if self.backref is not None:
+            out["backref"] = self.backref
+        if self.via_backref:
+            out["viaBackref"] = True
+        if self.inherited_from is not None:
+            out["inheritedFrom"] = self.inherited_from
+        return out
+
+
+@dataclass
 class ParsedModel:
     name: str
     app_name: str
@@ -75,6 +129,14 @@ class ParsedModel:
     ER diagrams and the extension keep showing what each class literally
     declares.
     """
+    orm: str = "django"
+    """``"django"`` or ``"sqlalchemy"``."""
+    table_name: str | None = None
+    """SQLAlchemy only: the mapped table, from ``__tablename__``, the naming
+    rule of the declarative base, or the parent's table under single-table
+    inheritance. ``None`` when the source does not determine it."""
+    relationships: list[ParsedRelationship] = field(default_factory=list)
+    """SQLAlchemy only: ``relationship()`` attributes, own and inherited."""
 
     def all_fields(self) -> list[ParsedField]:
         """Every field on this model's own table, parent-first.
@@ -87,7 +149,7 @@ class ParsedModel:
         return [*self.inherited_fields, *self.fields]
 
     def to_dict(self) -> dict:
-        return {
+        out: dict[str, Any] = {
             "name": self.name,
             "appName": self.app_name,
             "filePath": self.file_path,
@@ -96,6 +158,12 @@ class ParsedModel:
             "fields": [f.to_dict() for f in self.fields],
             "meta": dict(self.meta),
         }
+        if self.orm != "django":
+            out["orm"] = self.orm
+            out["tableName"] = self.table_name
+            out["inheritedFields"] = [f.to_dict() for f in self.inherited_fields]
+            out["relationships"] = [r.to_dict() for r in self.relationships]
+        return out
 
 
 @dataclass
@@ -131,6 +199,21 @@ class WorkspaceIndex:
 
     def total_models(self) -> int:
         return sum(len(a.models) for a in self.apps)
+
+    def only(self, orm: str) -> WorkspaceIndex:
+        """A copy holding just the models of one ORM (``"django"`` or
+        ``"sqlalchemy"``); apps left without models are dropped."""
+        apps: list[ParsedApp] = []
+        for app in self.apps:
+            models = [m for m in app.models if m.orm == orm]
+            if models:
+                apps.append(ParsedApp(name=app.name, path=app.path, models=models))
+        return WorkspaceIndex(
+            apps=apps, scanned_at=self.scanned_at, scanned_files=self.scanned_files
+        )
+
+    def has_orm(self, orm: str) -> bool:
+        return any(m.orm == orm for app in self.apps for m in app.models)
 
 
 _USER_BASE_MARKERS = ("AbstractUser", "AbstractBaseUser")

@@ -201,6 +201,45 @@ def _has_django_marker(p: Path) -> bool:
     return False
 
 
+# Dependency files at the project root that name SQLAlchemy, SQLModel or
+# Flask-SQLAlchemy mark a SQLAlchemy project, as does an ``alembic.ini``.
+SQLALCHEMY_MARKERS: tuple[str, ...] = ("alembic.ini",)
+_SQLALCHEMY_DEP_FILES: tuple[str, ...] = (
+    "pyproject.toml",
+    "requirements.txt",
+    "requirements-dev.txt",
+    "setup.cfg",
+    "setup.py",
+    "Pipfile",
+)
+_SQLALCHEMY_DEP_RE = re.compile(r"(?i)\b(?:sqlalchemy|sqlmodel|flask[-_]sqlalchemy)\b")
+
+
+def _has_sqlalchemy_marker(p: Path) -> bool:
+    """Return True if the directory looks like a SQLAlchemy project.
+
+    ``alembic.ini`` at the root, or a root dependency file
+    (``pyproject.toml``, ``requirements.txt``, ``setup.cfg``, ``setup.py``,
+    ``Pipfile``) that names ``sqlalchemy``, ``sqlmodel`` or
+    ``flask-sqlalchemy``. Root-level only, so the check stays O(1).
+    """
+    if not p.is_dir():
+        return False
+    for marker in SQLALCHEMY_MARKERS:
+        if (p / marker).exists():
+            return True
+    for name in _SQLALCHEMY_DEP_FILES:
+        f = p / name
+        if not f.is_file():
+            continue
+        try:
+            if _SQLALCHEMY_DEP_RE.search(f.read_text(encoding="utf-8", errors="replace")):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def harden_path(raw: str) -> Path | WorkspaceError:
     """Expand + resolve + validate a raw path from an untrusted source.
 
@@ -275,14 +314,18 @@ def harden_path(raw: str) -> Path | WorkspaceError:
             ),
             path=str(resolved),
         )
-    if not _has_django_marker(resolved):
+    if not _has_django_marker(resolved) and not _has_sqlalchemy_marker(resolved):
         return WorkspaceError(
             code="WORKSPACE_NOT_DJANGO",
             message=(
                 f"No Django project markers (manage.py, django dep in "
-                f"pyproject.toml, or models.py) found under {resolved}."
+                f"pyproject.toml, or models.py) or SQLAlchemy markers "
+                f"(alembic.ini, sqlalchemy/sqlmodel dep) found under {resolved}."
             ),
-            hint="Point workspace_root at your Django project root — the directory containing manage.py.",
+            hint=(
+                "Point workspace_root at your project root — the directory "
+                "containing manage.py, alembic.ini or pyproject.toml."
+            ),
             path=str(resolved),
         )
     return resolved
@@ -320,7 +363,7 @@ def resolve_workspace(explicit: str | None = None) -> Path | WorkspaceError:
 # ---------------------------------------------------------------------------
 
 
-_INDEX_CACHE: dict[tuple[str, int], tuple[WorkspaceIndex, int]] = {}
+_INDEX_CACHE: dict[tuple[str, int, bool], tuple[WorkspaceIndex, int]] = {}
 
 
 def _manage_py_mtime(p: Path) -> int:
@@ -333,20 +376,24 @@ def _manage_py_mtime(p: Path) -> int:
     return 0
 
 
-def get_index(root: Path) -> WorkspaceIndex:
+def get_index(root: Path, include_sqlalchemy: bool = False) -> WorkspaceIndex:
     """Return a cached :class:`WorkspaceIndex` for the given resolved root.
 
     Keyed by ``(str(root), manage.py mtime)``. Editing ``manage.py`` bumps
     the mtime, forcing a fresh scan on the next call — this catches the
     common "agent scaffolded a new app between tool calls" case without
     waiting for the TTL. Cache is LRU-capped to :data:`_CACHE_MAX` entries.
+
+    ``include_sqlalchemy`` adds SQLAlchemy mapped classes (see
+    :func:`~django_orm_lens.parser.scan_workspace`); the two variants are
+    cached separately.
     """
     now_ms = int(time.time() * 1000)
-    key = (str(root), _manage_py_mtime(root))
+    key = (str(root), _manage_py_mtime(root), include_sqlalchemy)
     entry = _INDEX_CACHE.get(key)
     if entry is not None and entry[1] > now_ms:
         return entry[0]
-    idx = scan_workspace(str(root), DEFAULT_EXCLUDES)
+    idx = scan_workspace(str(root), DEFAULT_EXCLUDES, include_sqlalchemy=include_sqlalchemy)
     _INDEX_CACHE[key] = (idx, now_ms + _CACHE_TTL_MS)
     if len(_INDEX_CACHE) > _CACHE_MAX:
         # Evict the entry closest to expiry — a proxy for "least recently used"

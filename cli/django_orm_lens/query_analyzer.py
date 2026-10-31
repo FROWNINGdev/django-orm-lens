@@ -1603,6 +1603,7 @@ def scan_for_nplusone(
     project_root: str,
     models_schema: Any | None = None,
     include_tests: bool = False,
+    skip_sqlalchemy_files: bool = False,
 ) -> list[NPlusOneFinding]:
     """Public entry point — walks ``project_root`` and returns findings.
 
@@ -1611,7 +1612,12 @@ def scan_for_nplusone(
     shape emitted by :func:`django_orm_lens.parser.scan_workspace`, OR a
     :class:`~django_orm_lens.models.WorkspaceIndex` instance. When
     ``None``, the scanner runs in schema-less heuristic mode.
+
+    ``skip_sqlalchemy_files`` leaves out files that are SQLAlchemy code
+    without a Django import: their loops belong to the SQLAlchemy detector,
+    and Django's ``select_related`` advice would be wrong there.
     """
+    from .sqlalchemy_parser import is_sqlalchemy_only_source
     root = Path(project_root).resolve()
     if not root.is_dir():
         return []
@@ -1635,6 +1641,8 @@ def scan_for_nplusone(
             continue
         # Cheap textual pre-filter — skip files with no ``for`` keyword.
         if "for " not in source and "for\t" not in source:
+            continue
+        if skip_sqlalchemy_files and is_sqlalchemy_only_source(source):
             continue
         try:
             tree = ast.parse(source, filename=str(py))

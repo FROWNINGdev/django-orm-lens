@@ -40,6 +40,7 @@ from .diff import diff_schemas, format_diff
 from .drift import LEGEND_LINES as DRIFT_LEGEND_LINES
 from .drift import detect_drift, format_drift
 from .er_formats import ER_BUILDERS
+from .er_formats import _columns as _er_columns
 from .formatters import format_hover, format_index, format_model
 from .impact import group_by_layer, scan_impact
 from .migrations_parser import analyze_migration_risks, describe_migration_dependency
@@ -52,8 +53,9 @@ from .models import (
     resolve_related_tail,
 )
 from .parser import DEFAULT_EXCLUDES, _iter_python_files, scan_workspace
-from .query_analyzer import scan_for_nplusone, suggest_indexes
+from .query_analyzer import suggest_indexes
 from .signals_parser import signal_graph, skipped_delete_receivers
+from .sqlalchemy_nplusone import scan_all_nplusone
 from .stats import STATS_QUERY, ProductionStats, StatsError
 
 
@@ -90,7 +92,9 @@ def _resolve_excludes(cli_excludes: Sequence[str] | None) -> Sequence[str]:
     return tuple(cli_excludes) if cli_excludes else DEFAULT_EXCLUDES
 
 
-def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
+def _load_index(
+    args: argparse.Namespace, include_sqlalchemy: bool = False
+) -> WorkspaceIndex:
     """Validate ``--path`` exists before scanning. Silent-empty result on a
     typo'd path is a common confusion — surface it as an error.
 
@@ -99,6 +103,10 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
     your app just has no models" from "the path is wrong"). Print a hint to
     stderr in that case, unless ``--quiet`` was passed. Exit code is
     untouched — an empty result is valid, not an error.
+
+    ``include_sqlalchemy`` is for the commands that work on any ORM's models
+    (scan, describe, hover, list, er, nplusone); the Django analyses leave it
+    off.
     """
     import os
     if not os.path.isdir(args.path):
@@ -112,7 +120,7 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
     verbose = getattr(args, "verbose", False)
 
     start = time.perf_counter() if verbose else 0.0
-    index = scan_workspace(args.path, excludes)
+    index = scan_workspace(args.path, excludes, include_sqlalchemy=include_sqlalchemy)
     if verbose:
         elapsed_ms = (time.perf_counter() - start) * 1000
         # Read the count that scan_workspace already computed rather than
@@ -131,6 +139,13 @@ def _load_index(args: argparse.Namespace) -> WorkspaceIndex:
                 "      --exclude to whitelist non-standard layouts.",
                 file=sys.stderr,
             )
+            if include_sqlalchemy:
+                print(
+                    "      SQLAlchemy models are read from any .py file that maps a\n"
+                    "      class (DeclarativeBase, declarative_base(), db.Model or\n"
+                    "      SQLModel with table=True); none were found either.",
+                    file=sys.stderr,
+                )
     return index
 
 
@@ -141,13 +156,13 @@ def _find_model(index: WorkspaceIndex, ref: str) -> ParsedModel | None:
 
 
 def _cmd_scan(args: argparse.Namespace) -> int:
-    idx = _load_index(args)
+    idx = _load_index(args, include_sqlalchemy=True)
     print(format_index(idx, args.format))
     return 0
 
 
 def _cmd_describe(args: argparse.Namespace) -> int:
-    idx = _load_index(args)
+    idx = _load_index(args, include_sqlalchemy=True)
     model = _find_model(idx, args.model)
     if model is None:
         print(f"error: model {args.model!r} not found", file=sys.stderr)
@@ -157,7 +172,7 @@ def _cmd_describe(args: argparse.Namespace) -> int:
 
 
 def _cmd_hover(args: argparse.Namespace) -> int:
-    idx = _load_index(args)
+    idx = _load_index(args, include_sqlalchemy=True)
     model = _find_model(idx, args.model)
     if model is None:
         print(f"error: model {args.model!r} not found", file=sys.stderr)
@@ -167,7 +182,7 @@ def _cmd_hover(args: argparse.Namespace) -> int:
 
 
 def _cmd_list(args: argparse.Namespace) -> int:
-    idx = _load_index(args)
+    idx = _load_index(args, include_sqlalchemy=True)
     fmt = args.format.lower()
     if fmt == "json":
         payload = [{"app": app.name, "model": m.name} for app in idx.apps for m in app.models]
@@ -182,7 +197,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
 
 
 def _cmd_er(args: argparse.Namespace) -> int:
-    idx = _load_index(args)
+    idx = _load_index(args, include_sqlalchemy=True)
     diagram = (
         _build_mermaid(idx)
         if args.format == "mermaid"
@@ -231,12 +246,13 @@ def _cmd_diff(args: argparse.Namespace) -> int:
 
 
 def _cmd_nplusone(args: argparse.Namespace) -> int:
-    """Static N+1 detector — flag FK/M2M access inside loops without select/prefetch."""
-    idx = _load_index(args)
-    # scan_for_nplusone accepts a WorkspaceIndex directly (see
-    # query_analyzer._normalise_schema) — no need to pre-flatten. Passing idx
-    # avoids importing the private _build_schema_from_index helper here.
-    findings = scan_for_nplusone(args.path, idx, include_tests=args.include_tests)
+    """Static N+1 detector — flag FK/M2M access inside loops without select/prefetch.
+
+    Django querysets and SQLAlchemy queries are both checked; each detector
+    sees only its own ORM's models (see ``scan_all_nplusone``).
+    """
+    idx = _load_index(args, include_sqlalchemy=True)
+    findings = scan_all_nplusone(args.path, idx, include_tests=args.include_tests)
     if args.confidence == "high":
         findings = [f for f in findings if f.confidence == "high"]
     elif args.confidence == "medium":
@@ -624,7 +640,7 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
     for app in index.apps:
         for model in app.models:
             lines.append(f"  {safe(model.name)} {{")
-            for f in model.fields:
+            for f in _er_columns(model):
                 if f.is_relation:
                     continue
                 type_safe = "".join(ch for ch in f.type if ch.isalnum())
@@ -637,7 +653,7 @@ def _build_mermaid(index: WorkspaceIndex) -> str:
 
     for app in index.apps:
         for model in app.models:
-            for f in model.fields:
+            for f in _er_columns(model):
                 if not f.is_relation or not f.related_model:
                     continue
                 target = (
@@ -682,7 +698,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command")
     p.set_defaults(func=_cmd_hello)
 
-    scan = sub.add_parser("scan", help="Scan a workspace for Django models")
+    scan = sub.add_parser("scan", help="Scan a workspace for Django and SQLAlchemy models")
     _add_scan_flags(scan)
     scan.add_argument(
         "--format", "-f", choices=("json", "markdown", "table"), default="json"
@@ -753,7 +769,10 @@ def build_parser() -> argparse.ArgumentParser:
     npo = sub.add_parser(
         "nplusone",
         aliases=["n-plus-one"],
-        help="Detect N+1 anti-patterns in views/tasks (FK/M2M access without select/prefetch)",
+        help=(
+            "Detect N+1 anti-patterns in views/tasks (Django FK/M2M access without "
+            "select/prefetch, SQLAlchemy lazy relationships without selectinload/joinedload)"
+        ),
     )
     _add_scan_flags(npo)
     npo.add_argument(

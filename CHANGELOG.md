@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **SQLAlchemy models: scan, ER diagrams and N+1 (preview).**
+  `scan`, `list`, `describe`, `hover`, `er` and `nplusone`, and the matching
+  MCP tools, now read SQLAlchemy models: 2.0 `DeclarativeBase` / `Mapped[]`,
+  1.x `declarative_base()` / `Column`, Flask-SQLAlchemy `db.Model` and
+  SQLModel `table=True` classes. Static as always: `ast`, no import, no
+  database. Bases and mixins are followed across files, table names come
+  from `__tablename__` or the base's naming rule, foreign keys become ER
+  edges, and `relationship()` attributes are listed with their loader.
+  `nplusone` flags a loop over query results that reads a lazy relationship
+  without `selectinload` / `joinedload` in the query's options, and suggests
+  the option. The Django analyses (drift, blast radius, cascade, signals)
+  stay Django-only. Checked on Superset, Airflow, Prefect, Polar, Dispatch,
+  Mealie, CTFd, Redash and the FastAPI template: 12 N+1 findings, all real.
+  See [docs/rules/sqlalchemy.md](docs/rules/sqlalchemy.md).
+
+### Fixed
+
+- **SQLAlchemy and Flask classes no longer pass for Django models.** A
+  `models.py` with `class User(db.Model)` or Flask-AppBuilder's `Model`
+  matched the parser's `Model` heuristic, so a Flask project showed up as a
+  Django one: 65 phantom models in Superset, 138 in Polar, 69 in Dispatch.
+  Files that are SQLAlchemy code and never import Django are now left to
+  the SQLAlchemy reader. The Django projects in the census are unchanged.
+
 ## [0.19.6] - 2026-10-31
 
 ### Fixed
