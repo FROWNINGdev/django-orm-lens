@@ -420,7 +420,7 @@ Register it once with your agent and it exposes thirteen read-only tools:
 | `er_diagram` | ER diagram — `mermaid` / `dbml` / `d2` / `plantuml` / `dot` |
 | `describe_migration_dependency` | Per-app migration DAG: roots, leaves, cross-app deps |
 | `suggest_indexes` | `Meta.indexes` proposals from observed QuerySet usage |
-| `signal_graph` | Sender→signal→handler graph from `@receiver` decorators |
+| `signal_graph` | Sender→signal→handler graph from `@receiver` decorators and `signal.connect()` calls |
 | `blast_radius` | What a destructive migration hits: its risks, the code still reading it, the cascade fallout |
 | `drift` | `makemigrations --check` without booting Django — migrations diffed against `models.py` |
 | `impact` | Every reference to a field or model name, grouped by Django layer |

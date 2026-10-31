@@ -10,7 +10,7 @@ Exposes thirteen read-only tools that any MCP-compatible AI agent can call:
 * ``er_diagram``     — workspace ER diagram (mermaid / dbml / d2 / plantuml / dot)
 * ``describe_migration_dependency`` — per-app migration DAG from static AST parse
 * ``suggest_indexes`` — proposed ``Meta.indexes`` from workspace QuerySet usage
-* ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` decorators
+* ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` and ``.connect()``
 * ``nplusone_scan``  — static N+1 findings for the whole workspace
 
 The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
@@ -275,7 +275,8 @@ def _tool_suggest_indexes(args: dict[str, Any]) -> str:
 def _tool_signal_graph(args: dict[str, Any]) -> str:
     """Return the sender→signal→handler DAG for the workspace.
 
-    Static AST parse of every ``@receiver(...)`` decorator plus every
+    Static AST parse of every ``@receiver(...)`` decorator and
+    ``signal.connect(...)`` call, plus every
     module-level ``x = Signal(...)`` custom-signal definition and its
     ``.send(...)`` call-sites. Surfaces cross-model side effects and
     orphan handlers whose sender model isn't in the workspace.
@@ -462,7 +463,8 @@ TOOLS: dict[str, dict[str, Any]] = {
     "signal_graph": {
         "handler": _tool_signal_graph,
         "description": (
-            "Parse every @receiver() decorator and Signal() definition in "
+            "Parse every @receiver() decorator, signal.connect() call and "
+            "Signal() definition in "
             "the workspace. Returns sender->signal->handler DAG plus custom-"
             "signal send-sites and orphan handlers. Zero-runtime, no DB, no "
             "Django boot." + _WORKSPACE_HINT
