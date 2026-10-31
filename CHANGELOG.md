@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **DOL013 missed a `ForeignKey` with a call in its arguments.** The rule's
+  regex stopped at the first inner `(`, so
+  `ForeignKey(Author, verbose_name=_("author"))` or
+  `ForeignKey(Author, default=get_default_author())` was never checked, which
+  took the rule away from most relations in translated projects. The argument
+  list is now read with balanced brackets and quotes. A comma inside a nested
+  call is not a second positional argument, and the QuickFix inserts
+  `on_delete=` before the call's own closing `)`. The rule still checks one
+  line at a time. ([#182](https://github.com/FROWNINGdev/django-orm-lens/issues/182))
+
 - **`signals` / MCP `signal_graph` missed receivers registered with
   `.connect()`.** Only `@receiver(...)` decorators were read, so
   `post_delete.connect(delete_file, sender=Attachment)` in an `AppConfig.ready()`

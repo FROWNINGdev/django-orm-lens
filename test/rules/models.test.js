@@ -151,6 +151,36 @@ test('DOL013 still flags one positional plus keywords', () => {
   }
 });
 
+test('DOL013 reads past nested calls in the arguments (#182)', () => {
+  const rule = ruleByCode('DOL013');
+  for (const src of [
+    'author = models.ForeignKey(Author, verbose_name=_("author"))',
+    'author = models.ForeignKey(Author, default=get_default_author())',
+    // The comma sits inside a nested call, so it is not a second positional.
+    'author = models.ForeignKey(Author, help_text=_("a, b"))',
+    // A `)` inside a string doesn't close the call early.
+    'author = models.ForeignKey(Author, help_text=_("a) b"))',
+  ]) {
+    assert.equal(rule.check(makeCtx(src)).length, 1, src);
+  }
+  for (const src of [
+    'author = models.ForeignKey(Author, models.CASCADE, verbose_name=_("author"))',
+    'author = models.ForeignKey(Author, on_delete=models.CASCADE, verbose_name=_("author"))',
+  ]) {
+    assert.equal(rule.check(makeCtx(src)).length, 0, src);
+  }
+});
+
+test('DOL013 range ends at the matching paren, so the fixer edits the right spot', () => {
+  const rule = ruleByCode('DOL013');
+  const src = 'author = models.ForeignKey(Author, verbose_name=_("author"))  # note';
+  const [finding] = rule.check(makeCtx(src));
+  assert.equal(
+    src.slice(finding.range.startCol, finding.range.endCol),
+    'models.ForeignKey(Author, verbose_name=_("author"))',
+  );
+});
+
 test('DOL014 flags CharField without max_length', () => {
   const rule = ruleByCode('DOL014');
   const findings = rule.check(makeCtx('nickname = models.CharField()'));
