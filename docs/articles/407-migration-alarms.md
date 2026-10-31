@@ -10,8 +10,9 @@ description: >-
 
 *FROWNINGdev · 31 October 2026*
 
-I maintain [orm-lens](https://github.com/FROWNINGdev/orm-lens), a
-static analyzer for Django models and migrations. One of its checks,
+I maintain [orm-lens](https://github.com/FROWNINGdev/orm-lens) (until
+recently django-orm-lens), a static analyzer for Django models and
+migrations. One of its checks,
 `migration-risk`, reads every migration file and flags operations that break
 on a table that already has rows: a `NOT NULL` column with no default, a
 `UNIQUE` column that existing duplicates will violate, an index build that
