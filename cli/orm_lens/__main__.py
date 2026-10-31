@@ -1,4 +1,4 @@
-"""Entry point for ``python -m django_orm_lens``.
+"""Entry point for ``python -m orm_lens``.
 
 The console scripts declared in pyproject.toml cover the common case, but
 ``python -m`` is the invocation that does not depend on the scripts directory

@@ -18,7 +18,7 @@ compatibility: >-
   Read-only: never imports the project, never touches a database.
 metadata:
   author: FROWNINGdev
-  version: 1.3.1
+  version: 1.4.0
   homepage: https://github.com/FROWNINGdev/orm-lens
 ---
 

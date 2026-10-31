@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.migrations_parser import analyze_migration_risks
+from orm_lens.migrations_parser import analyze_migration_risks
 
 RULE = "conflicting_migration_leaves"
 

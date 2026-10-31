@@ -376,6 +376,27 @@ erDiagram
 
 <br/>
 
+## 🧪 SQLAlchemy, FastAPI and Flask (preview)
+
+The CLI and the MCP server read SQLAlchemy projects the same way they read Django ones: parsed with `ast`, never imported, no database.
+
+```bash
+uvx orm-lens scan -f table     # SQLAlchemy 2.0 / 1.x, Flask-SQLAlchemy and SQLModel models
+uvx orm-lens er -f mermaid     # ER diagram from the foreign keys and many-to-many tables
+uvx orm-lens nplusone          # lazy relationship() reads in loops, with the selectinload to add
+uvx orm-lens migration-risk    # Alembic revisions: NOT NULL without server_default, locking indexes, multiple heads
+```
+
+```text
+app/views.py:12  [high]  loop=user qs=users
+  accessed: addresses
+  fix:      .options(selectinload(User.addresses))
+```
+
+Tuned against Superset, Airflow, Prefect, Polar, Dispatch, Mealie, CTFd, Redash and the FastAPI template: 517 models read, and every N+1 finding on them checked by hand and real. Details: [SQLAlchemy models](docs/rules/sqlalchemy.md) · [Alembic rules](docs/rules/alembic.md). The VS Code extension is Django-only for now.
+
+<br/>
+
 ## 🤖 For terminals and AI coding agents
 
 The same parser that powers the VS Code extension ships as a standalone Python package — with an optional **MCP (Model Context Protocol) server** so any MCP-compatible AI agent can navigate your Django schema without importing Django or booting your app.
@@ -505,7 +526,7 @@ The comment goes up **before** the job fails, so a blocked PR still explains why
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/FROWNINGdev/orm-lens
-    rev: py-v1.15.0
+    rev: py-v1.16.0
     hooks:
       - id: django-orm-lens-nplusone
       - id: django-orm-lens-migration-risk

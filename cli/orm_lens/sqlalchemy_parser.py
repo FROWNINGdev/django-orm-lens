@@ -18,7 +18,7 @@ the declarative base itself contribute columns to every mapped subclass;
 a mapped parent is single-table inheritance when the child declares no
 table and no primary key of its own, joined inheritance otherwise.
 
-Each mapped class becomes a :class:`~django_orm_lens.models.ParsedModel`
+Each mapped class becomes a :class:`~orm_lens.models.ParsedModel`
 with ``orm = "sqlalchemy"``. Columns are :class:`ParsedField`; a
 ``ForeignKey`` makes the column a relation (``relation_kind`` ``ForeignKey``,
 or ``OneToOneField`` when the column is unique or the primary key), with

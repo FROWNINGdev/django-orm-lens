@@ -371,14 +371,14 @@ def format_markdown(report: BlastRadiusReport, root: str | Path = ".") -> str:
     if not report.targets and not report.unscanned_risks:
         return (
             f"{COMMENT_MARKER}\n"
-            "### Django ORM Lens — blast radius\n\n"
+            "### ORM Lens — blast radius\n\n"
             "No schema-changing operations found. Nothing to review here."
         )
 
     s = report.to_dict()["summary"]
     out: list[str] = [
         COMMENT_MARKER,
-        "### Django ORM Lens — blast radius",
+        "### ORM Lens — blast radius",
         "",
         f"**{s['targets']}** target(s) · **{s['criticalRisks']}** critical risk(s) · "
         f"**{s['certainReferences']}** certain reference(s) still in code",

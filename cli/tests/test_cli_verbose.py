@@ -21,7 +21,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.cli import main
+from orm_lens.cli import main
 
 MODELS_SOURCE = """from django.db import models
 

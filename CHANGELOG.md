@@ -1,11 +1,44 @@
 # Changelog
 
-All notable changes to Django ORM Lens will be documented in this file.
+All notable changes to ORM Lens (django-orm-lens until 1.16.0) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.20.0] - 2026-10-31
+
+### Changed
+
+- **The extension is now "ORM Lens for Django".** The project was renamed
+  from django-orm-lens to orm-lens when it started covering SQLAlchemy. Command
+  titles, the sidebar, the output channel and the diagnostics' source read
+  "ORM Lens". The extension ID stays `frowningdev.django-orm-lens`, so updates
+  arrive as usual and settings (`djangoOrmLens.*`) are untouched. Inline
+  suppressions accept `# orm-lens-disable…` and, as before,
+  `# django-orm-lens-disable…`. A Problems-panel filter on the old source
+  name "Django ORM Lens" needs the new one.
+
+## [py-1.16.0] - 2026-10-31
+
+### Changed
+
+- **django-orm-lens is now orm-lens, and reads SQLAlchemy models.**
+  The package is `orm-lens` on PyPI, with the commands `orm-lens` and
+  `orm-lens-mcp` and the module `orm_lens`. Nothing written against the old
+  name breaks: `pip install django-orm-lens` (and `[mcp]`) installs the
+  matching orm-lens and keeps the `django-orm-lens` / `django-orm-lens-mcp`
+  commands and `import django_orm_lens`, and upgrading an existing install
+  keeps both command names. The MCP server reads `ORM_LENS_ROOT` and
+  `ORM_LENS_ALLOWED_ROOTS`, then the old `DJANGO_ORM_LENS_*` names. The
+  repository moved to `github.com/FROWNINGdev/orm-lens` (the old URLs
+  redirect), the docs to `frowningdev.github.io/orm-lens`, the MCP Registry
+  entry to `io.github.FROWNINGdev/orm-lens`, and the image to
+  `ghcr.io/frowningdev/orm-lens` (`ghcr.io/frowningdev/django-orm-lens` keeps
+  getting the same builds). Kept on purpose: the pre-commit hook ids, the
+  SARIF tool name (code scanning keys open alerts on it) and the blast-radius
+  PR-comment marker. The GitHub Action still accepts a pre-1.16 `version`.
 
 ### Added
 

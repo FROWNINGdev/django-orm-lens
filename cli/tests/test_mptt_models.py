@@ -24,7 +24,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from django_orm_lens.parser import parse_models_file, scan_workspace
+from orm_lens.parser import parse_models_file, scan_workspace
 
 FIXTURE = Path(__file__).parent / "fixtures" / "mptt"
 FIXTURE_MODELS = FIXTURE / "catalog" / "models.py"

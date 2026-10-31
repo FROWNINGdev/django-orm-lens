@@ -1,4 +1,4 @@
-"""MCP (Model Context Protocol) stdio server for Django ORM Lens.
+"""MCP (Model Context Protocol) stdio server for ORM Lens.
 
 Exposes thirteen read-only tools that any MCP-compatible AI agent can call:
 
@@ -13,14 +13,14 @@ Exposes thirteen read-only tools that any MCP-compatible AI agent can call:
 * ``signal_graph``   — sender→signal→handler DAG from ``@receiver`` and ``.connect()``
 * ``nplusone_scan``  — static N+1 findings for the whole workspace
 
-The ``mcp`` runtime package is loaded lazily so ``pip install django-orm-lens``
-stays zero-dep. Install with the extras: ``pip install 'django-orm-lens[mcp]'``.
+The ``mcp`` runtime package is loaded lazily so ``pip install orm-lens``
+stays zero-dep. Install with the extras: ``pip install 'orm-lens[mcp]'``.
 
 Workspace discovery (py-1.3.0+)
 -------------------------------
 Every tool accepts an optional ``workspace_root`` argument. Resolution
-priority — explicit arg, then ``$DJANGO_ORM_LENS_ROOT`` env var, then ``cwd``
-— is implemented once in :mod:`django_orm_lens.workspace`. Before py-1.3.0
+priority — explicit arg, then ``$ORM_LENS_ROOT`` env var, then ``cwd``
+— is implemented once in :mod:`orm_lens.workspace`. Before py-1.3.0
 the argument was silently dropped by FastMCP because the tool signatures did
 not declare it; the fix is to declare the argument on every tool and delegate
 resolution to a single hardened helper. On failure the tool returns a JSON
@@ -240,7 +240,7 @@ def _tool_describe_migration_dependency(args: dict[str, Any]) -> str:
     """Return migration DAG for one Django app.
 
     Static AST parse of ``<app>/migrations/*.py`` — no Django boot, no DB.
-    Unique to django-orm-lens across the MCP + Django-graph tool ecosystem
+    Unique to orm-lens across the MCP + Django-graph tool ecosystem
     (competitors require a running Django process).
     """
     ws = _resolve(args)
@@ -395,7 +395,7 @@ def _tool_impact(args: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 _WORKSPACE_HINT = (
-    " Optional 'workspace_root' argument overrides the DJANGO_ORM_LENS_ROOT "
+    " Optional 'workspace_root' argument overrides the ORM_LENS_ROOT "
     "env var and current directory — pass the absolute path to your Django "
     "project root (the directory containing manage.py)."
 )
@@ -615,7 +615,7 @@ def _missing_sdk_message(version_info: Any = None) -> str:
     """What to print when no mcp SDK can be imported.
 
     Below 3.10 the extra installs nothing, because no mcp release supports
-    that Python. Repeating "pip install 'django-orm-lens[mcp]'" there would
+    that Python. Repeating "pip install 'orm-lens[mcp]'" there would
     send the user round in a loop, so name the real blocker and a command
     that works from the same machine.
     """
@@ -623,15 +623,15 @@ def _missing_sdk_message(version_info: Any = None) -> str:
     if vi[:2] < _MCP_MIN_PYTHON:
         running = ".".join(str(part) for part in vi[:3])
         return (
-            f"django-orm-lens MCP needs Python 3.10+, this is {running}.\n"
+            f"orm-lens MCP needs Python 3.10+, this is {running}.\n"
             "every release of the 'mcp' package requires 3.10, so the [mcp] "
             "extra installs nothing here; the CLI itself works on this Python.\n"
             "run the server from a newer interpreter, e.g.:\n"
-            "  uvx --python 3.12 --from 'django-orm-lens[mcp]' django-orm-lens-mcp"
+            "  uvx --python 3.12 --from 'orm-lens[mcp]' orm-lens-mcp"
         )
     return (
-        "django-orm-lens MCP requires the 'mcp' package.\n"
-        "install with: pip install 'django-orm-lens[mcp]'"
+        "orm-lens MCP requires the 'mcp' package.\n"
+        "install with: pip install 'orm-lens[mcp]'"
     )
 
 
@@ -647,9 +647,9 @@ def main() -> int:
     # below exists to fake on 1.x. Passing it here is not merely tidier: it is
     # supported API, so it keeps working if the private handle ever moves.
     server = (
-        server_class("django-orm-lens", version=__version__)
+        server_class("orm-lens", version=__version__)
         if takes_version
-        else server_class("django-orm-lens")
+        else server_class("orm-lens")
     )
     # Still called on both. On 1.x it is the only thing that sets the version;
     # on 2.x it writes the same value the constructor already stored, and
@@ -661,9 +661,9 @@ def main() -> int:
     # surface server stderr (Cursor, Aider, mcp-inspector) show this once
     # per session; silent clients ignore it. Zero effect on tool protocol.
     print(
-        "django-orm-lens MCP ready - "
+        "orm-lens MCP ready - "
         "if it saves your agent time, a star helps: "
-        "https://github.com/FROWNINGdev/django-orm-lens",
+        "https://github.com/FROWNINGdev/orm-lens",
         file=sys.stderr,
     )
 
@@ -674,7 +674,7 @@ def main() -> int:
         signature so FastMCP includes it in the ``inputSchema`` served to
         ``tools/list``. Agents that pass the argument reach the handler with
         the value; agents that omit it fall through to env var / cwd via the
-        resolution chain in :mod:`django_orm_lens.workspace`.
+        resolution chain in :mod:`orm_lens.workspace`.
         """
         if name == "list_apps":
             @server.tool(name=name, description=description)

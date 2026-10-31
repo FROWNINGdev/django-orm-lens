@@ -5,12 +5,12 @@
 # Smithery runs it via `uvx` so no user-side install / venv is required.
 
 name: "@FROWNINGdev/orm-lens"
-version: "1.15.0"
+version: "1.16.0"
 description: >-
-  Django ORM static-analysis MCP. 13 read-only tools that expose Django
-  schema, relationships (FK / M2M / O2O, on_delete, related_name),
-  migration DAG, missing-index heuristics, and signal graphs. No DB,
-  no Django boot, no credentials.
+  Django and SQLAlchemy static-analysis MCP. 13 read-only tools that expose
+  the schema, relationships (FK / M2M / O2O, on_delete, related_name), the
+  migration DAG, missing-index heuristics, signal graphs and N+1 loops.
+  No DB, no app boot, no credentials.
 author:
   name: "FROWNINGdev"
   url: "https://github.com/FROWNINGdev"

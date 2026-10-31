@@ -15,7 +15,7 @@ wider database-tooling community actually shares diagrams in:
 * **Graphviz DOT** — the established graph interchange language emitted by
   ``django-extensions graph_models``. Render locally with ``dot -Tsvg``.
 
-All four emitters walk the same :class:`~django_orm_lens.models.WorkspaceIndex`
+All four emitters walk the same :class:`~orm_lens.models.WorkspaceIndex`
 the Mermaid builder uses, resolve ``settings.AUTH_USER_MODEL`` identically,
 and skip relations whose target model lives outside the workspace — every
 format draws the same graph.
@@ -184,7 +184,7 @@ _DBML_ON_DELETE = {
 def build_dbml(index: WorkspaceIndex) -> str:
     """DBML document — paste into https://dbdiagram.io/d."""
     lines: list[str] = [
-        f"// {_schema_label(index)} schema exported by django-orm-lens",
+        f"// {_schema_label(index)} schema exported by orm-lens",
         "// Paste into https://dbdiagram.io/d — apps map to DBML schemas.",
         "",
     ]
@@ -239,7 +239,7 @@ def build_d2(index: WorkspaceIndex) -> str:
     keeps multi-app schemas legible without manual layout.
     """
     lines: list[str] = [
-        f"# {_schema_label(index)} schema exported by django-orm-lens",
+        f"# {_schema_label(index)} schema exported by orm-lens",
         "# Render: d2 schema.d2 schema.svg   (https://d2lang.com)",
         "",
         "direction: right",
@@ -296,7 +296,7 @@ def build_plantuml(index: WorkspaceIndex) -> str:
     """PlantUML entity diagram with crow's-foot cardinality."""
     lines: list[str] = [
         "@startuml",
-        f"' {_schema_label(index)} schema exported by django-orm-lens",
+        f"' {_schema_label(index)} schema exported by orm-lens",
         "hide circle",
         "skinparam linetype ortho",
         "skinparam roundCorner 8",
@@ -396,7 +396,7 @@ def _dot_table(model: ParsedModel) -> str:
 def build_dot(index: WorkspaceIndex) -> str:
     """Graphviz DOT diagram with app clusters and crow's-foot-style edges."""
     lines: list[str] = [
-        "digraph django_orm_lens {",
+        "digraph orm_lens {",
         '  graph [rankdir="LR", compound="true", fontname="Helvetica"];',
         '  node [shape="plain", fontname="Helvetica"];',
         '  edge [fontname="Helvetica", fontsize="10"];',

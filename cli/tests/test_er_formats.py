@@ -16,9 +16,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.cli import _build_mermaid, main
-from django_orm_lens.er_formats import build_d2, build_dbml, build_dot, build_plantuml
-from django_orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
+from orm_lens.cli import _build_mermaid, main
+from orm_lens.er_formats import build_d2, build_dbml, build_dot, build_plantuml
+from orm_lens.parser import DEFAULT_EXCLUDES, scan_workspace
 
 FIXTURES = Path(__file__).parent / "fixtures"
 MINIAPP = FIXTURES / "miniapp"
@@ -74,7 +74,7 @@ class MiniappAllFormatsTest(unittest.TestCase):
 
     def test_dot_clusters_tables_and_edges(self) -> None:
         dot = build_dot(self.index)
-        self.assertTrue(dot.startswith("digraph django_orm_lens {"))
+        self.assertTrue(dot.startswith("digraph orm_lens {"))
         self.assertIn('subgraph "cluster_orders" {', dot)
         self.assertIn('"orders.Order" [label=<<TABLE', dot)
         self.assertIn(
@@ -264,7 +264,7 @@ class CliWiringTest(unittest.TestCase):
             ("dbml", "Table orders.Order {"),
             ("d2", "shape: sql_table"),
             ("plantuml", "@startuml"),
-            ("dot", "digraph django_orm_lens"),
+            ("dot", "digraph orm_lens"),
         ):
             code, out, _ = _run(["er", "--path", str(MINIAPP), "--format", fmt])
             self.assertEqual(code, 0, f"{fmt} exited {code}")

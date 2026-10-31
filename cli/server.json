@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.FROWNINGdev/django-orm-lens",
-  "title": "Django ORM Lens",
-  "description": "Django ORM static analysis MCP. Models, relations, migrations, indexes, signals, N+1.",
-  "version": "1.15.0",
+  "name": "io.github.FROWNINGdev/orm-lens",
+  "title": "ORM Lens",
+  "description": "Django and SQLAlchemy static analysis: models, relations, migrations, Alembic, N+1.",
+  "version": "1.16.0",
   "repository": {
-    "url": "https://github.com/FROWNINGdev/django-orm-lens",
+    "url": "https://github.com/FROWNINGdev/orm-lens",
     "source": "github"
   },
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "django-orm-lens",
-      "version": "1.15.0",
+      "identifier": "orm-lens",
+      "version": "1.16.0",
       "transport": {
         "type": "stdio"
       },
@@ -20,13 +20,13 @@
       "runtimeArguments": [
         {
           "type": "positional",
-          "value": "django-orm-lens[mcp]"
+          "value": "orm-lens[mcp]"
         }
       ],
       "packageArguments": [
         {
           "type": "positional",
-          "value": "django-orm-lens-mcp"
+          "value": "orm-lens-mcp"
         }
       ]
     }

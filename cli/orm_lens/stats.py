@@ -9,7 +9,7 @@ to be annoying.
 
 This module closes the gap **without the tool ever touching a database**.
 The operator runs :data:`STATS_QUERY` themselves on a read-only connection and
-hands the resulting JSON to ``--stats``. django-orm-lens never sees a DSN, a
+hands the resulting JSON to ``--stats``. orm-lens never sees a DSN, a
 password, or a row of data — only table names and counts.
 
 That is a deliberate design choice, not a limitation:
@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 STATS_QUERY = """\
--- django-orm-lens: production table statistics (read-only, no user data)
+-- orm-lens: production table statistics (read-only, no user data)
 -- Run against a replica or with a read-only role, then save the output:
 --   psql -At -d "$DATABASE_URL" -f stats.sql > stats.json
 SELECT json_build_object(

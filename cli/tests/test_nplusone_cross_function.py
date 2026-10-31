@@ -19,7 +19,7 @@ import unittest
 from pathlib import Path
 from textwrap import indent
 
-from django_orm_lens.query_analyzer import (
+from orm_lens.query_analyzer import (
     NPlusOneScanner,
     _helper_call_name,
     _RelationSchema,

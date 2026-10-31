@@ -1,4 +1,4 @@
-"""Django ORM Lens — sidebar tree, ER diagrams, and JSON for Django models.
+"""ORM Lens — sidebar tree, ER diagrams, and JSON for Django models.
 
 Terminal / editor-agnostic parser for Django models.py files.
 Ships a CLI and an optional MCP server for AI coding agents.
@@ -8,7 +8,7 @@ try:
     from importlib.metadata import PackageNotFoundError
     from importlib.metadata import version as _pkg_version
     try:
-        __version__ = _pkg_version("django-orm-lens")
+        __version__ = _pkg_version("orm-lens")
     except PackageNotFoundError:
         __version__ = "0.0.0+local"
 except ImportError:

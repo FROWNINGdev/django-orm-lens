@@ -11,8 +11,8 @@ import io
 import json
 from pathlib import Path
 
-from django_orm_lens.alembic_risk import analyze_alembic_risks
-from django_orm_lens.cli import main
+from orm_lens.alembic_risk import analyze_alembic_risks
+from orm_lens.cli import main
 
 HEADER = (
     "import sqlalchemy as sa\n"

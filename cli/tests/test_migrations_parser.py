@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from django_orm_lens.migrations_parser import describe_migration_dependency
+from orm_lens.migrations_parser import describe_migration_dependency
 
 
 def _write_migration(app_dir: Path, name: str, body: str) -> None:
