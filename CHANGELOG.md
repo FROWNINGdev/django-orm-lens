@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.6] - 2026-10-31
+
+### Fixed
+
+- **DOL013 missed `OneToOneField` without `on_delete` (#181).**
+  `models.OneToOneField(User)` raises `TypeError` at import just like a
+  `ForeignKey` without a policy, but the rule only checked `ForeignKey`. It now
+  flags both, its message names the field it found, and the quick fix adds
+  `on_delete=models.CASCADE` to either. `ManyToManyField` has no `on_delete` and
+  is still left alone. Contributed by @1AbdullahButt.
+
+- **DOL013 missed a `ForeignKey` with a call in its arguments.** The rule's
+  regex stopped at the first inner `(`, so
+  `ForeignKey(Author, verbose_name=_("author"))` or
+  `ForeignKey(Author, default=get_default_author())` was never checked, which
+  took the rule away from most relations in translated projects. The argument
+  list is now read with balanced brackets and quotes. A comma inside a nested
+  call is not a second positional argument, and the QuickFix inserts
+  `on_delete=` before the call's own closing `)`. The rule still checks one
+  line at a time. ([#182](https://github.com/FROWNINGdev/django-orm-lens/issues/182)) Contributed by @1AbdullahButt.
+
+## [py-1.15.0] - 2026-10-31
+
 ### Added
 
 - **`migration-risk` reads Alembic revisions (preview).** SQLAlchemy projects
@@ -26,23 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **DOL013 missed `OneToOneField` without `on_delete` (#181).**
-  `models.OneToOneField(User)` raises `TypeError` at import just like a
-  `ForeignKey` without a policy, but the rule only checked `ForeignKey`. It now
-  flags both, its message names the field it found, and the quick fix adds
-  `on_delete=models.CASCADE` to either. `ManyToManyField` has no `on_delete` and
-  is still left alone.
-
-- **DOL013 missed a `ForeignKey` with a call in its arguments.** The rule's
-  regex stopped at the first inner `(`, so
-  `ForeignKey(Author, verbose_name=_("author"))` or
-  `ForeignKey(Author, default=get_default_author())` was never checked, which
-  took the rule away from most relations in translated projects. The argument
-  list is now read with balanced brackets and quotes. A comma inside a nested
-  call is not a second positional argument, and the QuickFix inserts
-  `on_delete=` before the call's own closing `)`. The rule still checks one
-  line at a time. ([#182](https://github.com/FROWNINGdev/django-orm-lens/issues/182))
-
 - **`signals` / MCP `signal_graph` missed receivers registered with
   `.connect()`.** Only `@receiver(...)` decorators were read, so
   `post_delete.connect(delete_file, sender=Attachment)` in an `AppConfig.ready()`
@@ -53,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   meaning every model. To keep sockets and database clients out, a `.connect()`
   call only counts when the signal is a Django built-in, a `Signal()` defined in
   the workspace, or the call passes `sender=`.
-  ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183))
+  ([#183](https://github.com/FROWNINGdev/django-orm-lens/issues/183)) Contributed by @1AbdullahButt.
 
 - **`nplusone` read assignments and instance methods as relation reads.**
   Two more patterns from the real-world census:
@@ -64,7 +70,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     variable, but its name matched the `<model>_set` reverse-manager
     heuristic. A call made directly on the loop variable is never a
     relation read; managers are always one attribute deeper.
-
 
 ## [py-1.14.0] - 2026-10-31
 
